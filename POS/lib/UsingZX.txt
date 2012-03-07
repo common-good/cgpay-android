@@ -1,0 +1,15 @@
+Using the ZX (Zebra Crossing) library:
+
+   
+    Install Apache Ant
+    Download the ZXing source from ZXing homepage and extract it
+        (http://code.google.com/p/zxing/downloads/list)
+    From the command line, navigate to the directory "core" in the extracted directory
+    Type "ant" and enter.  Ant will build the lib.
+    Move core.jar from the current directory to this directory ($PROJECT/lib)
+    From Eclipse, Right-click project folder -> Properties -> Java Build Path
+        -> Library -> Add External JARs...
+    Navigate to the newly extracted folder and open the core directory and select core.jar
+
+This application is currently using ZXing v2.0
+
