@@ -15,6 +15,10 @@ import android.widget.Button;
  * @author <a href="mailto:blake.meike@gmail.com">G. Blake Meike</a>
  */
 public class IdleActivity extends Activity {
+
+    /**
+     * @see android.app.Activity#onCreate(android.os.Bundle)
+     */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
