@@ -7,15 +7,22 @@
     <uses-sdk android:minSdkVersion="8" />
 
     <application
-        android:icon="@drawable/rlogo"
+        android:icon="@drawable/rlogo_icon"
         android:label="@string/app_name" >
         <activity
             android:name=".IdleActivity"
-            android:label="@string/app_name" >
+            android:label="@string/app_name"
+            android:theme="@style/Theme.NoBackground" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ScannerActivity"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.NoBackground" >
         </activity>
     </application>
 
