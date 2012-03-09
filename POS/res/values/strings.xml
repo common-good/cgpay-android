@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="hello">Common Good!</string>
+    <string name="scan">Scan</string>
     <string name="app_name">RCredits</string>
 
 </resources>
