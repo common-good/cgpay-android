@@ -24,7 +24,7 @@ public class IdleActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.idle);
 
-        ((Button) findViewById(R.id.scan)).setOnClickListener(
+        ((Button) findViewById(R.id.scan_button)).setOnClickListener(
             new Button.OnClickListener() {
                 @Override public void onClick(View v) { startScanner(); }
 

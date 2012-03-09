@@ -4,4 +4,8 @@
     android:layout_height="fill_parent"
     android:background="@color/blue">
 
+    <SurfaceView android:id="@+id/scan_view"
+               android:layout_width="fill_parent"
+               android:layout_height="fill_parent"/>
+    
 </FrameLayout>

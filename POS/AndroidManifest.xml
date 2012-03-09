@@ -6,9 +6,16 @@
 
     <uses-sdk android:minSdkVersion="8" />
 
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature android:name="android.hardware.camera" />
+    <uses-feature android:name="android.hardware.camera.autofocus" />
+
     <application
         android:icon="@drawable/rlogo_icon"
-        android:label="@string/app_name" >
+        android:label="@string/app_name"
+         android:name=".RCreditPOS" >
+
         <activity
             android:name=".IdleActivity"
             android:label="@string/app_name"
