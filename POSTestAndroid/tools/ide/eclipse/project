@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>com.commongoodbank.android.pos.test</name>
+	<name>com.commongoodbank.test.pos.android</name>
 	<comment></comment>
 	<projects>
 		<project>com.commongoodbank.android.pos</project>
