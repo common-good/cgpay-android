@@ -1,5 +1,5 @@
 This is the project to build a point of sale application for Common Good
-Bank's RCredits.
+Finance's RCredits.
 
 In order to build this app you will need to get a recent ZXing lib from
 the Google Code repo.  There are instructions in the /lib directory

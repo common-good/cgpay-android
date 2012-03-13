@@ -1,6 +1,6 @@
 /* $Id: $
  */
-package com.commongoodbank.android.pos;
+package com.commongoodfinance.android.pos;
 
 import java.io.IOException;
 

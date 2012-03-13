@@ -1,12 +1,13 @@
 /* $Id: $
  */
-package com.commongoodbank.android.pos;
+package com.commongoodfinance.android.pos;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+
 
 /**
  * IdleActivity

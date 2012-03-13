@@ -1,6 +1,6 @@
 /* $Id: $
  */
-package com.commongoodbank.android.pos.test;
+package com.commongoodfinance.android.pos.test;
 
 import static org.junit.Assert.*;
 
