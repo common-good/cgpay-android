@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="scan">Waiting to Scan</string>
     <string name="app_name">RCredits</string>
-
+    <string name="scan">Tap to Scan QR Code</string>
+    <string name="capture">Capture</string>
+    <string name="enter_price">Enter charge amount:</string>
+    <string name="confirm">Confirm</string>
+    <string name="confirmed">Sale complete!  Thank you for using RCredits!</string>
+    
 </resources>

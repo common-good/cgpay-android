@@ -12,5 +12,5 @@ import android.app.Application;
  */
 public class RCreditPOS extends Application {
     /** debugging tag */
-    public static final String TAG = "RCRED";
+    public static final String LOG_TAG = "CGF";
 }

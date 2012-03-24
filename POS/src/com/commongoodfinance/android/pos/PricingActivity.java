@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 
 /**
@@ -15,7 +16,7 @@ import android.widget.Button;
  * @version $Revision: $
  * @author <a href="mailto:blake.meike@gmail.com">G. Blake Meike</a>
  */
-public class IdleActivity extends Activity {
+public class PricingActivity extends Activity {
 
     /**
      * @see android.app.Activity#onCreate(android.os.Bundle)
@@ -24,15 +25,17 @@ public class IdleActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setContentView(R.layout.idle);
+        setContentView(R.layout.pricing);
 
-        ((Button) findViewById(R.id.scan_button)).setOnClickListener(
+        ((Button) findViewById(R.id.enter_button)).setOnClickListener(
             new Button.OnClickListener() {
-                @Override public void onClick(View v) { startScanner(); }
+                @Override public void onClick(View v) { confirmSale(); }
+
         } );
     }
 
-    void startScanner() {
-        startActivity(new Intent(this, ScannerActivity.class));
+    void confirmSale() {
+        Toast.makeText(this, R.string.confirmed, Toast.LENGTH_LONG).show();
+        startActivity(new Intent(this, IdleActivity.class));
     }
 }

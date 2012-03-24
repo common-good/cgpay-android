@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/idle_view"
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:background="@drawable/rlogo_back">
-
+    android:orientation="vertical" >
+    
+    <TextView
+        android:id="@+id/idle_text"
+        android:layout_alignParentBottom="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:textSize="24dp"
+        android:layout_centerHorizontal="true"
+        android:text="@string/scan" />
+    
     <Button
         android:id="@+id/scan_button"
+        android:layout_above="@id/idle_text"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="20dp"
-        android:layout_marginRight="20dp"
-        android:layout_marginLeft="20dp"
-        android:background="@color/shadow"
-        android:textSize="16dp"
-        android:textStyle="bold"
-        android:textColor="@color/white"
-        android:text="@string/scan" />
-
+        android:background="@drawable/rlogo_back" />
+     
 </RelativeLayout>
