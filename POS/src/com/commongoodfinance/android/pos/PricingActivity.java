@@ -36,6 +36,8 @@ public class PricingActivity extends Activity {
 
     void confirmSale() {
         Toast.makeText(this, R.string.confirmed, Toast.LENGTH_LONG).show();
-        startActivity(new Intent(this, IdleActivity.class));
+        Intent intent = new Intent(this, IdleActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
     }
 }
