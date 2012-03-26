@@ -1,6 +1,6 @@
 /* $Id: $
  */
-package com.commongoodfinance.android.pos.camera;
+package com.commongoodfinance.android.pos.scan;
 
 import android.content.Context;
 import android.graphics.Canvas;

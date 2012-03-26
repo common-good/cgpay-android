@@ -13,4 +13,10 @@ import android.app.Application;
 public class RCreditPOS extends Application {
     /** debugging tag */
     public static final String LOG_TAG = "CGF";
+
+    /** bundle key for the scan code */
+    public static final String KEY_SCAN_CODE = "com.commongoodfinance.scancode";
+
+    /** bundle key for the scan code */
+    public static final String KEY_PRICE = "com.commongoodfinance.price";
 }

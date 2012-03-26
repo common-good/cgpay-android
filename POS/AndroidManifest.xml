@@ -30,13 +30,15 @@
         <activity
             android:name=".ScannerActivity"
             android:label="@string/app_name" />
-        <!-- 
-            android:theme="@style/Theme.NoBackground" />
- -->
  
         <activity
             android:name=".PricingActivity"
             android:label="@string/app_name" />
-    </application>
+
+        <activity
+            android:name=".ConfirmationActivity"
+            android:label="@string/app_name" />
+ 
+        </application>
 
 </manifest>

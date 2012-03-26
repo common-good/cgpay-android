@@ -1,33 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    android:background="@drawable/rlogo_back" >
-
-    <Button
-        android:id="@+id/enter_button"
-        android:layout_alignParentBottom="true"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/white" >
+        
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/confirm" />
+        android:focusable="false"
+        android:textSize="16dp"
+        android:text="@string/enter_price" />
         
     <EditText
-        android:id="@+id/price"
-        android:layout_above="@id/enter_button"
+        android:id="@+id/price_text"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:textSize="24dp"
         android:inputType="numberDecimal"
         android:digits=".0123456789" />
-    
-    <TextView
-        android:id="@+id/enter_price"
-        android:layout_above="@id/price"
-        android:layout_width="fill_parent"
+
+    <Button
+        android:id="@+id/enter_button"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:text="@string/submit" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.dp"
+        android:layout_weight=".6"
+        android:focusable="false"        
+         />
+             
+    <ImageView 
+        android:layout_width="match_parent"
+        android:layout_height="0.dp"
+        android:layout_weight=".4"
         android:focusable="false"
-        android:textSize="16dp"
-        android:text="@string/enter_price" />
- 
-</RelativeLayout>
+        android:src="@drawable/rlogo_back"
+        android:scaleType="fitStart"
+        android:adjustViewBounds="true"
+        android:contentDescription="@string/logo_desc"/>
+    
+</LinearLayout>

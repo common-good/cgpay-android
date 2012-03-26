@@ -27,7 +27,7 @@ public class IdleActivityTest extends ActivityInstrumentationTestCase2<IdleActiv
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        scanButton = (Button) getActivity().findViewById(R.id.scan_button);
+        scanButton = (Button) getActivity().findViewById(R.id.idle_view);
     }
 
     /**

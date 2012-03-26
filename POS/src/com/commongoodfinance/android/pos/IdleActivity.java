@@ -6,7 +6,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 
 
 /**
@@ -26,8 +25,8 @@ public class IdleActivity extends Activity {
 
         setContentView(R.layout.idle);
 
-        ((Button) findViewById(R.id.scan_button)).setOnClickListener(
-            new Button.OnClickListener() {
+        findViewById(R.id.idle_view).setOnClickListener(
+            new View.OnClickListener() {
                 @Override public void onClick(View v) { startScanner(); }
         } );
     }

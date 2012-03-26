@@ -1,34 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    android:background="@color/white">
+    android:layout_height="fill_parent" >
 
-    <Button
-        android:id="@+id/capture_button"
-        android:layout_alignParentBottom="true"
+    <SurfaceView
+        android:id="@+id/scan_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="3dip"
-        android:text="@string/capture" />
-     
-    <FrameLayout
-        android:layout_above="@id/capture_button"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" >
-        
-        <SurfaceView
-            android:id="@+id/scan_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
- 
-        <com.commongoodfinance.android.pos.camera.ViewFinderView
-            android:id="@+id/viewfinder_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/transparent" />
+        android:layout_height="match_parent" />
 
-    </FrameLayout>
-    
-</RelativeLayout>
+    <com.commongoodfinance.android.pos.scan.ViewFinderView
+        android:id="@+id/viewfinder_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/transparent" />
+
+</FrameLayout>
