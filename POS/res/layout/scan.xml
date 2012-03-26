@@ -6,13 +6,13 @@
 
     <SurfaceView
         android:id="@+id/scan_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" />
 
     <com.commongoodfinance.android.pos.scan.ViewFinderView
         android:id="@+id/viewfinder_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
         android:background="@color/transparent" />
 
 </FrameLayout>

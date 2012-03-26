@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/white"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@drawable/rlogo_back"
     android:orientation="vertical" >
 
     <TextView
         android:id="@+id/confirm_id"
-        android:layout_width="match_parent"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:focusable="false"
         android:textSize="16dp" />
 
     <TextView
         android:id="@+id/confirm_price"
-        android:layout_width="match_parent"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:focusable="false"
         android:textSize="16dp" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:background="@color/white"
         android:orientation="horizontal" >
@@ -28,32 +28,16 @@
         <Button
             android:id="@+id/confirm_button"
             android:layout_width="0dp"
-            android:layout_weight=".5"
             android:layout_height="wrap_content"
+            android:layout_weight=".5"
             android:text="@string/confirm" />
 
         <Button
             android:id="@+id/cancel_button"
             android:layout_width="0dp"
-            android:layout_weight=".5"
             android:layout_height="wrap_content"
+            android:layout_weight=".5"
             android:text="@string/cancel" />
     </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0.dp"
-        android:layout_weight=".6"
-        android:focusable="false" />
-
-    <ImageView
-        android:layout_width="match_parent"
-        android:layout_height="0.dp"
-        android:layout_weight=".4"
-        android:adjustViewBounds="true"
-        android:contentDescription="@string/logo_desc"
-        android:focusable="false"
-        android:scaleType="fitStart"
-        android:src="@drawable/rlogo_back" />
 
 </LinearLayout>
