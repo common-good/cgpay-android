@@ -5,6 +5,7 @@ package com.commongoodfinance.android.pos;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -37,6 +38,14 @@ public class PricingActivity extends Activity {
                 @Override public void onClick(View v) { setPrice(); }
 
         } );
+
+        ((TextView) findViewById(R.id.price_text)).setOnEditorActionListener(
+            new TextView.OnEditorActionListener() {
+                @Override public boolean onEditorAction(TextView v, int act, KeyEvent evt) {
+                    if (null == evt) { return false; }
+                    setPrice();
+                    return true;
+                } });
     }
 
     void setPrice() {
