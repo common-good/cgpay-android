@@ -26,7 +26,7 @@ public class Scanner {
         // purely temporary: wait 10 sec the signal scan complete
         new Thread(new Runnable() {
             @Override public void run() {
-                try { Thread.sleep(7000); }
+                try { Thread.sleep(4000); }
                 catch (InterruptedException e) { }
                 hdlr.post( new Runnable() { @Override public void run() { capture(); } });
             }

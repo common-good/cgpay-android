@@ -12,6 +12,7 @@
         android:focusable="false"
         android:gravity="center_horizontal"
         android:text="@string/scan"
+        android:textColor="@color/green"
         android:textSize="24dp" />
 
 </LinearLayout>

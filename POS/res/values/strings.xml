@@ -4,6 +4,8 @@
     <string name="app_name">RCredits</string>
     <string name="scan">Tap to Scan QR Code</string>
     <string name="capture">Capture</string>
+    <string name="customer_pic">Customer Picture</string>
+    <string name="customer_name">Jane Q. Dough</string>
     <string name="enter_price">Please enter transaction amount:</string>
     <string name="submit">Submit</string>
     <string name="confirm">Confirm</string>
