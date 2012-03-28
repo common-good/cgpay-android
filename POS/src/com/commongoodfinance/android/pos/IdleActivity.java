@@ -28,7 +28,7 @@ public class IdleActivity extends Activity {
         findViewById(R.id.idle_view).setOnClickListener(
             new View.OnClickListener() {
                 @Override public void onClick(View v) { startScanner(); }
-        } );
+            } );
     }
 
     void startScanner() {

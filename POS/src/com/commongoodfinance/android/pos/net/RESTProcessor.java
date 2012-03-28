@@ -94,6 +94,6 @@ public class RESTProcessor {
     }
 
     HttpResponse execute(HttpUriRequest req) throws IOException {
-            return connectionFactory.getClient().execute(req);
+        return connectionFactory.getClient().execute(req);
     }
 }

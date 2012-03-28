@@ -112,6 +112,6 @@ public class ScannerActivity  extends Activity
             SurfaceView surfaceView = (SurfaceView) findViewById(R.id.scan_view);
             SurfaceHolder surfaceHolder = surfaceView.getHolder();
             surfaceHolder.removeCallback(this);
-          }
+        }
     }
 }

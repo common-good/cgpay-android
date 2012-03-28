@@ -42,6 +42,6 @@ public class Scanner {
 
     void capture() {
         if (null == listener) { return; }
-        listener.onCapture("Brave new world");
+        listener.onCapture("3357842");
     }
 }
