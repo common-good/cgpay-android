@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="#fff" >
+
+       <RelativeLayout
+           android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:layout_centerHorizontal="true"
+           android:layout_centerVertical="true"
+           android:layout_margin="50dp">
+	
+	       <TextView
+	           android:id="@+id/textView1"
+	           android:layout_width="wrap_content"
+	           android:layout_height="wrap_content"
+	           android:layout_alignParentTop="true"
+	           android:layout_centerHorizontal="true"
+	           android:text="Success"
+	           android:textSize="32sp"
+	           android:textColor="@color/member_details_text_brinjal"
+	           android:textAppearance="?android:attr/textAppearanceMedium" />
+	
+	       <TextView
+	           android:id="@+id/textView2"
+	           android:layout_width="match_parent"
+	           android:layout_height="wrap_content"
+	           android:layout_below="@+id/textView1"
+	           android:layout_centerHorizontal="true"
+	           android:layout_gravity="center_vertical|center"
+	           android:layout_marginTop="19dp"
+	           android:textSize="25sp"
+	           android:text="Message Loading..."
+	           android:textAppearance="?android:attr/textAppearanceMedium"
+	           android:textColor="@color/member_details_text_color" />
+	
+	       <Button
+	           android:id="@+id/btnBack"
+	           android:layout_below="@+id/textView2"
+	           android:layout_width="wrap_content"
+	           android:layout_height="100dp"
+	           android:layout_centerHorizontal="true"
+	           android:layout_marginTop="19dp"
+	           android:textColor="@color/member_details_text_brinjal"
+	           android:textStyle="italic"
+	           android:textSize="25sp"
+	           android:text="Back" />
+           
+       </RelativeLayout>
+
+</RelativeLayout>
+    

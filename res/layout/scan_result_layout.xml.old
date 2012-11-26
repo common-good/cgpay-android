@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:android1="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="#fff" >
+
+    <ImageView
+        android:id="@+id/imgMemberImage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="30dp"
+        android:layout_marginTop="30dp"
+        android:src="@drawable/image_loading" />
+
+    <TextView
+        android:id="@+id/txtMemberName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="120dp"
+        android:layout_marginTop="30dp"
+        android:text="Loading..."
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textColor="@color/member_details_text_color"
+        android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/txtLocation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="120dp"
+            android:layout_marginTop="70dp"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@color/member_details_text_color"
+            android:text="" />
+
+        <TextView
+            android:id="@+id/txtInstruactionLine1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="120dp"
+            android:layout_marginTop="100dp"
+            android:textColor="#000"
+            android:textSize="9sp"
+            android:text="Type the amount to charge" />
+        
+        <TextView
+            android:id="@+id/txtInstruactionLine2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="120dp"
+            android:layout_marginTop="112dp"
+            android:textColor="#000"
+            android:textSize="9sp"
+            android:text="this person, with no commas" />
+        
+        <TextView
+            android:id="@+id/txtInstruactionLine3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="120dp"
+            android:layout_marginTop="124dp"
+            android:textColor="#000"
+            android:textSize="9sp"
+            android:text="and no dollar sign" />
+        
+        <Spinner
+            android:id="@+id/cmbAmount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="30dp"
+            android:layout_marginTop="150dp" />
+        
+        <TextView
+            android:id="@+id/textHowMuch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="160dp"
+            android:layout_marginTop="163dp"
+            android:textStyle="bold"
+            android:textColor="@color/member_details_text_brinjal"
+            android:text="How Much?" />
+        
+        <TextView
+            android:id="@+id/txtDollar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="80dp"
+            android:layout_marginTop="210dp"
+            android:textStyle="bold"
+            android:textColor="@color/member_details_text_brinjal"
+            android:text="$" />
+        
+        <EditText
+            android:id="@+id/edtAmount"
+            android:layout_width="fill_parent"
+            android:layout_height="40dp"
+            android:layout_marginLeft="100dp"
+            android:layout_marginTop="200dp"
+            android:layout_marginRight="30dp"
+            android:textSize="13sp" >
+
+            <requestFocus />
+        </EditText>
+        
+        <TextView
+            android:id="@+id/txtFor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="35dp"
+            android:layout_marginTop="273dp"
+            android:textStyle="bold"
+            android:textColor="@color/member_details_text_brinjal"
+            android:text="For" />
+
+        
+
+        <RadioButton
+            android:id="@+id/radioButton1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="63dp"
+            android:layout_marginTop="240dp" />
+        
+        <EditText
+            android:id="@+id/edtReason"
+            android:layout_width="fill_parent"
+            android:layout_height="40dp"
+            android:layout_marginLeft="100dp"
+            android:layout_marginTop="245dp"
+            android:layout_marginRight="30dp"
+            android:text="goods and services"
+            android:textSize="13sp" />
+        
+        <RadioButton
+            androidid="@+id/radioButton2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="63dp"
+            android:layout_marginTop="280dp" />
+        
+        <TextView
+            android:id="@+id/txtDesc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="105dp"
+            android:layout_marginTop="293dp"
+            android:textColor="@color/member_details_text_brinjal"
+            android:text="cash, credit, or gift" />
+        
+        <ImageView
+            android:id="@+id/imageView1"
+            android:layout_width="70dp"
+            android:layout_height="100dp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:src="@drawable/rlogo" />
+
+        <Button
+            android:id="@+id/bntSubmit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="100dp"
+            android:layout_marginTop="330dp"
+            android:text="Submit" />
+
+    </RelativeLayout>
+    
