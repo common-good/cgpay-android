@@ -21,10 +21,10 @@ version to be published. The next versionCode will be 7, regardless of whether t
 versionName is 2.31, 2.4, or 3.0.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.scanner"
+    package="org.rcredits"
     android:installLocation="auto"
-    android:versionCode="2"
-    android:versionName="1.1" >
+    android:versionCode="20121128"
+    android:versionName="0.1b" >
 
     <!-- We require Cupcake (Android 2.2) or later, but are really targeting Donut. -->
     <uses-sdk
@@ -65,7 +65,6 @@ versionName is 2.31, 2.4, or 3.0.
             android:windowSoftInputMode="stateAlwaysHidden" >
             <intent-filter>
                 <action android:name="com.laundrylocker.barcodescanner.SCAN" />
-
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -80,7 +79,6 @@ versionName is 2.31, 2.4, or 3.0.
             android:screenOrientation="portrait" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

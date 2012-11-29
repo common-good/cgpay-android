@@ -2,5 +2,6 @@ bin/
 gen/
 libs/
 out
+src/com/android/
 .DS_*
 /xtra

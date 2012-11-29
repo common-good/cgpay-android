@@ -21,6 +21,12 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
 
+import org.rcredits.ChangeAccountActivity;
+import org.rcredits.ChangeAgentActivity;
+import org.rcredits.PayChargeActivity;
+import org.rcredits.ScanResultActivity;
+import org.rcredits.Util;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -41,12 +47,7 @@ import com.android.barcodescanner.result.ResultHandlerFactory;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.Result;
 import com.google.zxing.ResultMetadataType;
-import com.scanner.ChangeAccountActivity;
-import com.scanner.ChangeAgentActivity;
-import com.scanner.PayChargeActivity;
-import com.scanner.R;
-import com.scanner.ScanResultActivity;
-import com.scanner.Util;
+import org.rcredits.R;
 
 /**
  * The barcode reader activity itself. This is loosely based on the
@@ -89,7 +90,7 @@ public final class CaptureActivity extends Activity implements
 	private BeepManager beepManager;
 	
 	//rCredit specific variables
-	String target, action_flag;
+	String target, action;
 
 	ViewfinderView getViewfinderView() {
 		return viewfinderView;
@@ -114,7 +115,7 @@ public final class CaptureActivity extends Activity implements
 		
 		//Get the passed data from dashboard
 		target = (String) getIntent().getExtras().get("target");
-		action_flag = (String) getIntent().getExtras().get("action_flag");
+		action = (String) getIntent().getExtras().get("action");
 		
 		handler = null;
 		lastResult = null;
@@ -281,32 +282,23 @@ public final class CaptureActivity extends Activity implements
 		System.out.println("data: " + data);
 		if (!data.equals("")) {
 			Intent intent;
-			if(target.equals("pay_charge_activity"))
-			{
-				//Let's go to the PayChargeActivitys
+			if(target.equals("pay_charge")) {
 				intent = new Intent(this, PayChargeActivity.class);
-				intent.putExtra("action_flag", action_flag);
-			}
-			else if(target.equals("change_agent")){
-				//We change the Agent
+				intent.putExtra("action", action);
+			} else if(target.equals("change_agent")) {
 				intent = new Intent(this, ChangeAgentActivity.class);
-				intent.putExtra("action_flag", action_flag);
-			}
-			else if(target.equals("change_account")){
-				//We change the Agent
+				intent.putExtra("action", action);
+			} else if(target.equals("change_account")) {
 				intent = new Intent(this, ChangeAccountActivity.class);
-				intent.putExtra("action_flag", action_flag);
-			}
-			else
-			{
+				intent.putExtra("action", action);
+			} else {
 				intent = new Intent(this, ScanResultActivity.class);
 			}
 			intent.putExtra("data", data);
 			startActivity(intent);
 			finish();
 		} else {
-			Util.showCallBackMessage(CaptureActivity.this, INVALID_CODE,
-					CaptureActivity.this);
+			Util.showCallBackMessage(CaptureActivity.this, INVALID_CODE, CaptureActivity.this);
 		}
 	}
 

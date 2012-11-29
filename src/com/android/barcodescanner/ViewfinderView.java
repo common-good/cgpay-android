@@ -18,7 +18,7 @@ package com.android.barcodescanner;
 
 import com.android.barcodescanner.camera.CameraManager;
 import com.google.zxing.ResultPoint;
-import com.scanner.R;
+import org.rcredits.R;
 
 import android.content.Context;
 import android.content.res.Resources;

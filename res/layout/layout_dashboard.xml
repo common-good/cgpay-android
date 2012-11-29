@@ -19,101 +19,101 @@
                 android:layout_alignParentTop="true" >
                 
                 <Button
-		            android:id="@+id/btnCharge"
-		            android:layout_width="0dp"
-		            android:layout_weight=".50"
-		            android:layout_height="wrap_content"
-		            android:textColor="@color/member_details_text_brinjal"
-		            android:textStyle="italic"
-		            android:text="Charge" />
-		        
-		        <Button
-		            android:id="@+id/btnPay"
-		            android:layout_width="0dp"
-		            android:layout_weight=".50"
-		            android:layout_height="wrap_content"
-		            android:textColor="@color/member_details_text_brinjal"
-		            android:textStyle="italic"
-		            android:text="Pay" />
-		                
+                android:id="@+id/btnCharge"
+                android:layout_width="0dp"
+                android:layout_weight=".50"
+                android:layout_height="wrap_content"
+                android:textColor="@color/member_details_text_brinjal"
+                android:textStyle="italic"
+                android:text="Charge" />
+            
+            <Button
+                android:id="@+id/btnPay"
+                android:layout_width="0dp"
+                android:layout_weight=".50"
+                android:layout_height="wrap_content"
+                android:textColor="@color/member_details_text_brinjal"
+                android:textStyle="italic"
+                android:text="Pay" />
+                    
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/ll_row2"
                 android:layout_width="match_parent"
                 android:layout_below="@+id/ll_row1"
                 android:layout_height="wrap_content" >
-		        <Button
-		            android:id="@+id/btnUndoLast"
-		            android:layout_width="match_parent"
-		            android:layout_height="wrap_content"
-		            android:textColor="@color/member_details_text_brinjal"
-		            android:textStyle="italic"
-		            android:text="Undo Last Transaction" />
-		    </LinearLayout>
-		    <LinearLayout
+            <Button
+                android:id="@+id/btnUndo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/member_details_text_brinjal"
+                android:textStyle="italic"
+                android:text="Undo Last Transaction" />
+        </LinearLayout>
+        <LinearLayout
                 android:id="@+id/ll_row3"
                 android:layout_width="match_parent"
                 android:layout_below="@+id/ll_row2"
                 android:layout_height="wrap_content" >
-		        
-		        <Button
-		            android:id="@+id/btnShowBalance"
-		            android:layout_width="match_parent"
-		            android:layout_height="wrap_content"
-		            android:textColor="@color/member_details_text_brinjal"
-		            android:textStyle="italic"
-		            android:text="Show Customer Balance" />
-		    </LinearLayout>
-		    
-		    <LinearLayout
+            
+            <Button
+                android:id="@+id/btnShowBalance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/member_details_text_brinjal"
+                android:textStyle="italic"
+                android:text="Show Customer Balance" />
+        </LinearLayout>
+        
+        <LinearLayout
                 android:id="@+id/ll_row4"
                 android:layout_width="match_parent"
                 android:layout_below="@+id/ll_row3"
                 android:layout_height="wrap_content" >
-		        
-		        <Button
-		            android:id="@+id/btnUpdateApp"
-		            android:layout_width="match_parent"
-		            android:layout_height="wrap_content"
-		            android:textColor="@color/member_details_text_brinjal"
-		            android:textStyle="italic"
-		            android:text="Update This App" />
+            
+            <Button
+                android:id="@+id/btnUpdateApp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/member_details_text_brinjal"
+                android:textStyle="italic"
+                android:text="Update This App" />
 
-		    </LinearLayout>
-		    <LinearLayout
+        </LinearLayout>
+        <LinearLayout
                 android:id="@+id/ll_row5"
                 android:layout_width="match_parent"
                 android:layout_below="@+id/ll_row4"
                 android:layout_height="wrap_content" >
-		        
-		        <Button
-		            android:id="@+id/btnChangeAgent"
-		            android:layout_width="0dp"
-		            android:layout_weight=".50"
-		            android:layout_height="wrap_content"
-		            android:textColor="@color/member_details_text_brinjal"
-		            android:textStyle="italic"
-		            android:text="Change Agent" />
-		        
-		        <Button
-		            android:id="@+id/btnChangeAccount"
-		            android:layout_width="0dp"
-		            android:layout_weight=".50"
-		            android:layout_height="wrap_content"
-		            android:textColor="@color/member_details_text_brinjal"
-		            android:textStyle="italic"
-		            android:text="Change Account" />
+            
+            <Button
+                android:id="@+id/btnChangeAgent"
+                android:layout_width="0dp"
+                android:layout_weight=".50"
+                android:layout_height="wrap_content"
+                android:textColor="@color/member_details_text_brinjal"
+                android:textStyle="italic"
+                android:text="Change Agent" />
+            
+            <Button
+                android:id="@+id/btnChangeAccount"
+                android:layout_width="0dp"
+                android:layout_weight=".50"
+                android:layout_height="wrap_content"
+                android:textColor="@color/member_details_text_brinjal"
+                android:textStyle="italic"
+                android:text="Change Account" />
 
-		    </LinearLayout>
-		    
-		    <ImageView
-	            android:id="@+id/imageView1"
-	            android:layout_below="@+id/ll_row5"
-	            android:layout_width="wrap_content"
-	            android:layout_marginTop="40dp"
-	            android:layout_height="120dp"
-	            android:layout_centerHorizontal="true"
-	            android:src="@drawable/rlogo" />
+        </LinearLayout>
+        
+        <ImageView
+              android:id="@+id/imageView1"
+              android:layout_below="@+id/ll_row5"
+              android:layout_width="wrap_content"
+              android:layout_marginTop="40dp"
+              android:layout_height="120dp"
+              android:layout_centerHorizontal="true"
+              android:src="@drawable/rlogo" />
             
         </RelativeLayout>
 

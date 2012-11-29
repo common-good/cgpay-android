@@ -26,7 +26,7 @@ import android.util.Log;
 
 import java.io.IOException;
 
-import com.scanner.R;
+import org.rcredits.R;
 
 /**
  * Manages beeps and vibrations for {@link CaptureActivity}.

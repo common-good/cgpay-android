@@ -21,7 +21,7 @@ import android.os.Handler;
 import android.widget.TextView;
 import com.android.barcodescanner.AndroidHttpClient;
 import com.google.zxing.client.result.URIParsedResult;
-import com.scanner.R;
+import org.rcredits.R;
 
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;

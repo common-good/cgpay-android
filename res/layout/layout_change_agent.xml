@@ -10,39 +10,39 @@
            android:layout_centerHorizontal="true"
            android:layout_centerVertical="true"
            android:layout_margin="50dp">
-	
-	       <!-- <TextView
-	           android:id="@+id/textView1"
-	           android:layout_width="wrap_content"
-	           android:layout_height="wrap_content"
-	           android:layout_alignParentTop="true"
-	           android:layout_centerHorizontal="true"
-	           android:text="Success"
-	           android:textColor="@color/member_details_text_brinjal"
-	           android:textAppearance="?android:attr/textAppearanceMedium" />
-	
-	       <TextView
-	           android:id="@+id/textView2"
-	           android:layout_width="match_parent"
-	           android:layout_height="wrap_content"
-	           android:layout_below="@+id/textView1"
-	           android:layout_centerHorizontal="true"
-	           android:layout_gravity="center_vertical|center"
-	           android:layout_marginTop="19dp"
-	           android:text="Message Loading..."
-	           android:textAppearance="?android:attr/textAppearanceMedium"
-	           android:textColor="@color/member_details_text_color" />
-	
-	       <Button
-	           android:id="@+id/btnBack"
-	           android:layout_below="@+id/textView2"
-	           android:layout_width="70dp"
-	           android:layout_height="wrap_content"
-	           android:layout_centerHorizontal="true"
-	           android:layout_marginTop="19dp"
-	           android:textColor="@color/member_details_text_brinjal"
-	           android:textStyle="italic"
-	           android:text="Back" /> -->
+  
+         <!-- <TextView
+             android:id="@+id/textView1"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_alignParentTop="true"
+             android:layout_centerHorizontal="true"
+             android:text="Success"
+             android:textColor="@color/member_details_text_brinjal"
+             android:textAppearance="?android:attr/textAppearanceMedium" />
+  
+         <TextView
+             android:id="@+id/textView2"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:layout_below="@+id/textView1"
+             android:layout_centerHorizontal="true"
+             android:layout_gravity="center_vertical|center"
+             android:layout_marginTop="19dp"
+             android:text="Message Loading..."
+             android:textAppearance="?android:attr/textAppearanceMedium"
+             android:textColor="@color/member_details_text_color" />
+  
+         <Button
+             android:id="@+id/btnBack"
+             android:layout_below="@+id/textView2"
+             android:layout_width="70dp"
+             android:layout_height="wrap_content"
+             android:layout_centerHorizontal="true"
+             android:layout_marginTop="19dp"
+             android:textColor="@color/member_details_text_brinjal"
+             android:textStyle="italic"
+             android:text="Back" /> -->
            
        </RelativeLayout>
 

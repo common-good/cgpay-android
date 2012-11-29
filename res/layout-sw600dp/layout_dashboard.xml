@@ -45,7 +45,7 @@
                 android:layout_below="@+id/ll_row1"
                 android:layout_height="wrap_content" >
 		        <Button
-		            android:id="@+id/btnUndoLast"
+		            android:id="@+id/btnUndo"
 		            android:layout_width="match_parent"
 		            android:layout_height="100dp"
 		            android:textColor="@color/member_details_text_brinjal"

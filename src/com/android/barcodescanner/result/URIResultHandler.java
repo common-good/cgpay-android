@@ -19,7 +19,7 @@ package com.android.barcodescanner.result;
 import com.android.barcodescanner.LocaleManager;
 import com.google.zxing.client.result.ParsedResult;
 import com.google.zxing.client.result.URIParsedResult;
-import com.scanner.R;
+import org.rcredits.R;
 
 import android.app.Activity;
 
