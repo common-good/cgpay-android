@@ -1,6 +1,5 @@
 bin/
 gen/
-libs/
 out
 src/com/android/
 .DS_*
