@@ -1,3 +1,0 @@
-Custom build of Barcode Scanner for Android which forces the preview display to use portrait mode.  This build also contains some hacks to make scanning faster.  The application I was developing needed a bit faster scanning, so I cut out the delay after a barcode is found.  It should instantly send the data back to the Intent that requested it. 
-
-Works on NexusS4G with zxing 1.7 source as a base.

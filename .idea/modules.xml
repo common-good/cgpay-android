@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Zxing-android.iml" filepath="$PROJECT_DIR$/Zxing-android.iml" />
+      <module fileurl="file://$PROJECT_DIR$/rCredits/rCredits.iml" filepath="$PROJECT_DIR$/rCredits/rCredits.iml" />
+      <module fileurl="file://$PROJECT_DIR$/rCreditsProject.iml" filepath="$PROJECT_DIR$/rCreditsProject.iml" />
     </modules>
   </component>
 </project>

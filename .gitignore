@@ -1,6 +1,4 @@
-bin/
-gen/
-out
-src/com/android/
-.DS_*
-/xtra
+.gradle
+/local.properties
+/.idea/workspace.xml
+.DS_Store
