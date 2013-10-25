@@ -1,0 +1,19 @@
+rCredits Android POS software
+Developer Notes
+
+To Do:
+. handle Tx activity buttons
+. change r-> buttons to swipe left and right
+. make "r"s fly from picture off the screen
+. change "change desc" button to swipe left
+. settings
+. restrict to QR codes (see in onResume)
+. improve numeric keypad layout
+. create new description text input
+. fix background highlight on change description view
+. fix rSmart tests
+. handle back button
+. handle undo
+. handle customer balance
+. handle refund
+. comment functions more

@@ -1,0 +1,9 @@
+2013-10-25
+. many thanks to Blake, who showed the way, and to the ZXing team who did the heavy lifting
+. brought zxing into the project (core/ and javase/ as jars, android/ directly)
+. scrapped the plan for a hybrid app
+. changed CaptureActivity to portrait, revised and added buttons
+. created Customer, Tx, and Change Description activities
+. set up static params and functions in Application A
+. created rCard class
+. very rough and incomplete, but all the major pieces are there (scanning, navigating, data entry, storage, RPC, error handling)
