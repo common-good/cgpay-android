@@ -32,7 +32,9 @@
                 android:id="@+id/undo_last"
                 android:layout_gravity="center_horizontal"
                 android:textSize="20dp"
-                android:width="150dp" />
+                android:width="150dp"
+                android:onClick="onUndo"
+                android:clickable="true"/>
         </FrameLayout>
 
         <FrameLayout
@@ -49,7 +51,9 @@
                 android:id="@+id/show_balance"
                 android:layout_gravity="center_horizontal"
                 android:textSize="20dp"
-                android:width="150dp" />
+                android:width="150dp"
+                android:clickable="true"
+                android:onClick="onShowBalance"/>
         </FrameLayout>
 
     </LinearLayout>
@@ -74,7 +78,7 @@
             android:lines="1"
             android:singleLine="true"
             android:clickable="false"
-            android:textColor="#000000"/>
+            android:textColor="#868686"/>
 
         <TextView
             android:layout_width="wrap_content"
@@ -82,8 +86,9 @@
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:text="Ready to scan..."
             android:id="@+id/textView2"
-            android:clickable="false"
-            android:textColor="#000000"/>
+            android:clickable="true"
+            android:textColor="#868686"
+            android:onClick="onFakeScan"/>
     </LinearLayout>
 
 </FrameLayout>

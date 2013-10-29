@@ -15,14 +15,16 @@ import android.widget.TextView;
  * @intent customerRegion: customer's region code
  * @intent json: identifying information about the customer (name, company, place), json-encoded
  */
-public class Customer extends Activity {
+public class CustomerActivity extends Act {
+    private final Act act = this;
+    public static String customer; // qid of current customer
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_customer);
 
-        String customer = A.getIntentString(this.getIntent(), "customer");
+        customer = A.getIntentString(this.getIntent(), "customer");
         String customerRegion = A.getIntentString(this.getIntent(), "customerRegion");
         String json = A.getIntentString(this.getIntent(), "json");
 
@@ -40,7 +42,7 @@ public class Customer extends Activity {
         if (!A.canRefund) findViewById(R.id.refund).setVisibility(View.INVISIBLE);
 
         ImageView photo = (ImageView) findViewById(R.id.photo);
-        final byte[] image = A.apiGetPhoto(customerRegion, customer, this);
+        final byte[] image = A.apiGetPhoto(act, customerRegion, customer);
         photo.setImageBitmap(BitmapFactory.decodeByteArray(image, 0, image.length));
     }
 
@@ -54,6 +56,7 @@ public class Customer extends Activity {
     public void onRClick(View button) {
         Intent intent = new Intent(this, Tx.class);
         if (button.getId() == R.id.charge) A.putIntentString(intent, "description", A.descriptions[1]);
+        A.putIntentString(intent, "customer", customer);
         startActivity(intent);
     }
     

@@ -1,31 +1,36 @@
 package org.rcredits.pos;
 
-        import android.content.Context;
-        import android.content.DialogInterface;
         import android.content.Intent;
         import android.os.Bundle;
-        import android.app.Activity;
         import android.view.Menu;
         import android.view.View;
         import android.widget.Button;
-        import android.widget.ImageButton;
         import android.widget.TextView;
-        import android.widget.Toast;
+
+        import org.apache.http.NameValuePair;
+
+        import java.util.List;
 
 /**
  * Let the user type an amount and choose whether the charge is for cash, the default description, or something else.
  * @intent String description: the current transaction description (if none, assume it's a refund)
  */
-public class Tx extends Activity {
-    public static final int maxDigits = 6; // maximum number of digits allowed
-    public static final int preCommaDigits = 5; // maximum number of digits before we need a comma
+public class TxActivity extends Act {
+    private final Act act = this;
+    private static final int maxDigits = 6; // maximum number of digits allowed
+    private static final int preCommaDigits = 5; // maximum number of digits before we need a comma
+    private static String customer; // qid of current customer
+    private static String description;
+    private Button goods;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tx);
-        Button goods = (Button) findViewById(R.id.goods);
-        String description = A.getIntentString(this.getIntent(), "description");
+        goods = (Button) findViewById(R.id.goods);
+
+        customer = A.getIntentString(this.getIntent(), "customer");
+        description = A.getIntentString(this.getIntent(), "description").toLowerCase();
         if (description.equals("")) { // refunding
             goods.setText("Refund");
             findViewById(R.id.cash).setVisibility(View.GONE);
@@ -54,7 +59,7 @@ public class Tx extends Activity {
         } else if (amount.length() < maxDigits) { // don't let the number get too big
             amount += c;
         } else {
-            Toast.makeText(this, "You can have only up to " + maxDigits + " digits. Press clear (c) or backspace (\u25C0).", Toast.LENGTH_SHORT).show();
+            act.mention("You can have only up to " + maxDigits + " digits. Press clear (c) or backspace (\u25C0).");
         }
 
         Integer len = amount.length();
@@ -66,20 +71,25 @@ public class Tx extends Activity {
     }
 
     public void onChangeDescriptionClick(View button) {
-        Intent intent = new Intent(this, ChangeDescription.class);
-        startActivity(intent);
+        Intent intent = new Intent(this, DescriptionActivity.class);
+        A.putIntentString(intent, "description", description);
+        startActivityForResult(intent, R.id.change_description);
     }
 
-    public void onGoodsClick(View button) {
-        A.amount = (String) ((TextView) findViewById(R.id.amount)).getText();
-        // submit tx to server, get result
-        if (true) { // error
-            A.sayError(this, "Transaction FAILED for whatever reason", null);
-        } else {
-            A.balance = "3"; // get from server
-            A.lastTx = "234"; // get from server
-            Intent intent = new Intent(this, CaptureActivity.class);
-            startActivity(intent);
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == R.id.change_description) {
+            if(resultCode == RESULT_OK) {
+                description = data.getStringExtra("description");
+                goods.setText(A.ucFirst(description));
+            }
+            if (resultCode == RESULT_CANCELED) {} // do nothing if no result
         }
+    }
+
+    public void onGoodsClick(View v) {
+        List<NameValuePair> pairs = A.auPair(null, "member", customer);
+        A.auPair(pairs, "amount", ((String) ((TextView) findViewById(R.id.amount)).getText()).substring(1)); // no "$"
+        A.auPair(pairs, "description", v.getId() == R.id.cash ? "" : (String) goods.getText());
+        A.doTx(act, "charge", pairs);
     }
 }
