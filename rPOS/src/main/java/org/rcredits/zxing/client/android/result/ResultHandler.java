@@ -407,7 +407,7 @@ public abstract class ResultHandler {
         LocaleManager.getCountryTLD(activity) + "/maps?f=d&daddr=" + latitude + ',' + longitude)));
   }
 
-  // Uses the mobile-specific version of Product Search, which is formatted for small screens.
+  // Uses the mobile-specific VERSION of Product Search, which is formatted for small screens.
   final void openProductSearch(String upc) {
     Uri uri = Uri.parse("http://www.google." + LocaleManager.getProductSearchCountryTLD(activity) +
         "/m/products?q=" + upc + "&source=zxing");

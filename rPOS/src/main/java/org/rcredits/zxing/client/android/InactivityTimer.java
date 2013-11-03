@@ -25,6 +25,7 @@ import android.os.AsyncTask;
 import android.os.BatteryManager;
 import android.util.Log;
 
+import org.rcredits.pos.A;
 import org.rcredits.zxing.client.android.common.executor.AsyncTaskExecInterface;
 import org.rcredits.zxing.client.android.common.executor.AsyncTaskExecManager;
 

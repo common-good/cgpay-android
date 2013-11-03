@@ -26,6 +26,8 @@ import java.util.regex.Pattern;
 
 import com.google.zxing.client.result.WifiParsedResult;
 
+import org.rcredits.pos.A;
+
 /**
  * @author Vikram Aggarwal
  * @author Sean Owen

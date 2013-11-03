@@ -16,17 +16,12 @@
 
 package org.rcredits.zxing.client.android.history;
 
-import org.rcredits.pos.CaptureActivity;
+import org.rcredits.zxing.client.android.CaptureActivity;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.ListActivity;
-import android.content.ActivityNotFoundException;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuInflater;

@@ -29,7 +29,7 @@ abstract class ContactEncoder {
 
   /**
    * @return first, the best effort encoding of all data in the appropriate format; second, a
-   *   display-appropriate version of the contact information
+   *   display-appropriate VERSION of the contact information
    */
   abstract String[] encode(Iterable<String> names,
                            String organization,

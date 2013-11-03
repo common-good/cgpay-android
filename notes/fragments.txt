@@ -1,0 +1,17 @@
+/*                if (i == 0) { // chose "(other)"
+                    findViewById(R.id.list).setVisibility(View.GONE);
+                    EditText other = (EditText) findViewById(R.id.other);
+                    other.setVisibility(View.VISIBLE);
+                    other.requestFocus();
+                    other.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                        @Override
+                        public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                            if (event.getAction() == KeyEvent.ACTION_DOWN
+                                    && (event.getKeyCode() == KeyEvent.KEYCODE_ENTER
+                                    || actionId == EditorInfo.IME_ACTION_DONE)) {
+                                A.returnIntentString(act, "description", v.getText().toString());
+                            }
+                            return false;
+                        }
+                    });
+                } else { */

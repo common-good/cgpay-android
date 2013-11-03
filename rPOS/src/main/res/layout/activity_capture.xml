@@ -11,84 +11,19 @@
     <org.rcredits.zxing.client.android.ViewfinderView
         android:id="@+id/viewfinder_view"
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent"/>
+        android:layout_height="fill_parent"
+        android:visibility="invisible"/>
 
-    <LinearLayout
-        android:layout_width="fill_parent"
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingTop="16dp">
-
-        <FrameLayout
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_gravity="center_horizontal"
-            android:id="@+id/undo_frame">
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Undo Last\u000ATransaction"
-                android:id="@+id/undo_last"
-                android:layout_gravity="center_horizontal"
-                android:textSize="20dp"
-                android:width="150dp"
-                android:onClick="onUndo"
-                android:clickable="true"/>
-        </FrameLayout>
-
-        <FrameLayout
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_gravity="center_horizontal"
-            android:id="@+id/balance_frame">
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Customer\u000ABalance"
-                android:id="@+id/show_balance"
-                android:layout_gravity="center_horizontal"
-                android:textSize="20dp"
-                android:width="150dp"
-                android:clickable="true"
-                android:onClick="onShowBalance"/>
-        </FrameLayout>
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:orientation="vertical"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_gravity="bottom"
-        android:padding="16dp"
-        android:gravity="center_horizontal">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="You are NOT SIGNED IN"
-            android:id="@+id/signed_as"
-            android:textSize="18dp"
-            android:ellipsize="middle"
-            android:lines="1"
-            android:singleLine="true"
-            android:clickable="false"
-            android:textColor="#868686"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="Ready to scan..."
-            android:id="@+id/textView2"
-            android:clickable="true"
-            android:textColor="#868686"
-            android:onClick="onFakeScan"/>
-    </LinearLayout>
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Scanning..."
+        android:id="@+id/textView2"
+        android:textColor="#bb0000"
+        android:clickable="false"
+        android:layout_gravity="center_horizontal|bottom"
+        android:paddingBottom="20dp"
+        android:textSize="30dp"/>
 
 </FrameLayout>

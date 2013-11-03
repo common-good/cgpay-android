@@ -1,19 +1,23 @@
 rCredits Android POS software
 Developer Notes
 
-To Do:
-. handle Tx activity buttons
-. change r-> buttons to swipe left and right
-. make "r"s fly from picture off the screen
-. change "change desc" button to swipe left
-. settings
-. restrict to QR codes (see in onResume)
-. improve numeric keypad layout
-. create new description text input
-. fix background highlight on change description view
-. fix rSmart tests
-. handle back button
-. handle undo
-. handle customer balance
-. handle refund
-. comment functions more
+RPC API Definition
+(see https://docs.google.com/document/d/1fZE_wmEBRTBO9DAZcY4ewQTA70gqwWqeqkUnJSfWMV0)
+
+Basic params (always sent):
+op       the requested operation
+device   the device ID (supplied once by the server) -- empty if none
+agent    the already-scanned-in agent's agent ID (for example NEW:AAB) -- ignored for "update" op
+version  release version of the running app
+
+REQUESTS:
+ * identify:	[member, code] => [ok, message, logon="1", name, descriptions[], can, device, update]
+ * identify:	[member, code] => [ok, message, logon="0", name, place, company, balance]
+ * photo:	[member] => photo
+ * charge:	[member, amount, goods, description] => [ok, message, tx, balance, undo]
+ * undo:	[tx] => [ok, message, balance]
+
+Notes/Ideas:
+ 
+In case we need to handle reverse images (and they aren't handled automatically):
+Find where PlanarYUVLuminanceSource is instantiated in CameraManager. Its last parameter is "false". Just change it to "true" and it will flip over the image.

@@ -22,7 +22,7 @@ import android.widget.TextView;
 /**
  * Change the description of the transaction.
  * @intent String description: the current transaction description
- * The description selected in this activity (and passed back to the Tx activity) cannot be "", "(other)", or "refund".
+ * The description selected in this activity (and passed back to the TxActivity activity) cannot be "", "(other)", or "refund".
  */
 public class DescriptionActivity extends Act {
     private final Act act = this;
@@ -36,12 +36,15 @@ public class DescriptionActivity extends Act {
         setContentView(R.layout.activity_description);
         final String description = A.getIntentString(this.getIntent(), "description");
 
+        /**
+         * List the choices. Return the one chosen.
+         */
         ArrayAdapter adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1, A.descriptions) {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 TextView v = (TextView) super.getView(position, convertView, parent);
-                if (v.getText().equals(description)) v.setBackgroundColor(Color.GREEN);
+                v.setBackgroundColor(v.getText().equals(description) ? Color.CYAN : Color.WHITE);
                 v.setPadding(sidePadding, 0, sidePadding, 0);
                 return v;
             }
@@ -50,35 +53,9 @@ public class DescriptionActivity extends Act {
         list.setAdapter(adapter);
         list.setOnItemClickListener(new ListView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v, int i, long id) {
-/*                if (i == 0) { // chose "(other)"
-                    findViewById(R.id.list).setVisibility(View.GONE);
-                    EditText other = (EditText) findViewById(R.id.other);
-                    other.setVisibility(View.VISIBLE);
-                    other.requestFocus();
-                    other.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-                        @Override
-                        public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                            if (event.getAction() == KeyEvent.ACTION_DOWN
-                                    && (event.getKeyCode() == KeyEvent.KEYCODE_ENTER
-                                    || actionId == EditorInfo.IME_ACTION_DONE)) {
-                                A.returnIntentString(act, "description", v.getText().toString());
-                            }
-                            return false;
-                        }
-                    });
-                } else { */
-                    act.returnIntentString("description", A.descriptions[i]);
-                //}
+            act.returnIntentString("description", A.descriptions.get(i));
             }
         });
 
     }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.change_description, menu);
-        return true;
-    }
-
 }

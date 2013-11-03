@@ -12,21 +12,8 @@
         android:clickable="true"
         android:focusable="true"
         android:focusableInTouchMode="true"
-        android:drawSelectorOnTop="false" />
+        android:drawSelectorOnTop="false"
+        android:dividerHeight="1dp"
+        android:divider="#0a2952"/>
 
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/other"
-        android:height="65dp"
-        android:inputType="textCapCharacters|text"
-        android:visibility="visible"
-        android:textSize="30dp"
-        android:selectAllOnFocus="true"
-        android:paddingTop="15dp"
-        android:paddingBottom="15dp"
-        android:text="type a new description"
-        android:editable="true"
-        android:enabled="true"
-        android:focusable="true"/>
 </FrameLayout>

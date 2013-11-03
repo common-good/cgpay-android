@@ -17,7 +17,6 @@
 package org.rcredits.zxing.client.android;
 
 import org.rcredits.pos.R;
-import org.rcredits.pos.CaptureActivity;
 
 import android.graphics.Bitmap;
 import com.google.zxing.BinaryBitmap;

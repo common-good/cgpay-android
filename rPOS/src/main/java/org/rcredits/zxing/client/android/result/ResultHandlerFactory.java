@@ -16,7 +16,7 @@
 
 package org.rcredits.zxing.client.android.result;
 
-import org.rcredits.pos.CaptureActivity;
+import org.rcredits.zxing.client.android.CaptureActivity;
 
 import com.google.zxing.Result;
 import com.google.zxing.client.result.ParsedResult;

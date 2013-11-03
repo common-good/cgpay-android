@@ -28,3 +28,4 @@ dependencies {
     compile fileTree(dir: 'libs', include: 'core-2.2.jar')
     compile fileTree(dir: 'libs', include: 'javase-2.2.jar')
 }
+

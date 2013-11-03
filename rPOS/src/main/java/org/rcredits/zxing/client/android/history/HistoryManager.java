@@ -272,7 +272,7 @@ public final class HistoryManager {
    *  <li>Display text</li>
    *  <li>Format (e.g. QR_CODE)</li>
    *  <li>Timestamp</li>
-   *  <li>Formatted version of timestamp</li>
+   *  <li>Formatted VERSION of timestamp</li>
    * </ul>
    */
   CharSequence buildHistory() {

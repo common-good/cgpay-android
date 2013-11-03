@@ -1,3 +1,60 @@
+To Do:
+. rework KeyguardManager lines with WindowManager.FLAG_DISMISS_KEYGUARD (see zxing code for tips)
+. fix rSmart tests
+. progress function doesn't work
+. LATER change negative amount messages (for refunds, undo-refunds, and balance) to the appropriate positives
+. LATER ask user to confirm small and large amounts (a magnitude off their average? -- research bank algorithms)
+. LATER settings activity: simply (Toast) say all settings are on website?
+. LATER customer activity: show just ID as name, while async activity fills in the rest
+. LATER change "change desc" button to fling left?
+. LATER change "r->" buttons to swipe left and right?
+. LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
+. LATER (for tests) keep acore from repetitive death on fakeScan mode
+. LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
+
+2013-11-02
+. moved cash in and cash out buttons to customer screen
+. changed charge and refund buttons to be vertical (indicating credit flow between user and customer)
+. changed refund op to "payment" in API, with addition of "goods" parameter
+. changed refunds to be negative payments
+. got updates working
+. added many comments
+
+2013-10-29
+. ditched old Viewfinder in favor of rlogo background, with "Ready to scan..."
+. now uses sayOk, not mention, for reporting customer balance
+. improved numeric keypad layout
+. made keypad buttons act up when pressed
+. enlarged cash and description buttons
+. made goods button stand out
+. fixed background highlighting on change description view (failed on first time)
+. fixed bug: pressing goods button claimed it was in exchange for cash
+. fixed bug: undo always failed
+. fixed: goods button was unresponsive and gave no indication of being pressed.
+. fixed bug: rebate was blank on both charge and undo
+. fixed bug: refund fails (crashes)
+. now handles back button on confirmation dialogs (just cancel the dialog)
+
+2013-10-28
+. eliminated the viewFinder rectangle
+. implemented the charge activity (with all its messages)
+. shows a Toast when agent scans in
+. restricts to QR codes (in default preferences)
+. added onDone and onEnter to other description
+. created text input for new transaction description
+. made show-balance and undo buttons work
+. added a confirmation question before undo
+. refactored many activity utilities into a new Act class
+. improved dialog handling and intent-management, to avoid leaks
+. added a "fakeScan" mode, for testing
+. now handles refunds
+. eliminated option to enter custom descriptions
+. eliminited the need for an "update" op (incorporated into scan-in instead)
+. handles various permissions
+. created a new MainActivity screen, so scan screen does not go until user tells it to
+. created sayFail() function that sets a message to display on restart
+. BS works everywhere but in dialogs
+ 
 2013-10-25
 . many thanks to Blake, who showed the way, and to the ZXing team who did the heavy lifting
 . brought zxing into the project (core/ and javase/ as jars, android/ directly)

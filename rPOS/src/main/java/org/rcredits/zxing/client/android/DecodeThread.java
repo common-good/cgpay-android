@@ -16,8 +16,6 @@
 
 package org.rcredits.zxing.client.android;
 
-import org.rcredits.pos.CaptureActivity;
-
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.DecodeHintType;
 import com.google.zxing.ResultPointCallback;

@@ -1,0 +1,1 @@
+C:\Users\William\AppData\Local\Android\android-studio\sdk\tools\emulator.exe -avd MyDroidX -netspeed full -netdelay none

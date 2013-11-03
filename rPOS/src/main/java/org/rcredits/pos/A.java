@@ -1,15 +1,11 @@
 package org.rcredits.pos;
 
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Application;
-import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
-import android.widget.Toast;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -31,81 +27,66 @@ import java.util.List;
 
 /**
  * rCredits POS App
- * Created by William on 10/17/2013.
  *
  * Scan a company agent card to "scan in".
- * Scan a customer card to charge him/her.
+ * Scan a customer card to doTx him/her.
  * Or to give a refund (managers only).
+ * See functional specs (SRS): https://docs.google.com/document/d/1bSVn_zaS26SZgtTg86bvR51hwEWOMynVmOEjEbIUNw4 
+ * See RPC API specs: https://docs.google.com/document/d/1fZE_wmEBRTBO9DAZcY4ewQTA70gqwWqeqkUnJSfWMV0
  *
- * RPC API Definition:
+ * This class also holds global static variables and constants.
  *
- * Basic params (always sent):
- * op       the requested operation
- * device   the device ID (supplied once by the server) -- empty if none
- * agent    the already-scanned-in agent's agent ID (for example NEW:AAB) -- ignored for "update" op
- * position (optional) latitude,longitude,elevation (from the device's GPS)
- *
- * Specific Ops:
- * "update"
- * params: version
- * return: uri of update or empty if no update for this device
- *
- * "identify"
- * params: member
- * return: json (name, place, company, logon, descriptions, manager, device)
- *   device only if none yet
- *   company only if member is an agent/company customer
- *   device, descriptions and manager only if scanning in (logon is true)
- *
- * "photo"
- * params: member
- * return: bitstream of member's photo or empty if error
- *
- * "charge"
- * params: member, amount, description
- * return: json (success, message, tx, balance)
- *
- * "undo"
- * params: tx
- * return: json (success, message, balance)
- *
- * "refund"
- * params: member, amount
- * return: json (success, message, balance)
- *
+ * The application uses the open source Zxing project.
+ * The package com.google.zxing.client.android has been changed to org.rcredits.zxing.client.android
+ * All other changes are commented with "cgf". Small modifications have been made to the following classes.
+ *   CaptureActivity
+ *   CameraManager
+ *   ViewfinderView
  */
 public class A extends Application {
-    private final static String PREFS_NAME = "rCreditsPOS";
-    private final static String HTTP_ERROR_MESSAGE = "The rCredits server is not reachable at the moment. Try again later.";
+    public final static boolean FAKE_SCAN = true; // disable scanning, for testing other features
 
-    //public final static String API_PATH = "http://<region>.rc2.me/pos"; // for eventually (when we have multiple cttys
-    //public final static String API_PATH = "http://new.rc2.me/pos"; // while everyone is on one server
-    //public final static String API_PATH = "http://ws.rcredits.org/pos"; // testing on smartphone
-    public final static String API_PATH = "http://192.168.2.101/devcore/pos"; // testing on emulator
-    public final static String REFUND_DESC = "refund";
-    public final static String OTHER_DESC = "(other)";
-    public final static Integer DESC_COUNT = 8; // number of description choices to show
+    public final static String DESC_REFUND = "refund";
+    public final static String DESC_CASH_IN = "cash in";
+    public final static String DESC_CASH_OUT = "cash out";
+    public final static String APP_FILENAME = "rPOS.apk"; // internal filename of downloaded update(s)
 
-    public static String deviceId = ""; // set once ever in storage upon first scan-in, read upon startup
-    public static Boolean firstScan = true; // set false after first scan
-
+    public static String versionCode; // VERSION number of this software
+    public static String update = ""; // URL of update to install on restart, if any ("1" means already downloaded)
+    public static String failMessage = ""; // error message to display upon restart, if any
+    public static String deviceId; // set once ever in storage upon first scan-in, read upon startup
     public static String region; // set upon scan-in
-    public static String[] descriptions = new String[DESC_COUNT]; // set upon scan-in
-
+    public static List<String> descriptions; // set upon scan-in
     public static String agent = ""; // set upon scan-in (eg NEW:AAB)
     public static String agentName; // set upon scan-in
-    public static Boolean canRefund = false; // agent can give customer a refund
+    public static int can = 0; // what the agent can do
 
-    public static String balance = ""; // last customer's balance
-    public static String amount; // sale or refund amount
+    public final static int CAN_CHOOSE_DESC = 1 << 0;
+    public final static int CAN_REFUND =      1 << 1;
+    public final static int CAN_SELL_CASH =   1 << 2;
+    public final static int CAN_BUY_CASH =    1 << 3;
+
+    public static String balance = ""; // message about last customer's balance
+    public static String undo = ""; // message about reversing last transaction
     public static String lastTx = ""; // number of last transaction
 
-    private static ProgressDialog progressDlg; // for standard progress spinner
+    public final static String MSG_DOWNLOAD_SUCCESS = "Update download is complete.";
+    private final static String MSG_HTTP_ERROR = "The rCredits server is not reachable at the moment. Try again later.";
+
+    private final static String PREFS_NAME = "rCreditsPOS";
+    //private final static String API_PATH = "http://<region>.rc2.me/pos"; // for eventually (when we have multiple cttys
+    //private final static String API_PATH = "http://new.rc2.me/pos"; // while everyone is on one server
+    private final static String API_PATH = "http://ws.rcredits.org/pos"; // testing on smartphone
+    //private final static String API_PATH = "http://192.168.2.101/devcore/pos"; // testing on emulator
 
     @Override
     public void onCreate() {
         super.onCreate();
         deviceId = getStored("deviceId");
+        try {
+            PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            versionCode = pInfo.versionCode + "";
+        } catch (PackageManager.NameNotFoundException e) {e.printStackTrace();}
     }
 
     public String getStored(String name) {
@@ -119,31 +100,8 @@ public class A extends Application {
         editor.commit();
     }
 
-    public Boolean mention(String message) {
-        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
-        return false;
-    }
-
-    public static void sayError(Context context, String message,  DialogInterface.OnClickListener listener) {
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(context);
-        if (listener == null) listener = new DialogInterface.OnClickListener() { // default to do nothing
-            public void onClick(DialogInterface dialog, int id) {
-                dialog.cancel();
-            }
-        };
-        alertDialogBuilder
-            .setTitle("Oops")
-            .setMessage(message)
-            .setIcon(R.drawable.alert_red)
-            .setCancelable(false)
-            .setPositiveButton("OK", listener);
-            // .setNegativeButton("No", new DialogInterface.OnClickListener() {...
-        AlertDialog alertDialog = alertDialogBuilder.create();
-        alertDialog.show();
-    }
-
     /**
-     * Return a keyed value for an api response array (json-encoded).
+     * Return a keyed value from an api response array (json-encoded).
      * @param json: json-encoded response from an API call
      * @param key: key to the value wanted
      * @return the value for that key
@@ -153,11 +111,16 @@ public class A extends Application {
             JSONObject jsonObj = new JSONObject(json);
             return String.valueOf(jsonObj.get(key));
         } catch (JSONException e) {
-            e.printStackTrace();
             return "";
         }
     }
 
+    /**
+     * Return a keyed array from an api response array (json-encoded).
+     * @param json: json-encoded response from an API call
+     * @param key: key to the array wanted
+     * @return: the array for that key
+     */
     public static ArrayList<String> jsonArray(String json, String key) {
         ArrayList<String> list = new ArrayList<String>();
         try {
@@ -168,10 +131,22 @@ public class A extends Application {
         return list;
     }
 
-    public static HttpResponse post(String region, String op, List<NameValuePair> pairs, Context context) {
+    /**
+     * Send a request to the server and return its response.
+     * @param a: the current Activity
+     * @param region: the agent's region
+     * @param op: the requested operation
+     * @param pairs: name/value pairs to send with the request
+     * @return: the server's response
+     * (restarts on failure)
+     */
+    public static HttpResponse post(Act a, String region, String op, List<NameValuePair> pairs) {
+        a.mention("starting");
+        a.progress(true);
         A.auPair(pairs, "op", op);
         A.auPair(pairs, "agent", A.agent);
         A.auPair(pairs, "device", A.deviceId);
+        A.auPair(pairs, "version", A.versionCode);
         //A.auPair(pairs, "location", A.location);
 
         HttpPost post = new HttpPost(API_PATH.replace("<region>", region));
@@ -182,27 +157,28 @@ public class A extends Application {
         HttpConnectionParams.setSoTimeout(params, 5000);
         DefaultHttpClient client = new DefaultHttpClient(params);
         HttpResponse response;
-        final Context context2 = context;
 
         try {
-            if (context != null) progress(context);
             post.setEntity(new UrlEncodedFormEntity(pairs));
             response = client.execute(post);
         } catch (Exception e) {
-            if (context != null) sayError(context, HTTP_ERROR_MESSAGE + " (" + e.getMessage() + ")", new DialogInterface.OnClickListener() { // default to do nothing
-                public void onClick(DialogInterface dialog, int id) {
-                    dialog.cancel();
-                    context2.startActivity(new Intent(context2, CaptureActivity.class));
-                }
-            });
+            a.sayFail(MSG_HTTP_ERROR + " (" + e.getMessage() + ")");
             response = null;
         }
-        if (context != null) progress(null);
+        a.progress(false);
         return response;
     }
 
-    public static String apiGetData(String region, String op, List<NameValuePair> pairs, Context context) {
-        HttpResponse response = A.post(region, op, pairs, context);
+    /**
+     * Get a string response from the server (usually json-encoded)
+     * @param a: the current Activity
+     * @param region: the agent's region
+     * @param op: the requested operation
+     * @param pairs: name/value pairs to send with the request
+     * @return
+     */
+    public static String apiGetData(Act a, String region, String op, List<NameValuePair> pairs) {
+        HttpResponse response = A.post(a, region, op, pairs);
         try {
             return response == null ? null : EntityUtils.toString(response.getEntity());
         } catch (IOException e) {
@@ -211,8 +187,15 @@ public class A extends Application {
         }
     }
 
-    public static byte[] apiGetPhoto(String region, String qid, Context context) {
-        HttpResponse response = A.post(region, "photo", A.auPair(null, "member", qid), context);
+    /**
+     * Get a string response from the server (usually json-encoded)
+     * @param a: the current Activity
+     * @param region: the agent's region
+     * @param qid: the custoemr's account id
+     * @return: the customer's photo, as a byte array
+     */
+    public static byte[] apiGetPhoto(Act a, String region, String qid) {
+        HttpResponse response = A.post(a, region, "photo", A.auPair(null, "member", qid));
         try {
             return response == null ? null : EntityUtils.toByteArray(response.getEntity());
         } catch (IOException e) {
@@ -221,6 +204,13 @@ public class A extends Application {
         }
     }
 
+    /**
+     * Convert the name and value to a "pair" (a NameValuePair) and add it to the list.
+     * @param pairs: (returned) the list to add to (null if no list yet)
+     * @param name: name of parameter to add
+     * @param value: value of paramter to add
+     * @return: the modified list
+     */
     public static List<NameValuePair> auPair(List<NameValuePair> pairs, String name, String value) {
         if (pairs == null) pairs = new ArrayList<NameValuePair>(1);
         pairs.add(new BasicNameValuePair(name, value));
@@ -228,27 +218,60 @@ public class A extends Application {
     }
 
     /**
-     * Show a standard "in progress" message.
-     * @param context: call with activity.this to start, null to stop
-     * @return the dialog object, so caller can dismiss it with dialogObj.dismiss();
+     * Send a request to the server to doTx someone (or credit them, if amount param is negative)
+     * @param a: the current Activity
+     * @param op: type of transaction
+     * @param pairs: additional parameters to the transaction
+     * (restarts, whether successful or not)
      */
-    public static void progress(Context context) {
-        if (context == null) {
-            A.progressDlg.dismiss();
+    public static void doTx(Act a, String op, List<NameValuePair> pairs) {
+        final Act a2 = a;
+        final String json = A.apiGetData(a, A.region, op, pairs);
+        if (json == null) return; // probably server is down, so let user try again
+        String message = A.jsonString(json, "message");
+        if (A.jsonString(json, "ok").equals("1")) {
+            a.sayOk("Success!", message, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                    dialog.cancel();
+                    A.balance = A.jsonString(json, "balance");
+                    A.undo = A.jsonString(json, "undo");
+                    A.lastTx = A.jsonString(json, "tx");
+                    a2.restart();
+                }
+            });
         } else {
-            A.progressDlg = ProgressDialog.show(context, "In Progress", "Contacting server...");
+            a.sayError(message, null);
         }
     }
 
+    /**
+     * Add a string parameter to the activity we are about to launch.
+     * @param intent: the intended activity
+     * @param key: parameter name
+     * @param value: parameter value
+     */
     public static void putIntentString(Intent intent, String key, String value) {
         String pkg = intent.getComponent().getPackageName();
         intent.putExtra(pkg + "." + key, value);
     }
 
+    /**
+     * Return a string parameter passed to the current activity.
+     * @param intent: the intent of the current activity
+     * @param key: parameter name
+     * @return: the parameter's value
+     */
     public static String getIntentString(Intent intent, String key) {
         String pkg = intent.getComponent().getPackageName();
         return intent.getStringExtra(pkg + "." + key);
     }
+
+    /**
+     * Say whether the agent can do something
+     * @param permissions: bits representing things the agent might do
+     * @return true if the agent can do it
+     */
+    public static boolean agentCan(int permissions) {return (A.can & permissions) != 0;}
 
     public static String ucFirst(String s) {return s.substring(0, 1).toUpperCase() + s.substring(1);}
 }

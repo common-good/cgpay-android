@@ -15,37 +15,8 @@
  * limitations under the License.
  */
 
-package org.rcredits.pos;
+package org.rcredits.zxing.client.android;
 
-import com.google.zxing.BarcodeFormat;
-import com.google.zxing.DecodeHintType;
-import com.google.zxing.Result;
-import com.google.zxing.ResultMetadataType;
-import com.google.zxing.ResultPoint;
-import org.rcredits.zxing.client.android.BeepManager;
-import org.rcredits.zxing.client.android.CaptureActivityHandler;
-import org.rcredits.zxing.client.android.InactivityTimer;
-import org.rcredits.zxing.client.android.ScanFromWebPageManager;
-import org.rcredits.zxing.client.android.ViewfinderView;
-import org.rcredits.zxing.client.android.camera.CameraManager;
-import org.rcredits.zxing.client.android.DecodeFormatManager;
-import org.rcredits.zxing.client.android.DecodeHintManager;
-import org.rcredits.zxing.client.android.FinishListener;
-import org.rcredits.zxing.client.android.HelpActivity;
-import org.rcredits.zxing.client.android.history.HistoryActivity;
-import org.rcredits.zxing.client.android.history.HistoryItem;
-import org.rcredits.zxing.client.android.history.HistoryManager;
-import org.rcredits.zxing.client.android.Intents;
-import org.rcredits.zxing.client.android.IntentSource;
-import org.rcredits.zxing.client.android.PreferencesActivity;
-import org.rcredits.zxing.client.android.result.ResultButtonListener;
-import org.rcredits.zxing.client.android.result.ResultHandler;
-import org.rcredits.zxing.client.android.result.ResultHandlerFactory;
-import org.rcredits.zxing.client.android.result.supplement.SupplementalInfoRetriever;
-import org.rcredits.zxing.client.android.share.ShareActivity;
-import org.rcredits.zxing.client.android.AmbientLightManager;
-
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -76,9 +47,27 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.DecodeHintType;
+import com.google.zxing.Result;
+import com.google.zxing.ResultMetadataType;
+import com.google.zxing.ResultPoint;
+
+import org.rcredits.pos.Act;
+import org.rcredits.pos.R;
+import org.rcredits.pos.rCard;
+import org.rcredits.zxing.client.android.camera.CameraManager;
+import org.rcredits.zxing.client.android.history.HistoryActivity;
+import org.rcredits.zxing.client.android.history.HistoryItem;
+import org.rcredits.zxing.client.android.history.HistoryManager;
+import org.rcredits.zxing.client.android.result.ResultButtonListener;
+import org.rcredits.zxing.client.android.result.ResultHandler;
+import org.rcredits.zxing.client.android.result.ResultHandlerFactory;
+import org.rcredits.zxing.client.android.result.supplement.SupplementalInfoRetriever;
+import org.rcredits.zxing.client.android.share.ShareActivity;
+
 import java.io.IOException;
 import java.text.DateFormat;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.EnumSet;
@@ -92,9 +81,10 @@ import java.util.Set;
  *
  * @author dswitkin@google.com (Daniel Switkin)
  * @author Sean Owen
+ * @modifications by William Spademan for cgf (commented with "cgf")
  */
-public final class CaptureActivity extends Activity implements SurfaceHolder.Callback {
-
+public final class CaptureActivity extends Act implements SurfaceHolder.Callback { // cgf
+    private final Act act = this; // cgf
     private static final String TAG = CaptureActivity.class.getSimpleName();
 
     private static final long DEFAULT_INTENT_RESULT_DURATION_MS = 1500L;
@@ -149,15 +139,9 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
-//    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         Window window = getWindow();
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        setContentView(R.layout.activity_main);
-        if (A.firstScan) {
-            A.firstScan = false;
-            // (disabled until Update class compiles) if (!A.deviceId.equals("")) {new Update().execute("");} // async download and install update (if any)
-        }
-        //showAgent();
+        setContentView(R.layout.activity_capture);
 
         hasSurface = false;
         historyManager = new HistoryManager(this);
@@ -165,10 +149,9 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         inactivityTimer = new InactivityTimer(this);
         beepManager = new BeepManager(this);
         ambientLightManager = new AmbientLightManager(this);
-
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 
-        // cgf showHelpOnFirstLaunch();
+        // cgf showHelpOnFirstLaunch(); // look at this for how to handle updates?
     }
 
     @Override
@@ -180,7 +163,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         // first launch. That led to bugs where the scanning rectangle was the wrong size and partially
         // off screen.
 
-        //scanintent?.putExtra(Intents.Scan.ACTION, Intents.Scan.QR_CODE_MODE); // cgf
         cameraManager = new CameraManager(getApplication());
 
         viewfinderView = (ViewfinderView) findViewById(R.id.viewfinder_view);
@@ -385,17 +367,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         }
     }
 
-    private void decodeOrStoreSavedBitmap(Bitmap bitmap, Result result) {
-        // Bitmap isn't used yet -- will be used soon
-        if (handler == null) {
-            savedResultToShow = result;
-        } else {
-            if (result != null) savedResultToShow = result;
-            if (savedResultToShow != null) handler.sendMessage(Message.obtain(handler, R.id.decode_succeeded, savedResultToShow));
-            savedResultToShow = null;
-        }
-    }
-
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         if (holder == null) Log.e(TAG, "*** WARNING *** surfaceCreated() gave us a null surface!");
@@ -411,25 +382,17 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-      /* if (isPreviewRunning) mCamera.stopPreview();
-      Parameters parameters = mCamera.getParameters();
-      Display display = ((WindowManager)getSystemService(WINDOW_SERVICE)).getDefaultDisplay();
+    }
 
-      if(display.getRotation() == Surface.ROTATION_0) {
-          parameters.setPreviewSize(height, width);
-          mCamera.setDisplayOrientation(90);
-      }
-
-      if(display.getRotation() == Surface.ROTATION_90) parameters.setPreviewSize(width, height);
-      if(display.getRotation() == Surface.ROTATION_180) parameters.setPreviewSize(height, width);
-
-      if(display.getRotation() == Surface.ROTATION_270) {
-          parameters.setPreviewSize(width, height);
-          mCamera.setDisplayOrientation(180);
-      }
-
-      mCamera.setParameters(parameters);
-      previewCamera(); */
+    private void decodeOrStoreSavedBitmap(Bitmap bitmap, Result result) {
+        // Bitmap isn't used yet -- will be used soon
+        if (handler == null) {
+            savedResultToShow = result;
+        } else {
+            if (result != null) savedResultToShow = result;
+            if (savedResultToShow != null) handler.sendMessage(Message.obtain(handler, R.id.decode_succeeded, savedResultToShow));
+            savedResultToShow = null;
+        }
     }
 
     /**
@@ -452,10 +415,11 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
             drawResultPoints(barcode, scaleFactor, rawResult);
         }
 
-        try {
-            onScan(new rCard(String.valueOf(rawResult)));
+        try { // cgf (this whole block)
+            act.onScan(new rCard(String.valueOf(rawResult)));
         } catch (Exception e) {
-            A.sayError(this, e.getMessage(), null);
+            act.sayFail(e.getMessage());
+            return;
         }
     }
 
@@ -618,7 +582,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 
     // Briefly show the contents of the barcode, then handle the result outside Barcode Scanner.
     private void handleDecodeExternally(Result rawResult, ResultHandler resultHandler, Bitmap barcode) {
-
         if (barcode != null) {
             viewfinderView.drawResultBitmap(barcode);
         }
@@ -717,7 +680,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     }
 
     /**
-     * We want the help screen to be shown automatically the first time a new version of the app is
+     * We want the help screen to be shown automatically the first time a new VERSION of the app is
      * run. The easiest way to do this is to check android:versionCode from the manifest, and compare
      * it to a value stored as a preference.
      */
@@ -734,7 +697,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
                 // Show the default page on a clean install, and the what's new page on an upgrade.
                 String page = lastVersion == 0 ? HelpActivity.DEFAULT_PAGE : HelpActivity.WHATS_NEW_PAGE;
                 intent.putExtra(HelpActivity.REQUESTED_PAGE_KEY, page);
-// cgf RTE        startActivity(intent);
+                startActivity(intent);
                 return true;
             }
         } catch (PackageManager.NameNotFoundException e) {
@@ -796,80 +759,4 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     public void drawViewfinder() {
         viewfinderView.drawViewfinder();
     }
-
-    // FROM HERE DOWN original rPOS
-
-    // Gets this error message: Gradle: org.rcredits.pos.CaptureActivity.Update is not abstract and does not override abstract method doInBackground(java.lang.String...) in android.os.AsyncTask
-    /*
-    private class Update extends AsyncTask<String, Void, Boolean> {
-        protected Boolean doInBackground(String zot) {
-            String pathToApk = A.apiGetData("update", A.auPair(null, "device", A.deviceId), null);
-            if (!pathToApk.equals("")) {
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                Uri uri = Uri.fromFile(new File(pathToApk));
-                intent.setDataAndType(uri, "application/vnd.android.package-archive");
-                startActivity(intent);
-                return true;
-            }
-            return false;
-        }
-
-        protected void onPostExecute(Boolean updating) {
-            // do nothing
-        }
-    }
-*/
-
-    /**
-     * Process the result from QR scan:
-     * Get agent, agentName, customer (etc), device, success, message from server.
-     */
-    public void onScan(rCard rcard) {
-        String json = A.apiGetData(rcard.region, "identify", A.auPair(null, "member", rcard.qid), this);
-        /*String json = "{'name':'William Wagner Spademan-Krawerkljpskjfkj', 'place':'Ashfield, MA', 'company':'Common Good Finance'," +
-                " 'logon':'1', 'descriptions':['groceries','sundries']," +
-                " 'can_refund':'1', 'device':'adlkjaghh'}"; */
-        if (json == null) return; // probably server is down
-        if (!A.jsonString(json, "ok").equals("1")) {
-            A.sayError(this, A.jsonString(json, "message"), null);
-            return;
-        }
-
-        if (A.jsonString(json, "logon").equals("1")) { // scanning in
-            scanIn(json, rcard);
-        } else {
-            scanCustomer(json, rcard);
-        }
-    }
-
-    private void scanIn(String json, rCard rcard) {
-        A.agent = rcard.qid;
-        A.region = rcard.region; // A.agent.split("[\\.:]", 2)[0];
-        A.agentName = A.jsonString(json, "name");
-        A.canRefund = A.jsonString(json, "manager").equals("1");
-        A.lastTx = "234"; // DEBUG
-        A.balance = "$123.45"; // DEBUG
-        ArrayList<String> descriptions = A.jsonArray(json, "descriptions");
-        for (int i = 1; i < A.DESC_COUNT; i++) {
-            A.descriptions[i] = i <= descriptions.size() ? descriptions.get(i - 1) : "";
-        }
-        A.descriptions[0] = "(other)";
-        if (A.deviceId.equals("")) A.deviceId = A.jsonString(json, "device");
-        showAgent();
-    }
-
-    private void showAgent() {
-        findViewById(R.id.undo_last).setVisibility((A.canRefund && !A.lastTx.equals("")) ? View.VISIBLE : View.GONE);
-        findViewById(R.id.show_balance).setVisibility(A.balance.equals("") ? View.GONE : View.VISIBLE);
-        if (!A.agent.equals("")) ((TextView) findViewById(R.id.signed_as)).setText("You: " + A.agentName);
-    }
-
-    private void scanCustomer(String json, rCard rcard) {
-        Intent intent = new Intent(this, Customer.class);
-        A.putIntentString(intent, "customer", rcard.qid);
-        A.putIntentString(intent, "customerRegion", rcard.region);
-        A.putIntentString(intent, "json", json);
-        startActivity(intent);
-    }
-
 }

@@ -24,6 +24,8 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import com.google.zxing.PlanarYUVLuminanceSource;
+
+import org.rcredits.pos.A;
 import org.rcredits.zxing.client.android.camera.open.OpenCameraManager;
 
 import java.io.IOException;
@@ -88,7 +90,6 @@ public final class CameraManager {
     if (!initialized) {
       configManager.initFromCameraParameters(theCamera);
       Camera.Size cameraSize = parameters.getPreviewSize();
-      // setManualFramingRect(cameraSize.width, cameraSize.height); // cgf
       if (requestedFramingRectWidth > 0 && requestedFramingRectHeight > 0) {
         setManualFramingRect(requestedFramingRectWidth, requestedFramingRectHeight);
         requestedFramingRectWidth = 0;
@@ -306,7 +307,6 @@ public final class CameraManager {
     if (rect == null) {
       return null;
     }
-    //return null; // cgf
     // Go ahead and assume it's YUV rather than die.
     return new PlanarYUVLuminanceSource(data, width, height, rect.left, rect.top, rect.width(), rect.height(), false);
   }

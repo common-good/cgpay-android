@@ -22,7 +22,7 @@ import android.net.wifi.WifiManager;
 import android.widget.Toast;
 
 import org.rcredits.pos.R;
-import org.rcredits.pos.CaptureActivity;
+import org.rcredits.zxing.client.android.CaptureActivity;
 import org.rcredits.zxing.client.android.common.executor.AsyncTaskExecInterface;
 import org.rcredits.zxing.client.android.common.executor.AsyncTaskExecManager;
 import org.rcredits.zxing.client.android.wifi.WifiConfigManager;

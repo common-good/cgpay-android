@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.rcredits.pos.A;
 import org.rcredits.zxing.client.android.Intents;
 import org.rcredits.zxing.client.android.HttpHelper;
 import org.rcredits.zxing.client.android.LocaleManager;

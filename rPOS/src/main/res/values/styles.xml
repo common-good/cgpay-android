@@ -25,7 +25,7 @@
         <item name="buttonBarButtonStyle">@style/ButtonBarButton</item>
     </style>
 
-    <style name="ButtonBar">
+    <style name="ButtonBar"><!-- unused -->
         <item name="android:paddingLeft">2dp</item>
         <item name="android:paddingTop">5dp</item>
         <item name="android:paddingRight">2dp</item>
@@ -34,5 +34,29 @@
     </style>
 
     <style name="ButtonBarButton" />
+
+    <style name="Button">
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">fill_parent</item>
+        <item name="android:background">@drawable/button_selector</item>
+    </style>
+
+    <style name="ButtonC">
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">fill_parent</item>
+        <item name="android:background">@drawable/c_selector</item>
+    </style>
+
+    <style name="ButtonBS">
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">fill_parent</item>
+        <item name="android:background">@drawable/bs_selector</item>
+    </style>
+
+    <style name="ButtonGoods">
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">fill_parent</item>
+        <item name="android:background">@drawable/go_selector</item>
+    </style>
 
 </resources>

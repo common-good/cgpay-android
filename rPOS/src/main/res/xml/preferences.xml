@@ -18,7 +18,7 @@
   <PreferenceCategory android:title="@string/preferences_scanning_title">
     <CheckBoxPreference
         android:key="preferences_decode_1D"
-        android:defaultValue="true"
+        android:defaultValue="false"
         android:title="@string/preferences_decode_1D_title"/>
     <CheckBoxPreference
         android:key="preferences_decode_QR"
@@ -26,7 +26,7 @@
         android:title="@string/preferences_decode_QR_title"/>
     <CheckBoxPreference
         android:key="preferences_decode_Data_Matrix"
-        android:defaultValue="true"
+        android:defaultValue="false"
         android:title="@string/preferences_decode_Data_Matrix_title"/>
   </PreferenceCategory>
   <PreferenceCategory android:title="@string/preferences_actions_title">
@@ -40,7 +40,7 @@
         android:title="@string/preferences_vibrate_title"/>
     <CheckBoxPreference
         android:key="preferences_copy_to_clipboard"
-        android:defaultValue="true"
+        android:defaultValue="false"
         android:title="@string/preferences_copy_to_clipboard_title"/>
     <CheckBoxPreference
         android:key="preferences_remember_duplicates"
@@ -49,7 +49,7 @@
         android:summary="@string/preferences_remember_duplicates_summary"/>
     <CheckBoxPreference
         android:key="preferences_supplemental"
-        android:defaultValue="true"
+        android:defaultValue="false"
         android:title="@string/preferences_supplemental_title"
         android:summary="@string/preferences_supplemental_summary"/>
   </PreferenceCategory>

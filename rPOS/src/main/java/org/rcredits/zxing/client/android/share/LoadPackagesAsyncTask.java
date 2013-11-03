@@ -26,6 +26,8 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
+
+import org.rcredits.pos.A;
 import org.rcredits.pos.R;
 
 import java.util.ArrayList;
