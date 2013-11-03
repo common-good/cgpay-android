@@ -47,7 +47,7 @@ public class CustomerActivity extends Act {
         String company = A.jsonString(json, "company");
         TextView customerCompany = (TextView) findViewById(R.id.customer_company);
         customerCompany.setText(company);
-        customerCompany.setVisibility(company == null ? View.GONE : View.VISIBLE);
+        customerCompany.setVisibility(company.equals("") ? View.GONE : View.VISIBLE);
 
         TextView customerPlace = (TextView) findViewById(R.id.customer_place);
         customerPlace.setText(A.jsonString(json, "place"));

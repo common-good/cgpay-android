@@ -46,6 +46,7 @@ public class TxActivity extends Act {
             changeDesc.setVisibility(View.GONE);
         } else { // charging
             //cash.setVisibility(View.GONE);
+            if (description.equals("")) description = "goods and services"; // don't let it be blank
             if (A.descriptions.size() < 2 || !A.agentCan(A.CAN_CHOOSE_DESC)) changeDesc.setVisibility(View.GONE);
         }
         goods.setText(A.ucFirst(description));
