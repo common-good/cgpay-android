@@ -2,6 +2,7 @@ To Do:
 . rework KeyguardManager lines with WindowManager.FLAG_DISMISS_KEYGUARD (see zxing code for tips)
 . fix rSmart tests
 . progress function doesn't work
+. update function no longer works (download file not found?)
 . LATER change negative amount messages (for refunds, undo-refunds, and balance) to the appropriate positives
 . LATER ask user to confirm small and large amounts (a magnitude off their average? -- research bank algorithms)
 . LATER settings activity: simply (Toast) say all settings are on website?
@@ -12,12 +13,15 @@ To Do:
 . LATER (for tests) keep acore from repetitive death on fakeScan mode
 . LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
 
+2013-11-03
+. added signout feature
+. fixed bug: was showing company photo (rather than agent photo)
+
 2013-11-02
 . moved cash in and cash out buttons to customer screen
 . changed charge and refund buttons to be vertical (indicating credit flow between user and customer)
 . changed refund op to "payment" in API, with addition of "goods" parameter
 . changed refunds to be negative payments
-. got updates working
 . added many comments
 
 2013-10-29

@@ -25,6 +25,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import org.apache.http.HttpResponse;
@@ -61,7 +62,7 @@ import java.io.InputStream;
         if (A.agent.equals("")) {
             act.mention("Welcome!\n\nPress the SCAN button to sign in with your Company Agent rCard.");
         } else {
-            ((TextView) findViewById(R.id.signed_as)).setText("You: " + A.agentName);
+            ((Button) findViewById(R.id.signed_as)).setText("You: " + A.agentName);
         }
 
         if (!A.failMessage.equals("")) {
@@ -153,6 +154,23 @@ import java.io.InputStream;
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 A.doTx(act, "undo", A.auPair(null, "tx", A.lastTx));
+            }
+        });
+    }
+
+    /**
+     * Sign the cashier out after confirmation.
+     */
+    public void doSignOut(View v) {
+        if (A.agent.equals("")) {
+            act.mention("You are not signed in.");
+            return; // not signed in
+        }
+        act.askOk("Sign out?", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                dialog.cancel();
+                A.agent = A.agentName = ""; // sign out
+                ((Button) findViewById(R.id.signed_as)).setText(R.string.not_signed_in);
             }
         });
     }

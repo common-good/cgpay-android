@@ -10,6 +10,7 @@
     <string name="title_activity_capture">Capture</string>
     <string name="title_activity_customer">Customer Profile</string>
     <string name="title_activity_restart_app">Restart App</string>
+    <string name="not_signed_in">You are NOT SIGNED IN</string>
 	
   <string name="app_picker_name">Applications</string>
   <string name="bookmark_picker_name">Bookmarks</string>

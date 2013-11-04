@@ -55,9 +55,10 @@
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_gravity="bottom"
-        android:padding="16dp"
         android:gravity="center_horizontal"
-        >
+        android:paddingLeft="16dp"
+        android:paddingTop="16dp"
+        android:paddingRight="16dp">
 
         <ImageView
             android:layout_width="wrap_content"
@@ -73,23 +74,24 @@
             android:src="@drawable/scan"
             android:maxHeight="50dp"
             android:background="@color/background"
-            android:paddingBottom="20dp"
             android:clickable="true"
             android:onClick="doScan"
             android:cropToPadding="false"/>
 
-        <TextView
+        <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="You are NOT SIGNED IN"
+            android:text="@string/not_signed_in"
             android:id="@+id/signed_as"
-            android:textSize="18dp"
+            android:clickable="true"
+            android:onClick="doSignOut"
+            android:background="@color/background"
             android:ellipsize="middle"
+            android:paddingTop="20dp"
+            android:textSize="18sp"
             android:lines="1"
             android:singleLine="true"
-            android:clickable="false"
-            />
+            android:paddingBottom="20dp"/>
 
     </LinearLayout>
 
