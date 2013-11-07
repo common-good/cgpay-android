@@ -12,17 +12,21 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * @modifications by William Spademan for cgf (commented with "cgf")
  */
 
 package org.rcredits.zxing.client.android.camera;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.os.Handler;
 import android.util.Log;
 import android.view.SurfaceHolder;
+
 import com.google.zxing.PlanarYUVLuminanceSource;
 
 import org.rcredits.pos.A;
@@ -72,9 +76,10 @@ public final class CameraManager {
    * Opens the camera driver and initializes the hardware parameters.
    *
    * @param holder The surface object which the camera will draw preview frames into.
+   * @param orientation which way up (cgf)
    * @throws IOException Indicates the camera driver failed to open.
    */
-  public synchronized void openDriver(SurfaceHolder holder) throws IOException {
+  public synchronized void openDriver(SurfaceHolder holder, int orientation) throws IOException { // cgf added orientation
     Camera theCamera = camera;
     if (theCamera == null) {
       theCamera = new OpenCameraManager().build().open();
@@ -82,7 +87,7 @@ public final class CameraManager {
         throw new IOException();
       }
       camera = theCamera;
-      camera.setDisplayOrientation(90); // cgf set orientation to match view's orientation
+      camera.setDisplayOrientation(orientation == Configuration.ORIENTATION_PORTRAIT ? 90 : 0); // cgf
     }
     theCamera.setPreviewDisplay(holder);
 
@@ -308,7 +313,6 @@ public final class CameraManager {
       return null;
     }
     // Go ahead and assume it's YUV rather than die.
-    return new PlanarYUVLuminanceSource(data, width, height, rect.left, rect.top, rect.width(), rect.height(), false);
+    return new PlanarYUVLuminanceSource(data, width, height, rect.left, rect.top, rect.width(), rect.height(), A.flip); // cgf
   }
-
 }

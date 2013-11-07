@@ -13,11 +13,11 @@ repositories {
 }
 
 android {
-    compileSdkVersion 18
+    compileSdkVersion 17
     buildToolsVersion "17.0.0"
 
     defaultConfig {
-        minSdkVersion 7
+        minSdkVersion 9
         targetSdkVersion 18
     }
 }
@@ -25,7 +25,5 @@ android {
 dependencies {
     compile 'com.android.support:appcompat-v7:+'
     compile 'com.android.support:support-v4:18.0.0'
-    compile fileTree(dir: 'libs', include: 'core-2.2.jar')
-    compile fileTree(dir: 'libs', include: 'javase-2.2.jar')
+    compile fileTree(dir: 'libs', include: '*.jar')
 }
-

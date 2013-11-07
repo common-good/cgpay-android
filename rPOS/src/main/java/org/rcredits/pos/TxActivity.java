@@ -1,6 +1,7 @@
 package org.rcredits.pos;
 
         import android.content.Intent;
+        import android.os.AsyncTask;
         import android.os.Bundle;
         import android.view.Menu;
         import android.view.View;
@@ -119,10 +120,22 @@ public class TxActivity extends Act {
         if (description.equals(A.DESC_REFUND) || description.equals(A.DESC_CASH_IN)) amount = "-" + amount; // a negative doTx
         String goods = (description.equals(A.DESC_CASH_IN) || description.equals(A.DESC_CASH_OUT)) ? "0" : "1";
 
-        List<NameValuePair> pairs = A.auPair(null, "member", customer);
+        List<NameValuePair> pairs = A.auPair(null, "op", "charge");
+        A.auPair(pairs, "member", customer);
         A.auPair(pairs, "amount", amount);
         A.auPair(pairs, "goods", goods);
         A.auPair(pairs, "description", description);
-        A.doTx(act, "charge", pairs);
+        act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
+        new Tx().execute(pairs);
+    }
+
+    private class Tx extends AsyncTask<List<NameValuePair>, Void, String> {
+        @Override
+        protected String doInBackground(List<NameValuePair>... pairss) {
+            return A.apiGetJson(A.region, pairss[0]);
+        }
+
+        @Override
+        protected void onPostExecute(String json) {act.afterTx(json);}
     }
 }

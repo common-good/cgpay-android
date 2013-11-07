@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.rcredits.pos"
-    android:versionCode="1"
-    android:versionName="0.1"
+    android:versionCode="6"
+    android:versionName="0.16"
     android:installLocation="auto" >
 
     <uses-sdk
@@ -14,11 +14,12 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.FLASHLIGHT"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 	<uses-permission android:name="android.permission.CHANGE_WIFI_STATE" /> 
 	<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INSTALL_PACKAGES"/>
-    <uses-permission android:name="android.permission.DISABLE_KEYGUARD"></uses-permission>
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD"/>
 
     <!-- Don't require camera, as this requires a rear camera. This allows it to work on the Nexus 7 -->
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
@@ -27,7 +28,7 @@
     <!-- <uses-feature android:name="android.hardware.camera.any"/> -->
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.flash" android:required="false"/>
-    <uses-feature android:name="android.hardware.screen.landscape"/>
+    <uses-feature android:name="android.hardware.screen.landscape" android:required="false"/>
     <uses-feature android:name="android.hardware.wifi" android:required="false"/>
     <!-- This excludes Google TV, which is unfortunately included by virtue of not requiring a camera -->
     <uses-feature android:name="android.hardware.touchscreen"/>
@@ -48,9 +49,7 @@
         <activity
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
-            android:screenOrientation="portrait"
-            android:clearTaskOnLaunch="true"
-            android:configChanges="orientation|keyboardHidden|screenSize" >
+            android:clearTaskOnLaunch="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -59,12 +58,11 @@
         <activity
             android:name="org.rcredits.zxing.client.android.CaptureActivity"
             android:label="@string/title_activity_capture"
-            android:screenOrientation="portrait"
             android:clearTaskOnLaunch="true"
             android:stateNotNeeded="true"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
-            android:windowSoftInputMode="stateAlwaysHidden" >
+            android:windowSoftInputMode="stateAlwaysHidden">
             <intent-filter>
                 <action android:name="com.google.zxing.client.android.SCAN" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -72,15 +70,16 @@
         </activity>
         <activity
             android:name=".CustomerActivity"
-            android:label="@string/title_activity_customer" >
+            android:label="@string/title_activity_customer">
         </activity>
         <activity
             android:name=".TxActivity"
-            android:label="@string/title_activity_tx" >
+            android:label="@string/title_activity_tx">
         </activity>
         <activity
             android:name=".DescriptionActivity"
-            android:label="@string/title_activity_change_description" >
+            android:label="@string/title_activity_change_description"
+            android:clearTaskOnLaunch="true">
         </activity>
     </application>
 

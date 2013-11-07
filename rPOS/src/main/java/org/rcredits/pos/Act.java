@@ -84,7 +84,7 @@ public class Act extends Activity {
     }
 
     public void sayError(String message,  DialogInterface.OnClickListener listener) {
-        say("Oops!", R.drawable.alert_red, message, listener, false);
+        say("Error", R.drawable.alert_red, message, listener, false);
     }
 
     public void sayOk(String title, String message,  DialogInterface.OnClickListener listener) {
@@ -131,59 +131,28 @@ public class Act extends Activity {
     }
 
     /**
-     * Process the result from QR scan:
-     * Get agent, agentName, customer (etc), device, success, message from server
-     * @param rcard: info read from the card
+     * After requesting a transaction, handle the server's response.
      */
-    public void onScan(rCard rcard) {
-        List<NameValuePair> pairs = A.auPair(null, "member", rcard.qid);
-        A.auPair(pairs, "code", rcard.code);
-        String json = A.apiGetData(act, rcard.region, "identify", pairs);
-        /* String json = "{'name':'William Wagner Spademan-Krawerkljpskjfkj', 'place':'Ashfield, MA'," +
-                " 'company':'Common Good Finance', 'logon':'1', 'descriptions':['groceries','sundries']," +
-                " 'can_refund':'1', 'device':'adlkjaghh'}"; // debug */
-        if (json == null) return; // probably server is down (message already given)
-        if (!A.jsonString(json, "ok").equals("1")) {
-            act.sayFail(A.jsonString(json, "message"));
+    public void afterTx(final String json) {
+        act.progress(false);
+        if (json == null) {
+            act.sayError(A.httpError, null); // probably server is down, so let user try again
             return;
-        }
+        };
 
-        if (A.jsonString(json, "logon").equals("1")) { // scanning in
-            gotAgent(json, rcard);
+        String message = A.jsonString(json, "message");
+        if (A.jsonString(json, "ok").equals("1")) {
+            act.sayOk("Success!", message, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                    dialog.cancel();
+                    A.balance = A.jsonString(json, "balance");
+                    A.undo = A.jsonString(json, "undo");
+                    A.lastTx = A.jsonString(json, "tx");
+                    act.restart();
+                }
+            });
         } else {
-            gotCustomer(json, rcard);
+            act.sayError(message, null);
         }
-    }
-
-    /**
-     * Handle successful scan of company agent's rCard: remember who, check for update, report success, wait to scan.
-     * @param json: json-encoded response from the server
-     * @param rcard: info read from the card
-     */
-    private void gotAgent(String json, rCard rcard) {
-        A.agent = rcard.qid;
-        A.region = rcard.region;
-        A.agentName = A.jsonString(json, "name");
-        A.can = Integer.parseInt(A.jsonString(json, "can"));
-        A.descriptions = A.jsonArray(json, "descriptions");
-        if (A.deviceId.equals("")) A.deviceId = A.jsonString(json, "device");
-        if (!A.update.equals("1")) A.update = A.jsonString(json, "update"); // don't re-download if we already got it
-        act.mention("Success! You are now signed in.\nReady to scan a customer rCard...");
-        act.restart();
-    }
-
-    /**
-     * Handle successful scan of customer rCard: launch Customer activity to display identifying info
-     * @param json: json-encoded response from the server
-     * @param rcard: info read from the card
-     */
-    private void gotCustomer(String json, rCard rcard) {
-        Intent intent = new Intent(act, CustomerActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-        A.putIntentString(intent, "customer", rcard.qid);
-        A.putIntentString(intent, "customerRegion", rcard.region);
-        A.putIntentString(intent, "json", json);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
     }
 }

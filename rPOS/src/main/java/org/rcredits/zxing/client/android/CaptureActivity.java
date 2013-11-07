@@ -17,11 +17,14 @@
 
 package org.rcredits.zxing.client.android;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -46,6 +49,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.DecodeHintType;
@@ -53,7 +57,9 @@ import com.google.zxing.Result;
 import com.google.zxing.ResultMetadataType;
 import com.google.zxing.ResultPoint;
 
+import org.rcredits.pos.A;
 import org.rcredits.pos.Act;
+import org.rcredits.pos.CustomerActivity;
 import org.rcredits.pos.R;
 import org.rcredits.pos.rCard;
 import org.rcredits.zxing.client.android.camera.CameraManager;
@@ -83,14 +89,13 @@ import java.util.Set;
  * @author Sean Owen
  * @modifications by William Spademan for cgf (commented with "cgf")
  */
-public final class CaptureActivity extends Act implements SurfaceHolder.Callback { // cgf
-    private final Act act = this; // cgf
+public final class CaptureActivity extends Act implements SurfaceHolder.Callback {
     private static final String TAG = CaptureActivity.class.getSimpleName();
 
     private static final long DEFAULT_INTENT_RESULT_DURATION_MS = 1500L;
     private static final long BULK_MODE_SCAN_DELAY_MS = 1000L;
 
-    private static final String PACKAGE_NAME = "org.rcredits.pos";
+    private static final String PACKAGE_NAME = "org.rcredits.pos"; // cgf
     private static final String PRODUCT_SEARCH_URL_PREFIX = "http://www.google";
     private static final String PRODUCT_SEARCH_URL_SUFFIX = "/m/products/scan";
     private static final String[] ZXING_URLS = { "http://zxing.appspot.com/scan", "zxing://scan/" };
@@ -415,12 +420,21 @@ public final class CaptureActivity extends Act implements SurfaceHolder.Callback
             drawResultPoints(barcode, scaleFactor, rawResult);
         }
 
-        try { // cgf (this whole block)
-            act.onScan(new rCard(String.valueOf(rawResult)));
-        } catch (Exception e) {
-            act.sayFail(e.getMessage());
-            return;
-        }
+        Intent intent = new Intent(this, CustomerActivity.class); // cgf (this whole intent block)
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+        A.putIntentString(intent, "qr", String.valueOf(rawResult));
+        startActivity(intent); // process QR
+    }
+
+    /**
+     * Adjust the preview according to the device's orientation.
+     * @param newConfig
+     */
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) { // cgf (this whole method)
+        super.onConfigurationChanged(newConfig);
+        onPause(); // destroy the surface
+        onResume(); // recreate it (necessary to keep image from being blurry and stuff
     }
 
       /* cgf case NATIVE_APP_INTENT:
@@ -715,7 +729,7 @@ public final class CaptureActivity extends Act implements SurfaceHolder.Callback
             return;
         }
         try {
-            cameraManager.openDriver(surfaceHolder);
+            cameraManager.openDriver(surfaceHolder, getResources().getConfiguration().orientation); // cgf 2nd param
             // Creating the handler starts the preview, which can also throw a RuntimeException.
             if (handler == null) {
                 handler = new CaptureActivityHandler(this, decodeFormats, decodeHints, characterSet, cameraManager);

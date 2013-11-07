@@ -6,7 +6,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.hardware.Camera;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -42,6 +44,9 @@ import java.util.List;
  *   CaptureActivity
  *   CameraManager
  *   ViewfinderView
+ *
+ * Some cameras don't tell Android that their camera faces front (and therefore needs flipping), so a separate
+ * version should be built with flip=true in onCreate()
  */
 public class A extends Application {
     public final static boolean FAKE_SCAN = true; // disable scanning, for testing other features
@@ -49,15 +54,17 @@ public class A extends Application {
     public final static String DESC_REFUND = "refund";
     public final static String DESC_CASH_IN = "cash in";
     public final static String DESC_CASH_OUT = "cash out";
-    public final static String APP_FILENAME = "rPOS.apk"; // internal filename of downloaded update(s)
+    public final static String APP_FILENAME = "rpos.apk"; // internal filename of downloaded update(s)
 
     public static String versionCode; // VERSION number of this software
+    public static boolean flip; // whether to flip the scanned image (for front-facing cameras)
     public static String update = ""; // URL of update to install on restart, if any ("1" means already downloaded)
     public static String failMessage = ""; // error message to display upon restart, if any
     public static String deviceId; // set once ever in storage upon first scan-in, read upon startup
     public static String region; // set upon scan-in
     public static List<String> descriptions; // set upon scan-in
     public static String agent = ""; // set upon scan-in (eg NEW:AAB)
+    public static String xagent = ""; // previous agent
     public static String agentName; // set upon scan-in
     public static int can = 0; // what the agent can do
 
@@ -69,6 +76,8 @@ public class A extends Application {
     public static String balance = ""; // message about last customer's balance
     public static String undo = ""; // message about reversing last transaction
     public static String lastTx = ""; // number of last transaction
+    public static String httpError = ""; // last HTTP failure message
+    public static String debugString = ""; // for debug messages
 
     public final static String MSG_DOWNLOAD_SUCCESS = "Update download is complete.";
     private final static String MSG_HTTP_ERROR = "The rCredits server is not reachable at the moment. Try again later.";
@@ -82,11 +91,17 @@ public class A extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+
         deviceId = getStored("deviceId");
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             versionCode = pInfo.versionCode + "";
         } catch (PackageManager.NameNotFoundException e) {e.printStackTrace();}
+
+        Camera.CameraInfo info = new Camera.CameraInfo();
+        Camera.getCameraInfo(0, info);
+        flip = (Camera.getNumberOfCameras() == 1 && info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
+        //flip = true; versionCode = "0" + versionCode; // uncomment for old devices with only an undetectable front-facing camera.
     }
 
     public String getStored(String name) {
@@ -133,17 +148,11 @@ public class A extends Application {
 
     /**
      * Send a request to the server and return its response.
-     * @param a: the current Activity
      * @param region: the agent's region
-     * @param op: the requested operation
      * @param pairs: name/value pairs to send with the request
-     * @return: the server's response
-     * (restarts on failure)
+     * @return: the server's response. null if failure (with message in A.httpError)
      */
-    public static HttpResponse post(Act a, String region, String op, List<NameValuePair> pairs) {
-        a.mention("starting");
-        a.progress(true);
-        A.auPair(pairs, "op", op);
+    public static HttpResponse post(String region, List<NameValuePair> pairs) {
         A.auPair(pairs, "agent", A.agent);
         A.auPair(pairs, "device", A.deviceId);
         A.auPair(pairs, "version", A.versionCode);
@@ -160,25 +169,21 @@ public class A extends Application {
 
         try {
             post.setEntity(new UrlEncodedFormEntity(pairs));
-            response = client.execute(post);
+            return client.execute(post);
         } catch (Exception e) {
-            a.sayFail(MSG_HTTP_ERROR + " (" + e.getMessage() + ")");
-            response = null;
+            A.httpError = MSG_HTTP_ERROR + " (" + e.getMessage() + ")";
+            return null;
         }
-        a.progress(false);
-        return response;
     }
 
     /**
-     * Get a string response from the server (usually json-encoded)
-     * @param a: the current Activity
-     * @param region: the agent's region
-     * @param op: the requested operation
-     * @param pairs: name/value pairs to send with the request
-     * @return
+     * Get a string response from the server
+     * @param region: which regional server to ask
+     * @param pairs: name/value pairs to send with the request (including op = the requested operation)
+     * @return the response
      */
-    public static String apiGetData(Act a, String region, String op, List<NameValuePair> pairs) {
-        HttpResponse response = A.post(a, region, op, pairs);
+    public static String apiGetJson(String region, List<NameValuePair> pairs) {
+        HttpResponse response = A.post(region, pairs);
         try {
             return response == null ? null : EntityUtils.toString(response.getEntity());
         } catch (IOException e) {
@@ -188,14 +193,15 @@ public class A extends Application {
     }
 
     /**
-     * Get a string response from the server (usually json-encoded)
-     * @param a: the current Activity
-     * @param region: the agent's region
-     * @param qid: the custoemr's account id
+     * Get the customer's photo from his/her server.
+     * @param region: the customer's region
+     * @param member: the customer ID
      * @return: the customer's photo, as a byte array
      */
-    public static byte[] apiGetPhoto(Act a, String region, String qid) {
-        HttpResponse response = A.post(a, region, "photo", A.auPair(null, "member", qid));
+    public static byte[] apiGetPhoto(String region, String member) {
+        List<NameValuePair> pairs = A.auPair(null, "op", "photo");
+        A.auPair(pairs, "member", member);
+        HttpResponse response = A.post(region, pairs);
         try {
             return response == null ? null : EntityUtils.toByteArray(response.getEntity());
         } catch (IOException e) {
@@ -215,33 +221,6 @@ public class A extends Application {
         if (pairs == null) pairs = new ArrayList<NameValuePair>(1);
         pairs.add(new BasicNameValuePair(name, value));
         return pairs;
-    }
-
-    /**
-     * Send a request to the server to doTx someone (or credit them, if amount param is negative)
-     * @param a: the current Activity
-     * @param op: type of transaction
-     * @param pairs: additional parameters to the transaction
-     * (restarts, whether successful or not)
-     */
-    public static void doTx(Act a, String op, List<NameValuePair> pairs) {
-        final Act a2 = a;
-        final String json = A.apiGetData(a, A.region, op, pairs);
-        if (json == null) return; // probably server is down, so let user try again
-        String message = A.jsonString(json, "message");
-        if (A.jsonString(json, "ok").equals("1")) {
-            a.sayOk("Success!", message, new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int id) {
-                    dialog.cancel();
-                    A.balance = A.jsonString(json, "balance");
-                    A.undo = A.jsonString(json, "undo");
-                    A.lastTx = A.jsonString(json, "tx");
-                    a2.restart();
-                }
-            });
-        } else {
-            a.sayError(message, null);
-        }
     }
 
     /**

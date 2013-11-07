@@ -38,6 +38,7 @@ import java.util.List;
  * transparency outside it, as well as the laser scanner animation and result points.
  *
  * @author dswitkin@google.com (Daniel Switkin)
+ * @modifications by William Spademan for cgf (commented with "cgf")
  */
 public final class ViewfinderView extends View {
 

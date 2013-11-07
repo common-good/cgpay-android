@@ -1,8 +1,8 @@
 To Do:
 . rework KeyguardManager lines with WindowManager.FLAG_DISMISS_KEYGUARD (see zxing code for tips)
 . fix rSmart tests
-. progress function doesn't work
-. update function no longer works (download file not found?)
+. LATER talk to Blake about why not to use AyncTask
+. LATER use assets instead of literals
 . LATER change negative amount messages (for refunds, undo-refunds, and balance) to the appropriate positives
 . LATER ask user to confirm small and large amounts (a magnitude off their average? -- research bank algorithms)
 . LATER settings activity: simply (Toast) say all settings are on website?
@@ -12,6 +12,14 @@ To Do:
 . LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
 . LATER (for tests) keep acore from repetitive death on fakeScan mode
 . LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
+
+2013-11-06
+. progress function now works (thanks Blake!)
+. update function now works
+. finished separating network tasks from the UI, so it runs in all API versions 2.1+
+. added landscape layouts for main, customer, and tx
+. landscape mode works now for every activity, on every device tested
+. scanning works even for devices with front-only cameras, with an alternate build for exceptions (rpos2.apk)
 
 2013-11-03
 . added signout feature

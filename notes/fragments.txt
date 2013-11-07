@@ -1,4 +1,5 @@
-/*                if (i == 0) { // chose "(other)"
+/* for entering new descriptions (removed so as to reserve this function for the web interface)
+               if (i == 0) { // chose "(other)"
                     findViewById(R.id.list).setVisibility(View.GONE);
                     EditText other = (EditText) findViewById(R.id.other);
                     other.setVisibility(View.VISIBLE);
@@ -15,3 +16,6 @@
                         }
                     });
                 } else { */
+				
+				
+boolean flip = (Camera.CameraInfo.CAMERA_FACING_FRONT != 0);				
