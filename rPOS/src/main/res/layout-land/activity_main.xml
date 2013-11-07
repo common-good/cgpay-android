@@ -1,0 +1,98 @@
+<FrameLayout
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:keepScreenOn="true"
+    android:background="@color/background"
+    android:clickable="false">
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="16dp">
+
+        <FrameLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_gravity="center_horizontal"
+            android:id="@+id/undo_frame">
+
+            <ImageButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/undo_last"
+                android:src="@drawable/undo"
+                android:background="@color/background"
+                android:layout_gravity="center_horizontal"
+                android:onClick="doUndo"
+                android:clickable="true"/>
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_gravity="center_horizontal"
+            android:id="@+id/balance_frame">
+
+            <ImageButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/show_balance"
+                android:src="@drawable/show_balance"
+                android:background="@color/background"
+                android:layout_gravity="center_horizontal"
+                android:onClick="doShowBalance"
+                android:clickable="true"/>
+        </FrameLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_gravity="bottom"
+        android:gravity="center_horizontal"
+        android:paddingLeft="16dp"
+        android:paddingTop="16dp"
+        android:paddingRight="16dp">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/imageView"
+            android:background="@drawable/rlogo"
+            android:layout_marginBottom="15dp"/>
+
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/scan"
+            android:src="@drawable/scan"
+            android:maxHeight="50dp"
+            android:background="@color/background"
+            android:clickable="true"
+            android:onClick="doScan"
+            android:cropToPadding="false"/>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/not_signed_in"
+            android:id="@+id/signed_as"
+            android:clickable="true"
+            android:onClick="doSignOut"
+            android:background="@color/background"
+            android:ellipsize="middle"
+            android:paddingTop="20dp"
+            android:textSize="18sp"
+            android:lines="1"
+            android:singleLine="true"
+            android:paddingBottom="20dp"/>
+
+    </LinearLayout>
+
+</FrameLayout>

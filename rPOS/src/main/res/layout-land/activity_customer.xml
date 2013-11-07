@@ -1,0 +1,132 @@
+<LinearLayout  xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:baselineAligned="false"
+    android:background="@color/background">
+
+    <FrameLayout
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".Customer"
+        android:layout_weight="1"
+        android:layout_marginBottom="10dp"
+        android:background="@color/background"
+        android:clickable="false">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="fill_parent"
+            android:id="@+id/photo"
+            android:layout_gravity="center_horizontal|top"
+            android:layout_weight="2"
+            android:layout_marginLeft="1dp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|left">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" \u2191 "
+                android:id="@+id/refund"
+                android:layout_gravity="bottom|left"
+                android:layout_weight="1"
+                android:textSize="60dp"
+                android:clickable="true"
+                android:onClick="onRClick"
+                android:textColor="#ffffff"
+                style="@style/Button"
+                android:layout_margin="3dp"
+                android:paddingBottom="5dp"
+                android:contentDescription="refund"/>
+
+            <ImageButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/cashin"
+                android:contentDescription="cash in"
+                android:background="@drawable/cash_in"
+                android:onClick="onRClick"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|right">
+
+            <ImageButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/cashout"
+                android:contentDescription="cash out"
+                android:cropToPadding="false"
+                android:background="@drawable/cash_out"
+                android:onClick="onRClick"/>
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" \u2193 "
+                android:id="@+id/charge"
+                android:layout_gravity="bottom|right"
+                android:layout_weight="1"
+                android:textSize="60dp"
+                android:clickable="true"
+                android:onClick="onRClick"
+                android:textColor="#ffffff"
+                style="@style/Button"
+                android:layout_margin="3dp"
+                android:paddingBottom="5dp"
+                />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|bottom"
+        android:background="#ffffff"
+        android:baselineAligned="false"
+        android:layout_marginBottom="10dp"
+        android:layout_weight="0">
+
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Customer Name"
+            android:id="@+id/customer_name"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:textColor="#000066"
+            android:background="@color/background"/>
+
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Customer Company"
+            android:id="@+id/customer_company"
+            android:gravity="center"
+            android:textColor="#004400"
+            android:background="@color/background"/>
+
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Customer Place"
+            android:id="@+id/customer_place"
+            android:gravity="center"
+            android:textColor="#004400"
+            android:background="@color/background"/>
+    </LinearLayout>
+
+</LinearLayout>
