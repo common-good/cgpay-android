@@ -54,9 +54,9 @@ public class A extends Application {
     public final static String DESC_REFUND = "refund";
     public final static String DESC_CASH_IN = "cash in";
     public final static String DESC_CASH_OUT = "cash out";
-    public final static String APP_FILENAME = "rpos.apk"; // internal filename of downloaded update(s)
 
-    public static String versionCode; // VERSION number of this software
+    public static String versionCode; // version number of this software
+    public static String versionName; // version name of this software
     public static boolean flip; // whether to flip the scanned image (for front-facing cameras)
     public static String update = ""; // URL of update to install on restart, if any ("1" means already downloaded)
     public static String failMessage = ""; // error message to display upon restart, if any
@@ -68,7 +68,7 @@ public class A extends Application {
     public static String agentName; // set upon scan-in
     public static int can = 0; // what the agent can do
 
-    public final static int CAN_CHOOSE_DESC = 1 << 0;
+    //public final static int CAN_CHOOSE_DESC = 1 << 0;
     public final static int CAN_REFUND =      1 << 1;
     public final static int CAN_SELL_CASH =   1 << 2;
     public final static int CAN_BUY_CASH =    1 << 3;
@@ -96,6 +96,7 @@ public class A extends Application {
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             versionCode = pInfo.versionCode + "";
+            versionName = pInfo.versionName + "";
         } catch (PackageManager.NameNotFoundException e) {e.printStackTrace();}
 
         Camera.CameraInfo info = new Camera.CameraInfo();
@@ -153,6 +154,7 @@ public class A extends Application {
      * @return: the server's response. null if failure (with message in A.httpError)
      */
     public static HttpResponse post(String region, List<NameValuePair> pairs) {
+        final int timeout = 10000; // milliseconds
         A.auPair(pairs, "agent", A.agent);
         A.auPair(pairs, "device", A.deviceId);
         A.auPair(pairs, "version", A.versionCode);
@@ -162,8 +164,8 @@ public class A extends Application {
         //HttpClient client = new DefaultHttpClient();
 
         HttpParams params = new BasicHttpParams();
-        HttpConnectionParams.setConnectionTimeout(params, 5000);
-        HttpConnectionParams.setSoTimeout(params, 5000);
+        HttpConnectionParams.setConnectionTimeout(params, timeout);
+        HttpConnectionParams.setSoTimeout(params, timeout);
         DefaultHttpClient client = new DefaultHttpClient(params);
         HttpResponse response;
 

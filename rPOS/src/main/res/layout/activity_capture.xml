@@ -22,7 +22,7 @@
         android:id="@+id/textView2"
         android:textColor="#bb0000"
         android:clickable="false"
-        android:layout_gravity="center_horizontal|bottom"
+        android:layout_gravity="center"
         android:paddingBottom="20dp"
         android:textSize="30dp"/>
 

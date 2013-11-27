@@ -1,6 +1,7 @@
 package org.rcredits.pos;
 
         import android.content.Intent;
+        import android.content.res.Configuration;
         import android.os.AsyncTask;
         import android.os.Bundle;
         import android.view.Menu;
@@ -24,6 +25,7 @@ public class TxActivity extends Act {
     private static final int preCommaDigits = 5; // maximum number of digits before we need a comma
     private static String customer; // qid of current customer
     private static String description; // transaction description
+    private static String amount; // the transaction amount
     private Button goods; // is this a purchase/refund of real goods & services (or an exchange for cash)
 
     /**
@@ -33,24 +35,43 @@ public class TxActivity extends Act {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_tx);
-        goods = (Button) findViewById(R.id.goods);
-        //ImageView cash = (ImageView) findViewById(R.id.cash);
-        ImageButton changeDesc = (ImageButton) findViewById(R.id.change_description);
 
         customer = A.getIntentString(this.getIntent(), "customer");
         description = A.getIntentString(this.getIntent(), "description").toLowerCase();
+        amount = "0.00";
+        setLayout();
+    }
+
+    /**
+     * Do what needs doing on creation and orientation change.
+     */
+    private void setLayout() {
+        setContentView(R.layout.activity_tx);
+        goods = (Button) findViewById(R.id.goods);
+        ImageButton changeDesc = (ImageButton) findViewById(R.id.change_description);
+
         if (description.equals(A.DESC_CASH_IN) || description.equals(A.DESC_CASH_OUT)) {
             changeDesc.setVisibility(View.GONE);
         } else if (description.equals(A.DESC_REFUND)) {
-            //cash.setVisibility(View.GONE);
             changeDesc.setVisibility(View.GONE);
         } else { // charging
-            //cash.setVisibility(View.GONE);
-            if (description.equals("")) description = "goods and services"; // don't let it be blank
-            if (A.descriptions.size() < 2 || !A.agentCan(A.CAN_CHOOSE_DESC)) changeDesc.setVisibility(View.GONE);
+            if (A.descriptions.size() < 2) {
+                description = "charge"; // don't let it be blank
+                changeDesc.setVisibility(View.GONE);
+            }
         }
         goods.setText(A.ucFirst(description));
+        if (amount != null) ((TextView) findViewById(R.id.amount)).setText("$" + amount);
+    }
+
+    /**
+     * Adjust the layout according to the device's orientation.
+     * @param newConfig
+     */
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) { // cgf (this whole method)
+        super.onConfigurationChanged(newConfig);
+        setLayout();
     }
 
     /**
@@ -59,7 +80,7 @@ public class TxActivity extends Act {
      */
     public void onCalcClick(View button) {
         TextView text = (TextView) findViewById(R.id.amount);
-        String amount = text.getText().toString().replaceAll("[,\\.\\$]", "");
+        amount = text.getText().toString().replaceAll("[,\\.\\$]", "");
         String c = (String) button.getContentDescription();
         if (c.equals("c")) {
             amount = "000";

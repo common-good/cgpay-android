@@ -1,6 +1,7 @@
 package org.rcredits.pos;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -31,8 +32,9 @@ import java.util.List;
  */
 public class CustomerActivity extends Act {
     private final Act act = this;
-    private rCard rcard; // the info from the rCard, parsed
-    private byte[] image; // photo of customer
+    private static rCard rcard; // the info from the rCard, parsed
+    private static byte[] image; // photo of customer
+    private static String json; // json-encoded response from server
 
     /**
      * Show just the scanned account code, while we get more info in the background
@@ -59,6 +61,17 @@ public class CustomerActivity extends Act {
     }
 
     /**
+     * Adjust the layout according to the device's orientation.
+     * @param newConfig
+     */
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) { // cgf (this whole method)
+        super.onConfigurationChanged(newConfig);
+        setContentView(R.layout.activity_customer);
+        if (json != null && !json.equals("")) gotCustomer();
+    }
+
+    /**
      * The user clicked on of four buttons: charge, refund, cash in, or cash out. Handle each in the Tx Activity.
      * @param v: which button was pressed.
      */
@@ -74,41 +87,40 @@ public class CustomerActivity extends Act {
     /**
      * Process the result from QR scan:
      * Get agent, agentName, customer (etc), device, success, message from server, and handle it.
-     * @return the json-encoded response from the server, if the scanned card is for a customer. Else null.
+     * @return true if the scanned card is for a customer. Else false.
      */
-    public String onScan() {
+    public Boolean onScan() {
         List<NameValuePair> pairs = A.auPair(null, "op", "identify");
         A.auPair(pairs, "member", rcard.qid);
         A.auPair(pairs, "code", rcard.code);
-        String json = A.apiGetJson(rcard.region, pairs); // get json-encoded info
+        json = A.apiGetJson(rcard.region, pairs); // get json-encoded info
         if (json == null) {
             act.sayFail(A.httpError); // probably server is down
-            return null;
+            return false;
         }
 
         if (!A.jsonString(json, "ok").equals("1")) {
             act.sayFail(A.jsonString(json, "message"));
-            return null;
+            return false;
         }
 
         if (A.jsonString(json, "logon").equals("1")) { // scanning in
-            gotAgent(json);
-            return null;
+            gotAgent();
+            return false;
         } else { // for a customer, we need their photo too
             image = A.apiGetPhoto(rcard.region, rcard.qid);
             if (image.length == 0) {
                 act.sayFail(A.httpError); // probably server is down
-                return null;
+                return false;
             }
-            return json;
+            return true;
         }
     }
 
     /**
      * Handle successful scan of company agent's rCard: remember who, check for update, report success, wait to scan.
-     * @param json: json-encoded response from the server
      */
-    private void gotAgent(String json) {
+    private void gotAgent() {
         A.xagent = A.agent; // remember previous agent, for comparison
         A.agent = rcard.qid;
         A.region = rcard.region;
@@ -122,9 +134,8 @@ public class CustomerActivity extends Act {
 
     /**
      * Handle successful scan of customer rCard: launch Customer activity to display identifying info
-     * @param json: json-encoded response from the server
      */
-    private void gotCustomer(String json) {
+    private void gotCustomer() {
         A.lastTx = ""; // previous customer info is no longer valid
         A.balance = "";
         A.undo = "";
@@ -154,28 +165,28 @@ public class CustomerActivity extends Act {
     /**
      * Get the customer's info from the server and display it, with options for what to do next.
      */
-    private class Identify extends AsyncTask<String, Void, String> {
+    private class Identify extends AsyncTask<String, Void, Boolean> {
         /**
          * Do the background part
          * @param qrs: one-element array of the scanned QR
          * @return true if it's a customer
          */
         @Override
-        protected String doInBackground(String... qrs) { // must be "String... something"
+        protected Boolean doInBackground(String... qrs) { // must be "type... something"
             String qr = qrs[0];
 
             try {
                 rcard = new rCard(qr); // parse the coded info and save it for use throughout this activity
                 return onScan();
             } catch (Exception e) {
-                act.sayFail(e.getMessage());
-                return null;
+                act.sayFail("Download error: " + e.getMessage());
+                return false;
             }
         }
 
         @Override
-        protected void onPostExecute(String json) {
-            if (json != null) gotCustomer(json); // this has to happen on the UI thread (so here in onPostExecute())
+        protected void onPostExecute(Boolean gotCustomer) {
+            if (gotCustomer) gotCustomer(); // this has to happen on the UI thread (so here in onPostExecute())
             act.progress(false);
         }
     }

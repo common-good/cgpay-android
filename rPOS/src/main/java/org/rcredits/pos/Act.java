@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.widget.Toast;
 
@@ -48,7 +49,9 @@ public class Act extends Activity {
      */
     public void mention(String message) {
         int duration = (message.length() < 30) ? Toast.LENGTH_SHORT : Toast.LENGTH_LONG;
-        Toast.makeText(act, message, duration).show();
+        Toast toast = Toast.makeText(act, message, Toast.LENGTH_LONG);
+        toast.setGravity(Gravity.CENTER, 0, 0);
+        toast.show();
     }
 
     /**

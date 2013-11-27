@@ -26,9 +26,11 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -64,18 +66,7 @@ public final class MainActivity extends Act {
         KeyguardManager.KeyguardLock lock = keyguardManager.newKeyguardLock(KEYGUARD_SERVICE);
         lock.disableKeyguard();
 
-        findViewById(R.id.undo_last).setVisibility((A.agentCan(A.CAN_REFUND) && !A.lastTx.equals("")) ? View.VISIBLE : View.GONE);
-        findViewById(R.id.show_balance).setVisibility(A.balance.equals("") ? View.GONE : View.VISIBLE);
-        if (A.agent.equals("")) {
-            if (A.failMessage.equals("")) act.mention("Welcome!\n\nPress the SCAN button to sign in with your Company Agent rCard.");
-        } else {
-            Button signedAs = (Button) findViewById(R.id.signed_as);
-            if (!A.agent.equals(A.xagent) && A.failMessage.equals("")) {
-                act.mention("Success! You are now signed in.\nReady to scan a customer rCard...");
-                A.xagent = A.agent;
-            }
-            signedAs.setText("You: " + A.agentName);
-        }
+        setLayout();
 
         if (!A.failMessage.equals("")) {
             act.sayError(A.failMessage, null); // show failure message from previous (failed) activity
@@ -95,6 +86,34 @@ public final class MainActivity extends Act {
     }
 
     /**
+     * Do what needs doing upon startup or after signing out.
+     */
+    private void setLayout() {
+        Button signedAs = (Button) findViewById(R.id.signed_as);
+        TextView welcome = (TextView) findViewById(R.id.welcome);
+        TextView version = (TextView) findViewById(R.id.version);
+        if (version != null) version.setText("v. " + A.versionName);
+
+        boolean showUndo = (A.agentCan(A.CAN_REFUND) && !A.lastTx.equals(""));
+        boolean showBalance = !A.balance.equals("");
+        findViewById(R.id.undo_last).setVisibility(showUndo ? View.VISIBLE : View.GONE);
+        findViewById(R.id.show_balance).setVisibility(showBalance ? View.VISIBLE : View.GONE);
+        if (!A.agent.equals("")) {
+            welcome.setText((showUndo || showBalance) ? "" : "Ready for customers...");
+            if (!A.agent.equals(A.xagent) && A.failMessage.equals("")) {
+                act.mention("Success! You are now signed in.");
+                A.xagent = A.agent;
+            }
+            signedAs.setText("Agent: " + A.agentName);
+        } else {
+            welcome.setText(R.string.welcome);
+            signedAs.setText(R.string.not_signed_in);
+        }
+
+    }
+
+
+    /**
      * from ldmuniz at http://stackoverflow.com/questions/4967669/android-install-apk-programmatically
      */
     private class UpdateApp extends AsyncTask<String, Void, Void> {
@@ -108,9 +127,10 @@ public final class MainActivity extends Act {
                 c.connect();
 
                 String PATH = "/mnt/sdcard/Download/";
+                String FILENAME = "update.apk";
                 File file = new File(PATH);
                 file.mkdirs();
-                File outputFile = new File(file, "update.apk");
+                File outputFile = new File(file, FILENAME);
                 if(outputFile.exists()) outputFile.delete();
                 FileOutputStream fos = new FileOutputStream(outputFile);
                 InputStream is = c.getInputStream();
@@ -122,7 +142,7 @@ public final class MainActivity extends Act {
                 is.close();
 
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setDataAndType(Uri.fromFile(new File("/mnt/sdcard/Download/update.apk")), "application/vnd.android.package-archive");
+                intent.setDataAndType(Uri.fromFile(new File(PATH + FILENAME)), "application/vnd.android.package-archive");
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // without this flag android returned a intent error!
                 act.startActivity(intent);
                 A.update = ""; // don't redo current update
@@ -137,68 +157,6 @@ public final class MainActivity extends Act {
             act.progress(false);
         }
     }
-
-    /**
-     * Download and install the latest app update, mostly in the background.
-     * (untested)
-     *//*
-    private class downloadUpdate extends AsyncTask<String, Void, String> {
-        @Override
-        protected String doInBackground(String... urls) { // must be "String... something"
-            String url = urls[0];
-
-            HttpClient http = new DefaultHttpClient();
-            HttpGet request = new HttpGet(url);
-
-            try {
-                HttpResponse response = http.execute(request);
-                InputStream fileStream = response.getEntity().getContent();
-                FileOutputStream output = openFileOutput(A.APP_FILENAME, MODE_WORLD_READABLE); // deprecated but doesn't work otherwise
-                //boolean hasExternal = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED);
-                //String baseFolder = (hasExternal ? getExternalFilesDir(null) : getFilesDir()).getAbsolutePath();
-                File file = new File(Environment.getExternalStorageDirectory(), A.APP_FILENAME);
-                FileOutputStream output = new FileOutputStream(file);
-
-                String permission="666";
-
-                try {
-                    String command = "chmod " + permission + " " + file.getAbsolutePath();
-                    Runtime runtime = Runtime.getRuntime();
-                    runtime.exec(command);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                byte[] buffer = new byte[1024];
-                int len;
-                while ((len = fileStream.read(buffer)) > 0) output.write(buffer, 0, len);
-                fileStream.close();
-                output.close();
-
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                //intent.setDataAndType(Uri.fromFile(getFileStreamPath(A.APP_FILENAME)), "application/vnd.android.package-archive");
-                intent.setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive");
-                startActivity(intent);
-            } catch (ClientProtocolException e) {
-                e.printStackTrace();
-                return e.getMessage();
-            } catch (IOException e) {
-                e.printStackTrace();
-                return e.getMessage();
-            }
-
-            A.update = "";
-            return A.MSG_DOWNLOAD_SUCCESS;
-        }
-
-        @Override
-        protected void onPostExecute(String msg) {
-            if (msg.equals(A.MSG_DOWNLOAD_SUCCESS)) {
-                //A.update = "1";
-                act.mention(msg);
-            } else act.sayError("Download failed: " + msg, null);
-        }
-    }*/
 
     /**
      * Start the Capture activity (when the user presses the SCAN button).
@@ -248,15 +206,11 @@ public final class MainActivity extends Act {
      * Sign the cashier out after confirmation.
      */
     public void doSignOut(View v) {
-        if (A.agent.equals("")) {
-            act.mention("You are not signed in.");
-            return; // not signed in
-        }
-        act.askOk("Sign out?", new DialogInterface.OnClickListener() {
+        if (!A.agent.equals("")) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
-                A.agent = A.agentName = ""; // sign out
-                ((Button) findViewById(R.id.signed_as)).setText(R.string.not_signed_in);
+                A.agent = A.agentName = A.balance = A.undo = A.lastTx = ""; // sign out
+                setLayout();
             }
         });
     }

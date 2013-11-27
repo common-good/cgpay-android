@@ -60,12 +60,47 @@
         android:paddingTop="16dp"
         android:paddingRight="16dp">
 
-        <ImageView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/rlogo"
-            android:background="@drawable/rlogo"
-            android:layout_marginBottom="15dp"/>
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="15dp">
+
+            <FrameLayout
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:layout_weight="1">
+            </FrameLayout>
+
+            <FrameLayout
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:layout_weight="1">
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/rlogo"
+                    android:background="@drawable/rlogo"
+                    android:layout_weight="0"
+                    android:layout_gravity="center_horizontal|bottom"/>
+            </FrameLayout>
+
+            <FrameLayout
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:layout_weight="1">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:text="version"
+                    android:id="@+id/version"
+                    android:layout_gravity="bottom|left"/>
+            </FrameLayout>
+
+        </LinearLayout>
 
         <ImageButton
             android:layout_width="wrap_content"
@@ -94,5 +129,18 @@
             android:paddingBottom="20dp"/>
 
     </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@+string/welcome"
+        android:id="@+id/welcome"
+        android:layout_gravity="center_horizontal"
+        android:textSize="18dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginLeft="16dp"
+        android:gravity="center"/>
 
 </FrameLayout>

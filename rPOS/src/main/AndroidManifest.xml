@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.rcredits.pos"
-    android:versionCode="6"
-    android:versionName="0.16"
+    android:versionCode="9"
+    android:versionName="0.19"
     android:installLocation="auto" >
 
     <uses-sdk
@@ -70,11 +70,13 @@
         </activity>
         <activity
             android:name=".CustomerActivity"
-            android:label="@string/title_activity_customer">
+            android:label="@string/title_activity_customer"
+            android:configChanges="orientation">
         </activity>
         <activity
             android:name=".TxActivity"
-            android:label="@string/title_activity_tx">
+            android:label="@string/title_activity_tx"
+            android:configChanges="orientation">
         </activity>
         <activity
             android:name=".DescriptionActivity"

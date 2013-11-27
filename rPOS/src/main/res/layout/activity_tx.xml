@@ -38,22 +38,13 @@ android:background="@color/background">
             android:layout_weight="0"
             android:layout_gravity="right">
 
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/cash"
-                android:layout_gravity="right"
-                android:layout_weight="0"
-                android:background="@drawable/dollar_coin"
-                android:visibility="invisible"/>
-
             <ImageButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/change_description"
                 android:layout_gravity="right"
                 android:layout_weight="0"
-                android:background="@drawable/change_icon"
+                android:background="@drawable/change"
                 android:onClick="onChangeDescriptionClick"
                 android:clickable="true"
                 android:layout_column="3"/>
