@@ -11,8 +11,9 @@ public class rCard {
 
     /**
      * Extract the member's QID and security code from a scanned URL
-     * @param qrUrl (eg HTTP://NEW.RC2.ME/I/NEW.AAA-4Dpu1m54k3T)
-     *              (or HTTP://NEW.RC2.ME/I/AAA.4Dpu1m54k3T)
+     * @param qrUrl eg HTTP://NEW.RC2.ME/I/NEW.AAA-4Dpu1m54k3T
+     *              or HTTP://NEW.RC2.ME/I/AAA.4Dpu1m54k3T
+     *              (RC2.ME for real cards, RC4.ME for test cards)
      */
     public rCard(String qrUrl) throws Exception {
         String account, mark;
@@ -23,6 +24,14 @@ public class rCard {
         region = parts[2];
         code = parts[count - 1];
         account = parts[count - 2];
+        boolean isTestCard = parts[3].toUpperCase().equals("RC4");
+
+        if (A.testing == null) {
+            A.testing = isTestCard;
+        } else {
+            if (A.testing && !isTestCard) throw new Exception("That is not a test card. Tap the Agent's name to sign out, then scan your Company Agent card to sign in for REAL.");
+            if (!A.testing && isTestCard) throw new Exception("That is not a real rCard. Tap your name to sign out, then scan a test agent card to sign in for TESTING.");
+        }
 
         int markPos = qrUrl.length() - code.length() - (count == 9 ? account.length() + 2 : 1);
         isAgent = qrUrl.substring(markPos, markPos + 1).equals("-");

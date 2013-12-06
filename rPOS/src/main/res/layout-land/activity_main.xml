@@ -56,6 +56,17 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="TEST"
+            android:id="@+id/test"
+            android:layout_gravity="center_horizontal|bottom"
+            android:textColor="#ac021c"
+            android:textStyle="bold"
+            android:layout_marginBottom="20dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
             android:text="version"
             android:id="@+id/version"
             android:layout_gravity="center_horizontal|bottom"/>

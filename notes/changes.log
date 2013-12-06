@@ -1,4 +1,5 @@
 To Do:
+. give businesses the option to permit other businesses to use their device (if non-permitted business tries when no one is signed in, say "you have to scan yourself in first (other businesses are not permitted to scan in)"
 . rework KeyguardManager lines with WindowManager.FLAG_DISMISS_KEYGUARD (see zxing code for tips)
 . LATER talk to Blake about why not to use AyncTask
 . LATER * use assets instead of literals
@@ -10,6 +11,14 @@ To Do:
 . LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
 . LATER (for tests) keep acore from repetitive death on fakeScan mode
 . LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
+
+2013-12-05
+. release 1.0!!
+. improved cash in and cash out buttons
+. created a testing mode, which hits the test server after scanning a test agent card
+. added "TEST" to Main screen when in test mode
+. changed Toasts to bottom of screen
+. fixed bug which sometimes hung the app switching companies or between real and test
 
 2013-11-15
 . revised Customer landscape layout

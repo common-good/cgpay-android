@@ -94,10 +94,11 @@ public final class MainActivity extends Act {
         TextView version = (TextView) findViewById(R.id.version);
         if (version != null) version.setText("v. " + A.versionName);
 
-        boolean showUndo = (A.agentCan(A.CAN_REFUND) && !A.lastTx.equals(""));
-        boolean showBalance = !A.balance.equals("");
+        boolean showUndo = (A.agentCan(A.CAN_REFUND) && !A.lastTx.equals("") && !A.undo.equals(""));
+        boolean showBalance = (!A.balance.equals("") && A.balance != null);
         findViewById(R.id.undo_last).setVisibility(showUndo ? View.VISIBLE : View.GONE);
         findViewById(R.id.show_balance).setVisibility(showBalance ? View.VISIBLE : View.GONE);
+        findViewById(R.id.test).setVisibility((A.testing != null && A.testing) ? View.VISIBLE : View.GONE);
         if (!A.agent.equals("")) {
             welcome.setText((showUndo || showBalance) ? "" : "Ready for customers...");
             if (!A.agent.equals(A.xagent) && A.failMessage.equals("")) {
@@ -209,7 +210,8 @@ public final class MainActivity extends Act {
         if (!A.agent.equals("")) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
-                A.agent = A.agentName = A.balance = A.undo = A.lastTx = ""; // sign out
+                A.agent = A.xagent = A.agentName = A.region = A.balance = A.undo = A.lastTx = ""; // sign out
+                A.testing = null; // next sign-in could be different
                 setLayout();
             }
         });

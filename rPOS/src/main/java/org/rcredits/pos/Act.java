@@ -50,7 +50,7 @@ public class Act extends Activity {
     public void mention(String message) {
         int duration = (message.length() < 30) ? Toast.LENGTH_SHORT : Toast.LENGTH_LONG;
         Toast toast = Toast.makeText(act, message, Toast.LENGTH_LONG);
-        toast.setGravity(Gravity.CENTER, 0, 0);
+        toast.setGravity(Gravity.CENTER_HORIZONTAL|Gravity.BOTTOM, 0, 0);
         toast.show();
     }
 

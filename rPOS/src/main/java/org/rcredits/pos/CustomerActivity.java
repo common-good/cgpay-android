@@ -57,7 +57,7 @@ public class CustomerActivity extends Act {
         customerPlace.setText("Identifying...");
 
         act.progress(true); // this progress meter gets turned off in Identify's onPostExecute()
-        new Identify().execute(qr); // download the update in the background
+        new Identify().execute(qr); // query the server in the background
     }
 
     /**
@@ -69,6 +69,15 @@ public class CustomerActivity extends Act {
         super.onConfigurationChanged(newConfig);
         setContentView(R.layout.activity_customer);
         if (json != null && !json.equals("")) gotCustomer();
+    }
+
+    /**
+     * Go all the way back to Main screen on Back Button press.
+     */
+    @Override
+    public void onBackPressed() {
+        //act.sayOk("Back to Top", "Transaction CANCELED.", null);
+        act.restart();
     }
 
     /**
@@ -179,7 +188,8 @@ public class CustomerActivity extends Act {
                 rcard = new rCard(qr); // parse the coded info and save it for use throughout this activity
                 return onScan();
             } catch (Exception e) {
-                act.sayFail("Download error: " + e.getMessage());
+                String msg = e.getMessage();
+                act.sayFail(msg.equals("") ? "Download error" : msg);
                 return false;
             }
         }

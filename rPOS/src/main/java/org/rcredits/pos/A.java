@@ -57,6 +57,7 @@ public class A extends Application {
 
     public static String versionCode; // version number of this software
     public static String versionName; // version name of this software
+    public static Boolean testing = null; // scanned a test card before any other
     public static boolean flip; // whether to flip the scanned image (for front-facing cameras)
     public static String update = ""; // URL of update to install on restart, if any ("1" means already downloaded)
     public static String failMessage = ""; // error message to display upon restart, if any
@@ -83,10 +84,10 @@ public class A extends Application {
     private final static String MSG_HTTP_ERROR = "The rCredits server is not reachable at the moment. Try again later.";
 
     private final static String PREFS_NAME = "rCreditsPOS";
-    //private final static String API_PATH = "http://<region>.rc2.me/pos"; // for eventually (when we have multiple cttys
-    //private final static String API_PATH = "http://new.rc2.me/pos"; // while everyone is on one server
-    private final static String API_PATH = "http://ws.rcredits.org/pos"; // testing on smartphone
-    //private final static String API_PATH = "http://192.168.2.101/devcore/pos"; // testing on emulator
+//    private final static String REAL_API_PATH = "https://<region>.rcredits.org/pos"; // the real server (rc2.me fails)
+    private final static String REAL_API_PATH = "https://new.rcredits.org/pos"; // the only real server for now
+    private final static String TEST_API_PATH = "http://ws.rcredits.org/pos"; // the test server
+    //private final static String TEST_API_PATH = "http://192.168.2.101/devcore/pos"; // testing on emulator
 
     @Override
     public void onCreate() {
@@ -154,13 +155,14 @@ public class A extends Application {
      * @return: the server's response. null if failure (with message in A.httpError)
      */
     public static HttpResponse post(String region, List<NameValuePair> pairs) {
-        final int timeout = 10000; // milliseconds
+        final int timeout = 20000; // milliseconds
         A.auPair(pairs, "agent", A.agent);
         A.auPair(pairs, "device", A.deviceId);
         A.auPair(pairs, "version", A.versionCode);
         //A.auPair(pairs, "location", A.location);
 
-        HttpPost post = new HttpPost(API_PATH.replace("<region>", region));
+        String api = A.testing ? TEST_API_PATH : REAL_API_PATH;
+        HttpPost post = new HttpPost(api.replace("<region>", region));
         //HttpClient client = new DefaultHttpClient();
 
         HttpParams params = new BasicHttpParams();
