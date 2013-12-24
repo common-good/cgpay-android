@@ -136,7 +136,7 @@ public class CustomerActivity extends Act {
         A.agentName = A.jsonString(json, "name");
         A.can = Integer.parseInt(A.jsonString(json, "can"));
         A.descriptions = A.jsonArray(json, "descriptions");
-        if (A.deviceId.equals("")) A.deviceId = A.jsonString(json, "device");
+        if (A.deviceId.equals("")) A.setStored("deviceId", A.deviceId = A.jsonString(json, "device"));
         if (!A.update.equals("1")) A.update = A.jsonString(json, "update"); // don't re-download if we already got it
         act.restart();
     }

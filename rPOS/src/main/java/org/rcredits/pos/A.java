@@ -46,39 +46,38 @@ import java.util.List;
  *   ViewfinderView
  *
  * Some cameras don't tell Android that their camera faces front (and therefore needs flipping), so a separate
- * version should be built with flip=true in onCreate()
+ * version (rposb) should be built with flip=true in onCreate()
  */
 public class A extends Application {
-    public final static boolean FAKE_SCAN = true; // disable scanning, for testing other features
-
-    public final static String DESC_REFUND = "refund";
-    public final static String DESC_CASH_IN = "cash in";
-    public final static String DESC_CASH_OUT = "cash out";
-
     public static String versionCode; // version number of this software
     public static String versionName; // version name of this software
+
     public static Boolean testing = null; // scanned a test card before any other
     public static boolean flip; // whether to flip the scanned image (for front-facing cameras)
     public static String update = ""; // URL of update to install on restart, if any ("1" means already downloaded)
     public static String failMessage = ""; // error message to display upon restart, if any
     public static String deviceId; // set once ever in storage upon first scan-in, read upon startup
     public static String region; // set upon scan-in
-    public static List<String> descriptions; // set upon scan-in
     public static String agent = ""; // set upon scan-in (eg NEW:AAB)
     public static String xagent = ""; // previous agent
     public static String agentName; // set upon scan-in
-    public static int can = 0; // what the agent can do
-
-    //public final static int CAN_CHOOSE_DESC = 1 << 0;
-    public final static int CAN_REFUND =      1 << 1;
-    public final static int CAN_SELL_CASH =   1 << 2;
-    public final static int CAN_BUY_CASH =    1 << 3;
-
     public static String balance = ""; // message about last customer's balance
     public static String undo = ""; // message about reversing last transaction
     public static String lastTx = ""; // number of last transaction
     public static String httpError = ""; // last HTTP failure message
     public static String debugString = ""; // for debug messages
+
+    public static List<String> descriptions; // set upon scan-in
+    public final static String DESC_REFUND = "refund";
+    public final static String DESC_CASH_IN = "cash in";
+    public final static String DESC_CASH_OUT = "cash out";
+
+    public static int can = 0; // what the agent can do
+    public final static int CAN_REFUND =          1 << 16;
+    public final static int CAN_SELL_CASH =       1 << 17;
+    public final static int CAN_BUY_CASH =        1 << 18;
+    public final static int CAN_SHARE_RPOS =      1 << 20;
+    public final static int CAN_REQUIRE_CASHIER = 1 << 21;
 
     public final static String MSG_DOWNLOAD_SUCCESS = "Update download is complete.";
     private final static String MSG_HTTP_ERROR = "The rCredits server is not reachable at the moment. Try again later.";
@@ -110,7 +109,7 @@ public class A extends Application {
         return getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(name, "");
     }
 
-    public void setStoredValue(String name, String value) {
+    public void setStored(String name, String value) {
         SharedPreferences settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = settings.edit();
         editor.putString(name, value);

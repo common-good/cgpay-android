@@ -222,7 +222,6 @@ public final class MainActivity extends Act {
      * @param v
      *//*
     public void onFakeScan(View v) {
-        if (!A.FAKE_SCAN) return;
         try {
             act.onScan(new rCard("HTTP://NEW.RC2.ME/I/" + (A.agent.equals("") ? "ZZD-" : "ZZA.") + "zot"));
         } catch (Exception e) {}

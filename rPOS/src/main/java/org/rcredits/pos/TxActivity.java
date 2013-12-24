@@ -56,7 +56,7 @@ public class TxActivity extends Act {
             changeDesc.setVisibility(View.GONE);
         } else { // charging
             if (A.descriptions.size() < 2) {
-                description = "charge"; // don't let it be blank
+                if (description.equals("")) description = "charge"; // don't let it be blank
                 changeDesc.setVisibility(View.GONE);
             }
         }
