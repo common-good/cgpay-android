@@ -147,16 +147,6 @@ public class TxActivity extends Act {
         A.auPair(pairs, "goods", goods);
         A.auPair(pairs, "description", description);
         act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
-        new Tx().execute(pairs);
-    }
-
-    private class Tx extends AsyncTask<List<NameValuePair>, Void, String> {
-        @Override
-        protected String doInBackground(List<NameValuePair>... pairss) {
-            return A.apiGetJson(A.region, pairss[0]);
-        }
-
-        @Override
-        protected void onPostExecute(String json) {act.afterTx(json);}
+        new Tx().execute(pairs); // act.Tx (but android does not recognize that syntax)
     }
 }

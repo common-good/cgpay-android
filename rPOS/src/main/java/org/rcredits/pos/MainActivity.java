@@ -94,23 +94,31 @@ public final class MainActivity extends Act {
         TextView version = (TextView) findViewById(R.id.version);
         if (version != null) version.setText("v. " + A.versionName);
 
+        if (A.agent.equals("") && !A.defaults.equals("")) {
+            A.agent = A.xagent = A.jsonString(A.defaults, "default");
+            A.region = A.agent.substring(0, A.agent.indexOf('.'));
+            A.agentName = A.jsonString(A.defaults, "company");
+            A.descriptions = A.jsonArray(A.defaults, "descriptions");
+            A.can = 0; // default cashier gets rock bottom permissions
+        }
+
         boolean showUndo = (A.agentCan(A.CAN_REFUND) && !A.lastTx.equals("") && !A.undo.equals(""));
         boolean showBalance = (!A.balance.equals("") && A.balance != null);
         findViewById(R.id.undo_last).setVisibility(showUndo ? View.VISIBLE : View.GONE);
         findViewById(R.id.show_balance).setVisibility(showBalance ? View.VISIBLE : View.GONE);
         findViewById(R.id.test).setVisibility((A.testing != null && A.testing) ? View.VISIBLE : View.GONE);
+
         if (!A.agent.equals("")) {
             welcome.setText((showUndo || showBalance) ? "" : "Ready for customers...");
             if (!A.agent.equals(A.xagent) && A.failMessage.equals("")) {
                 act.mention("Success! You are now signed in.");
                 A.xagent = A.agent;
             }
-            signedAs.setText("Agent: " + A.agentName);
+            signedAs.setText(A.agentName);
         } else {
             welcome.setText(R.string.welcome);
             signedAs.setText(R.string.not_signed_in);
         }
-
     }
 
 
@@ -188,30 +196,20 @@ public final class MainActivity extends Act {
                 List<NameValuePair> pairs = A.auPair(null, "op", "undo");
                 A.auPair(pairs, "tx", A.lastTx);
                 act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
-                new Tx().execute(pairs);
+                new Tx().execute(pairs); // act.Tx (but android does not recognize that syntax)
             }
         });
-    }
-
-    private class Tx extends AsyncTask<List<NameValuePair>, Void, String> {
-        @Override
-        protected String doInBackground(List<NameValuePair>... pairss) {
-            return A.apiGetJson(A.region, pairss[0]);
-        }
-
-        @Override
-        protected void onPostExecute(String json) {act.afterTx(json);}
     }
 
     /**
      * Sign the cashier out after confirmation.
      */
     public void doSignOut(View v) {
-        if (!A.agent.equals("")) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
+        //if (A.agent.equals(A.dftAgent)) return; // already signed out
+        if (!A.agent.equals("")) act.askOk("Sign out and restart?", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
-                A.agent = A.xagent = A.agentName = A.region = A.balance = A.undo = A.lastTx = ""; // sign out
-                A.testing = null; // next sign-in could be different
+                A.signOut();
                 setLayout();
             }
         });

@@ -1,6 +1,7 @@
 package org.rcredits.pos;
 
 import android.app.Application;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -49,14 +50,17 @@ import java.util.List;
  * version (rposb) should be built with flip=true in onCreate()
  */
 public class A extends Application {
+    public static Context context;
     public static String versionCode; // version number of this software
     public static String versionName; // version name of this software
+    private static SharedPreferences settings;
 
-    public static Boolean testing = null; // scanned a test card before any other
+    public static Boolean testing = false; // scanned a test card before any other
     public static boolean flip; // whether to flip the scanned image (for front-facing cameras)
     public static String update = ""; // URL of update to install on restart, if any ("1" means already downloaded)
     public static String failMessage = ""; // error message to display upon restart, if any
     public static String deviceId; // set once ever in storage upon first scan-in, read upon startup
+    public static String defaults; // parameters to use when no agent is signed in (empty if not allowed)
     public static String region; // set upon scan-in
     public static String agent = ""; // set upon scan-in (eg NEW:AAB)
     public static String xagent = ""; // previous agent
@@ -73,11 +77,9 @@ public class A extends Application {
     public final static String DESC_CASH_OUT = "cash out";
 
     public static int can = 0; // what the agent can do
-    public final static int CAN_REFUND =          1 << 16;
-    public final static int CAN_SELL_CASH =       1 << 17;
-    public final static int CAN_BUY_CASH =        1 << 18;
-    public final static int CAN_SHARE_RPOS =      1 << 20;
-    public final static int CAN_REQUIRE_CASHIER = 1 << 21;
+    public final static int CAN_REFUND =     1 << 1;
+    public final static int CAN_SELL_CASH =  1 << 2;
+    public final static int CAN_BUY_CASH =   1 << 3;
 
     public final static String MSG_DOWNLOAD_SUCCESS = "Update download is complete.";
     private final static String MSG_HTTP_ERROR = "The rCredits server is not reachable at the moment. Try again later.";
@@ -92,7 +94,10 @@ public class A extends Application {
     public void onCreate() {
         super.onCreate();
 
-        deviceId = getStored("deviceId");
+        A.context = this;
+        A.deviceId = getStored("deviceId");
+        A.defaults = getStored("defaults");
+
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             versionCode = pInfo.versionCode + "";
@@ -105,13 +110,20 @@ public class A extends Application {
         //flip = true; versionCode = "0" + versionCode; // uncomment for old devices with only an undetectable front-facing camera.
     }
 
-    public String getStored(String name) {
-        return getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(name, "");
+    /**
+     * Reset all global variables to the "signed out" state.
+     */
+    public static void signOut() {
+        A.agent = A.xagent = A.agentName = A.region = A.balance = A.undo = A.lastTx = "";
     }
 
-    public void setStored(String name, String value) {
-        SharedPreferences settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        SharedPreferences.Editor editor = settings.edit();
+    public String getStored(String name) {
+        A.settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        return settings.getString(name, "");
+    }
+
+    public static void setStored(String name, String value) {
+        SharedPreferences.Editor editor = A.settings.edit();
         editor.putString(name, value);
         editor.commit();
     }

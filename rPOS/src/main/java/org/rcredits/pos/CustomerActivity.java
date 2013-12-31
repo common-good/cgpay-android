@@ -19,6 +19,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -133,11 +134,12 @@ public class CustomerActivity extends Act {
         A.xagent = A.agent; // remember previous agent, for comparison
         A.agent = rcard.qid;
         A.region = rcard.region;
-        A.agentName = A.jsonString(json, "name");
+        A.agentName = "Agent: " + A.jsonString(json, "name");
         A.can = Integer.parseInt(A.jsonString(json, "can"));
         A.descriptions = A.jsonArray(json, "descriptions");
         if (A.deviceId.equals("")) A.setStored("deviceId", A.deviceId = A.jsonString(json, "device"));
         if (!A.update.equals("1")) A.update = A.jsonString(json, "update"); // don't re-download if we already got it
+        A.setStored("defaults", A.defaults = json);
         act.restart();
     }
 

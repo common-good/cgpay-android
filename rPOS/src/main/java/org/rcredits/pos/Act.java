@@ -158,4 +158,18 @@ public class Act extends Activity {
             act.sayError(message, null);
         }
     }
+
+    /**
+     * Submit and handle a transaction request, in the background.
+     */
+    public class Tx extends AsyncTask<List<NameValuePair>, Void, String> {
+        @Override
+        protected String doInBackground(List<NameValuePair>... pairss) {
+            return A.apiGetJson(A.region, pairss[0]);
+        }
+
+        @Override
+        protected void onPostExecute(String json) {act.afterTx(json);}
+    }
+
 }

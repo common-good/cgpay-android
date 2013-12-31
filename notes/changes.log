@@ -1,8 +1,4 @@
 To Do:
-. *** do not record agent unless scan succeeds AND server approves it
-. ** once there is a company, record it as the default company. also record whether the default can be changed. Then whenever the device powers up, set a default anonymous cashier (show the company name at the bottom of the screen). An agent can sign in and out. The default cashier cannot sign out unless the company allows other companies.
-. ** separate the test parameters from the real ones. especially the default company and the device code. so a test card can be scanned when the real agent defaults and a real card can be scanned when the test agent defaults.
-. give businesses the option to permit other businesses to use their device (if non-permitted business tries when no one is signed in, say "you have to scan yourself in first (other businesses are not permitted to scan in)"
 . rework KeyguardManager lines with WindowManager.FLAG_DISMISS_KEYGUARD (see zxing code for tips)
 . LATER talk to Blake about why not to use AyncTask
 . LATER * use assets instead of literals
@@ -15,8 +11,12 @@ To Do:
 . LATER (for tests) keep acore from repetitive death on fakeScan mode
 . LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
 
-2013-12-
+2013-12-31
 . the description for all charges was getting recorded as "charge". Fixed.
+. now does not record agent unless scan succeeds AND server approves it
+. companies can now charge customers without an agent scanning in
+. switching between test cards and real cards is more forgiving now
+. other businesses can use the device if the owner chooses to disable the charging-without-scanning-in feature
 
 2013-12-05
 . release 1.0!!

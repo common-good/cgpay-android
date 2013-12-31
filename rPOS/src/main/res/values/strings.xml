@@ -12,6 +12,10 @@
     <string name="title_activity_restart_app">Restart App</string>
     <string name="not_signed_in"></string>
     <string name="welcome">Welcome to rPOS!\nScan your Company Agent rCard\nto sign in.</string>
+    <string name="switch_to_test">Switching to TEST mode. Tap the SCAN button again to scan a card.</string>
+    <string name="switch_to_real">Switching to REAL mode. Tap the SCAN button again to scan a card.</string>
+    <string name="not_a_test_card">That is not a test card. Tap the Agent\'s name to sign out, then scan your Company Agent card to sign in for REAL.</string>
+    <string name="not_a_real_card">That is not a real rCard. Tap your name to sign out, then scan a test agent card to sign in for TESTING.</string>
 
   <string name="app_picker_name">Applications</string>
   <string name="bookmark_picker_name">Bookmarks</string>

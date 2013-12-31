@@ -25,12 +25,13 @@ public class rCard {
         code = parts[count - 1];
         account = parts[count - 2];
         boolean isTestCard = parts[3].toUpperCase().equals("RC4");
+        boolean proSe = (A.agent.indexOf('.') > 0);
 
-        if (A.testing == null) {
+        if (A.testing ^ isTestCard) {
+            //if (!proSe) throw new Exception(A.context.getString(isTestCard ? R.string.not_a_real_card : R.string.not_a_test_card));
             A.testing = isTestCard;
-        } else {
-            if (A.testing && !isTestCard) throw new Exception("That is not a test card. Tap the Agent's name to sign out, then scan your Company Agent card to sign in for REAL.");
-            if (!A.testing && isTestCard) throw new Exception("That is not a real rCard. Tap your name to sign out, then scan a test agent card to sign in for TESTING.");
+            A.defaults = "";
+            throw new Exception(A.context.getString(isTestCard ? R.string.switch_to_test : R.string.switch_to_real));
         }
 
         int markPos = qrUrl.length() - code.length() - (count == 9 ? account.length() + 2 : 1);
