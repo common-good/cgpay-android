@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.hardware.Camera;
 
 import org.apache.http.HttpEntity;
@@ -51,6 +52,7 @@ import java.util.List;
  */
 public class A extends Application {
     public static Context context;
+    public static Resources resources;
     public static String versionCode; // version number of this software
     public static String versionName; // version name of this software
     private static SharedPreferences settings;
@@ -82,7 +84,6 @@ public class A extends Application {
     public final static int CAN_BUY_CASH =   1 << 3;
 
     public final static String MSG_DOWNLOAD_SUCCESS = "Update download is complete.";
-    private final static String MSG_HTTP_ERROR = "The rCredits server is not reachable at the moment. Try again later.";
 
     private final static String PREFS_NAME = "rCreditsPOS";
 //    private final static String REAL_API_PATH = "https://<region>.rcredits.org/pos"; // the real server (rc2.me fails)
@@ -95,6 +96,7 @@ public class A extends Application {
         super.onCreate();
 
         A.context = this;
+        A.resources = getResources();
         A.deviceId = getStored("deviceId");
         A.defaults = getStored("defaults");
 
@@ -186,7 +188,9 @@ public class A extends Application {
             post.setEntity(new UrlEncodedFormEntity(pairs));
             return client.execute(post);
         } catch (Exception e) {
-            A.httpError = MSG_HTTP_ERROR + " (" + e.getMessage() + ")";
+            String msg = e.getMessage();
+            A.httpError = msg.equals("No peer certificate") ? t(R.string.clock_off)
+                    : (t(R.string.http_err) + " (" + msg + ")");
             return null;
         }
     }
@@ -268,4 +272,6 @@ public class A extends Application {
     public static boolean agentCan(int permissions) {return (A.can & permissions) != 0;}
 
     public static String ucFirst(String s) {return s.substring(0, 1).toUpperCase() + s.substring(1);}
+
+    public static String t(int stringResource) {return A.resources.getString(stringResource);}
 }

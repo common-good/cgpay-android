@@ -147,9 +147,7 @@ public class CustomerActivity extends Act {
      * Handle successful scan of customer rCard: launch Customer activity to display identifying info
      */
     private void gotCustomer() {
-        A.lastTx = ""; // previous customer info is no longer valid
-        A.balance = "";
-        A.undo = "";
+        A.lastTx = A.balance = A.undo = ""; // previous customer info is no longer valid
 
         if (A.agentCan(A.CAN_REFUND)) findViewById(R.id.refund).setVisibility(View.VISIBLE);
         if (A.agentCan(A.CAN_BUY_CASH)) findViewById(R.id.cashin).setVisibility(View.VISIBLE);

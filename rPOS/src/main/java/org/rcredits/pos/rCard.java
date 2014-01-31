@@ -28,9 +28,9 @@ public class rCard {
         boolean proSe = (A.agent.indexOf('.') > 0);
 
         if (A.testing ^ isTestCard) {
-            //if (!proSe) throw new Exception(A.context.getString(isTestCard ? R.string.not_a_real_card : R.string.not_a_test_card));
             A.testing = isTestCard;
             A.defaults = "";
+            A.signOut();
             throw new Exception(A.context.getString(isTestCard ? R.string.switch_to_test : R.string.switch_to_real));
         }
 

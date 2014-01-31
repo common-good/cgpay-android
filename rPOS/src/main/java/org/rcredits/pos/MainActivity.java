@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -67,6 +68,9 @@ public final class MainActivity extends Act {
         lock.disableKeyguard();
 
         setLayout();
+
+        Calendar now = Calendar.getInstance(); // catch dead clocks before trying to contact server
+        if (now.get(Calendar.YEAR) < 2014) A.failMessage = A.t(R.string.clock_off);
 
         if (!A.failMessage.equals("")) {
             act.sayError(A.failMessage, null); // show failure message from previous (failed) activity
