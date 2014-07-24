@@ -11,13 +11,18 @@
     <string name="title_activity_customer">Customer Profile</string>
     <string name="title_activity_restart_app">Restart App</string>
     <string name="not_signed_in"></string>
-    <string name="welcome">Welcome to rPOS!\nScan your Company Agent rCard\nto sign in.</string>
-    <string name="switch_to_test">Switching to TEST mode. Tap the SCAN button again to scan a card.</string>
-    <string name="switch_to_real">Switching to REAL mode. Tap the SCAN button again to scan a card.</string>
+    <string name="welcome"></string>
+    <string name="no_company">Welcome to rPOS!\nScan your Company Agent rCard\nto get started.</string>
+    <string name="no_agent">You have to scan yourself in (by scanning your Company Agent rCard) before charging a customer.</string>
+    <string name="switch_to_test">Switching to TEST mode.</string>
+    <string name="switch_to_real">Switching to REAL mode.</string>
     <string name="not_a_test_card">That is not a test card. Tap the Agent\'s name to sign out, then scan your Company Agent card to sign in for REAL.</string>
     <string name="not_a_real_card">That is not a real rCard. Tap your name to sign out, then scan a test agent card to sign in for TESTING.</string>
     <string name="clock_off">Your clock is way off. Go to Settings, fix the date/time, then try again.</string>
-    <string name="http_err">The rCredits server is not reachable at the moment. Try again later.</string>
+    <string name="http_err">Your device cannot connect right now.</string>
+    <string name="try_offline"> Continue and store the transaction for later?</string>
+    <string name="ask_for_id">Ask the customer for a photo ID.</string>
+    <string name="connect_soon">Connect to the internet soon, to reconcile offline transactions.</string>
 
     <string name="app_picker_name">Applications</string>
     <string name="bookmark_picker_name">Bookmarks</string>

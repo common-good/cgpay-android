@@ -21,28 +21,21 @@ import android.app.Activity;
 import android.app.KeyguardManager;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.rcredits.zxing.client.android.CaptureActivity;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -57,11 +50,49 @@ import java.util.List;
  */
 public final class MainActivity extends Act {
     private final Act act = this;
+/*
+    private byte[] shrink(byte[] image) {
+        final int width = 60;
+        final int height = 4 * width / 3;
+        Bitmap bm = BitmapFactory.decodeByteArray(image, 0, image.length);
+        bm = Bitmap.createScaledBitmap(bm, width, height, true);
+        A.deb("shrink img len=" + image.length + " bm size=" + (bm.getRowBytes() * bm.getHeight()));
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        return stream.toByteArray();
+
+        Bitmap bmGray = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+        Canvas c = new Canvas(bmGray);
+        Paint paint = new Paint();
+        ColorMatrix cm = new ColorMatrix();
+        cm.setSaturation(0);
+        ColorMatrixColorFilter f = new ColorMatrixColorFilter(cm);
+        paint.setColorFilter(f);
+        c.drawBitmap(bm, 0, 0, paint);
+
+    }
+
+    /**
+     * Return an image that announces the unavailability of a photo for the customer.
+     * @return: a byte array image
+    private byte[] nonPhoto() {
+        Bitmap bm = BitmapFactory.decodeResource(act.getResources(), R.drawable.no_photo_available);
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        return stream.toByteArray();
+    }
+*/
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+/*
+        ImageView photo = (ImageView) findViewById(R.id.scan);
+        byte[] image = shrink(nonPhoto());
+        photo.setImageBitmap(BitmapFactory.decodeByteArray(image, 0, image.length));
+*/
 
         KeyguardManager keyguardManager = (KeyguardManager)getSystemService(Activity.KEYGUARD_SERVICE);
         KeyguardManager.KeyguardLock lock = keyguardManager.newKeyguardLock(KEYGUARD_SERVICE);
@@ -72,21 +103,41 @@ public final class MainActivity extends Act {
         Calendar now = Calendar.getInstance(); // catch dead clocks before trying to contact server
         if (now.get(Calendar.YEAR) < 2014) A.failMessage = A.t(R.string.clock_off);
 
-        if (!A.failMessage.equals("")) {
+        if (A.failMessage != null) {
             act.sayError(A.failMessage, null); // show failure message from previous (failed) activity
-            A.failMessage = "";
-        }
-
-        if (!A.update.equals("")) {
+            A.failMessage = null;
+        } else if (A.update != null && !A.testing) {
             act.askOk("Okay to update now? (takes a few seconds)", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     dialog.cancel();
-                    //new UpdateApp().execute(A.update); // download the update in the background
                     act.progress(true);
-                    new UpdateApp().execute(A.update);
+                    new UpdateApp().execute(A.update); // download the update in the background
                 }
             });
         }
+        // } else if ... mention(R.string.connect_soon); // if this business is often offline, ask for ID
+
+        /*
+        final TextView debug = (TextView) findViewById(R.id.debug);
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    while (!isInterrupted()) {
+                        Thread.sleep(10000);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                debug.setText(A.debugString);
+                            }
+                        });
+                    }
+                } catch (InterruptedException e) {
+                }
+            }
+        };
+        t.start();
+        */
     }
 
     /**
@@ -98,30 +149,31 @@ public final class MainActivity extends Act {
         TextView version = (TextView) findViewById(R.id.version);
         if (version != null) version.setText("v. " + A.versionName);
 
-        if (A.agent.equals("") && !A.defaults.equals("")) {
-            A.agent = A.xagent = A.jsonString(A.defaults, "default");
+        if (A.agent == null && A.defaults != null) {
+            A.agent = A.xagent = A.defaults.get("default");
             A.region = A.agent.substring(0, A.agent.indexOf('.'));
-            A.agentName = A.jsonString(A.defaults, "company");
-            A.descriptions = A.jsonArray(A.defaults, "descriptions");
+            A.agentName = A.defaults.get("company");
+            A.descriptions = A.defaults.getArray("descriptions");
             A.can = 0; // default cashier gets rock bottom permissions
         }
 
-        boolean showUndo = (A.agentCan(A.CAN_REFUND) && !A.lastTx.equals("") && !A.undo.equals(""));
-        boolean showBalance = (!A.balance.equals("") && A.balance != null);
+        boolean showUndo = (A.agentCan(A.CAN_REFUND) && A.lastTx != null && A.undo != null);
+        boolean showBalance = (A.balance != null);
         findViewById(R.id.undo_last).setVisibility(showUndo ? View.VISIBLE : View.GONE);
         findViewById(R.id.show_balance).setVisibility(showBalance ? View.VISIBLE : View.GONE);
         findViewById(R.id.test).setVisibility((A.testing != null && A.testing) ? View.VISIBLE : View.GONE);
+        if (A.demo) ((TextView) findViewById(R.id.test)).setText("DEMO");
 
-        if (!A.agent.equals("")) {
+        if (A.agent == null) {
+            welcome.setText(R.string.no_company);
+            signedAs.setText(R.string.not_signed_in);
+        } else {
             welcome.setText((showUndo || showBalance) ? "" : "Ready for customers...");
-            if (!A.agent.equals(A.xagent) && A.failMessage.equals("")) {
-                act.mention("Success! You are now signed in.");
+            if (!A.agent.equals(A.xagent) && A.failMessage == null) {
+                act.mention("Success! You are now signed in. (To sign out, tap your name.)");
                 A.xagent = A.agent;
             }
             signedAs.setText(A.agentName);
-        } else {
-            welcome.setText(R.string.welcome);
-            signedAs.setText(R.string.not_signed_in);
         }
     }
 
@@ -158,7 +210,7 @@ public final class MainActivity extends Act {
                 intent.setDataAndType(Uri.fromFile(new File(PATH + FILENAME)), "application/vnd.android.package-archive");
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // without this flag android returned a intent error!
                 act.startActivity(intent);
-                A.update = ""; // don't redo current update
+                A.update = null; // don't redo current update
             } catch (Exception e) {
                 Log.e("UpdateAPP", "Update failed: " + e.getMessage());
                 e.printStackTrace();
@@ -198,7 +250,7 @@ public final class MainActivity extends Act {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 List<NameValuePair> pairs = A.auPair(null, "op", "undo");
-                A.auPair(pairs, "tx", A.lastTx);
+                A.auPair(pairs, "txid", A.lastTx);
                 act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
                 new Tx().execute(pairs); // act.Tx (but android does not recognize that syntax)
             }
@@ -210,7 +262,7 @@ public final class MainActivity extends Act {
      */
     public void doSignOut(View v) {
         //if (A.agent.equals(A.dftAgent)) return; // already signed out
-        if (!A.agent.equals("")) act.askOk("Sign out and restart?", new DialogInterface.OnClickListener() {
+        if (A.agent != null) act.askOk("Sign out and restart?", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 A.signOut();
@@ -225,7 +277,7 @@ public final class MainActivity extends Act {
      *//*
     public void onFakeScan(View v) {
         try {
-            act.onScan(new rCard("HTTP://NEW.RC2.ME/I/" + (A.agent.equals("") ? "ZZD-" : "ZZA.") + "zot"));
+            act.onScan(new rCard("HTTP://NEW.RC2.ME/I/" + (A.agent == null ? "ZZD-" : "ZZA.") + "zot"));
         } catch (Exception e) {}
     }*/
 }

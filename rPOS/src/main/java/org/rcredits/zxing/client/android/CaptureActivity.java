@@ -279,9 +279,9 @@ public final class CaptureActivity extends Act implements SurfaceHolder.Callback
             handler.quitSynchronously();
             handler = null;
         }
-        inactivityTimer.onPause();
-        ambientLightManager.stop();
-        cameraManager.closeDriver();
+        if (inactivityTimer != null) inactivityTimer.onPause(); // cgf (if)
+        if (ambientLightManager != null) ambientLightManager.stop(); // cgf (if)
+        if (cameraManager != null) cameraManager.closeDriver(); // cgf (if)
         if (!hasSurface) {
             SurfaceView surfaceView = (SurfaceView) findViewById(R.id.preview_view);
             SurfaceHolder surfaceHolder = surfaceView.getHolder();
@@ -316,10 +316,10 @@ public final class CaptureActivity extends Act implements SurfaceHolder.Callback
                 return true;
             // Use volume up/down to turn on light
             case KeyEvent.KEYCODE_VOLUME_DOWN:
-                cameraManager.setTorch(false);
+                // cgf 2014-03-17 cameraManager.setTorch(false);
                 return true;
             case KeyEvent.KEYCODE_VOLUME_UP:
-                cameraManager.setTorch(true);
+                // cgf 2014-03-17 cameraManager.setTorch(true);
                 return true;
         }
         return super.onKeyDown(keyCode, event);
@@ -378,11 +378,13 @@ public final class CaptureActivity extends Act implements SurfaceHolder.Callback
 
         if (!hasSurface) initCamera(holder);
         hasSurface = true;
+        //cameraManager.setTorch(true); // cgf 2014-03-17 light it up (crucial in restaurants)
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         hasSurface = false;
+        //cameraManager.setTorch(false); // cgf 2014-03-17 done with light
     }
 
     @Override

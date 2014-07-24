@@ -3,26 +3,20 @@ package org.rcredits.pos;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.Context;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.Gravity;
-import android.view.KeyEvent;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 /**
  * An Activity class extension that includes some utility methods.
@@ -36,13 +30,6 @@ public class Act extends Activity {
 
 //    @Override        public void onBackPressed() {
 
-    /*
-    public Intent getIntent(Class<?> class) {
-        Intent intent = new Intent(class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-        return intent;
-    }*/
-
     /**
      * Show a short message briefly (2 secs) -- or longer (3.5 secs) for longer messages
      * @param message: the message to show
@@ -54,30 +41,48 @@ public class Act extends Activity {
         toast.show();
     }
 
+    public void mention(int res) {mention(A.t(res));}
+
+    private class doNothing implements DialogInterface.OnClickListener {
+        public void onClick(DialogInterface dialog, int id) {
+            dialog.cancel();
+        }
+    }
+
     /**
      * Show a customized dialog with an OK button, and handle it.
      * @param title: large, very short title to show to the right of the icon
      * @param icon: conceptual graphic to show at the top of the message
      * @param message: what to say
-     * @param listener: callback to do when user presses OK
+     * @param ok: callback to do when user presses OK (null if nothing)
+     * @param cancelable: <include a Cancel button>
+     * @param cancel: callback to do when user presses Cancel (null if nothing)
      */
-    private void say(String title, int icon, String message,
-                            DialogInterface.OnClickListener listener, boolean cancelable) {
+    private void say(String title, int icon, String message, DialogInterface.OnClickListener ok,
+                     boolean cancelable, DialogInterface.OnClickListener cancel) {
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(act);
-        if (listener == null) listener = new DialogInterface.OnClickListener() {
+
+/*        DialogInterface.OnClickListener doNothing = new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel(); // default to do nothing
             }
-        };
+        }; */
+        if (ok == null) ok = new doNothing();
+        if (cancel == null) cancel = new doNothing();
+
         alertDialogBuilder
                 .setTitle(title)
                 .setMessage(message)
                 .setIcon(icon)
                 .setCancelable(cancelable)
-                .setPositiveButton("OK", listener);
-        // .setNegativeButton("No", new DialogInterface.OnClickListener() {...
+                .setPositiveButton("OK", ok);
+        if (cancelable) alertDialogBuilder.setNegativeButton("Cancel", cancel);
         alertDialog = alertDialogBuilder.create();
         alertDialog.show();
+    }
+
+    private void say(String title, int icon, String message, DialogInterface.OnClickListener ok) {
+        say(title, icon, message, ok, false, null);
     }
 
     public void sayFail(String message) {
@@ -85,18 +90,25 @@ public class Act extends Activity {
         act.finish();
         restart();
     }
+    public void sayFail(int res) {sayFail(A.t(res));}
 
-    public void sayError(String message,  DialogInterface.OnClickListener listener) {
-        say("Error", R.drawable.alert_red, message, listener, false);
+    public void sayError(String message,  DialogInterface.OnClickListener ok) {
+        say("Error", R.drawable.alert_red, message, ok);
     }
+    public void sayError(int res,  DialogInterface.OnClickListener ok) {sayError(A.t(res), ok);}
 
-    public void sayOk(String title, String message,  DialogInterface.OnClickListener listener) {
-        say(title, R.drawable.smile_icon, message, listener, false);
+    public void sayOk(String title, String message,  DialogInterface.OnClickListener ok) {
+        say(title, R.drawable.smile_icon, message, ok);
     }
+    public void sayOk(String title, int res,  DialogInterface.OnClickListener ok) {sayOk(title, A.t(res), ok);}
 
-    public void askOk(String message,  DialogInterface.OnClickListener listener) {
-        say("Confirm", R.drawable.question_icon, message, listener, true);
+    public void askOk(String message, DialogInterface.OnClickListener ok, DialogInterface.OnClickListener cancel) {
+        say("Confirm", R.drawable.question_icon, message, ok, true, cancel);
     }
+    public void askOk(String message,  DialogInterface.OnClickListener ok) {
+        say("Confirm", R.drawable.question_icon, message, ok, true, null);
+    }
+    public void askOk(int res,  DialogInterface.OnClickListener ok) {askOk(A.t(res), ok);}
 
     /**
      * Show a standard "in progress" message.
@@ -135,41 +147,102 @@ public class Act extends Activity {
 
     /**
      * After requesting a transaction, handle the server's response.
+     * @param json: json-format parameter string returned from server
      */
-    public void afterTx(final String json) {
+    public void afterTx(final Json json) {
         act.progress(false);
-        if (json == null) {
-            act.sayError(A.httpError, null); // probably server is down, so let user try again
+
+        if (json == null) { // no response from server -- ask cashier about doing it offline, if we haven't yet
+            if (A.positiveId) {
+                act.askOk(A.nn(A.httpError) + " " + A.t(R.string.try_offline), new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                        act.offlineTx();
+                    }
+                });
+            } else act.offlineTx();
             return;
         };
 
-        String message = A.jsonString(json, "message");
-        if (A.jsonString(json, "ok").equals("1")) {
+        String message = json.get("message");
+        A.balance = A.balanceMessage(A.customerName, json); // null if secret or no balance was returned
+
+        if (json.get("ok").equals("1")) {
+            A.undo = json.get("undo");
+            A.lastTx = json.get("txid");
+            A.deb("afterTx lastTx=" + A.lastTx + " lastTxRow=" + A.lastTxRow);
+            A.db.completeTx(A.lastTxRow, json);
+
             act.sayOk("Success!", message, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     dialog.cancel();
-                    A.balance = A.jsonString(json, "balance");
-                    A.undo = A.jsonString(json, "undo");
-                    A.lastTx = A.jsonString(json, "tx");
                     act.restart();
                 }
             });
-        } else {
-            act.sayError(message, null);
-        }
+        } else act.sayError(message, null);
+    }
+
+    /**
+     * Store the transaction for later.
+     */
+    public void offlineTx() {
+        A.balance = null;
+        A.lastTx = null;
+        boolean charging = A.duPair("op").equals("charge");
+
+        if (charging) {
+            String customer = A.db.customerName(A.duPair("customer"));
+            String amount = A.duPair("amount");
+            String tofrom = (Double.valueOf(amount) < 0) ? "to" : "from";
+            amount = A.fmtAmt(amount.replace("-", ""), true);
+            A.undo = String.format("Undo transfer of %s %s %s?", amount, tofrom, customer);
+        } else A.undo = null;
+
+        A.db.changeStatus(A.lastTxRow, charging ? A.TX_OFFLINE : A.TX_CANCEL, null);
+
+        String msg = String.format("The transaction has been %s.", charging ? "stored" : "canceled");
+        act.sayOk("Done!", msg, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                dialog.cancel();
+                act.restart();
+            }
+        });
     }
 
     /**
      * Submit and handle a transaction request, in the background.
      */
-    public class Tx extends AsyncTask<List<NameValuePair>, Void, String> {
+    public class Tx extends AsyncTask<List<NameValuePair>, Void, Json> {
         @Override
-        protected String doInBackground(List<NameValuePair>... pairss) {
-            return A.apiGetJson(A.region, pairss[0]);
+        protected Json doInBackground(List<NameValuePair>... pairss) {
+            List<NameValuePair> pairs = pairss[0];
+            if (A.demo) {
+                SystemClock.sleep(1000);
+                if (A.duPair("op", pairs).equals("charge")) {
+                    String amount = A.duPair("amount", pairs);
+                    if (amount == null) amount = "23";
+                    return Json.make("{'ok':'1','message':'You charged Susan Shopper $AMOUNT (reward: 10%).','tx':'4069','balance':'Customer: Susan Shopper\\n\\nBalance: $285.86\\nSpendable: $284.94\\nTradable for cash: $154.91\\n\\nWe just charged $AMOUNT.','undo':'Undo transfer of $AMOUNT from Susan Shopper?'}".replaceAll("AMOUNT", amount));
+                } else return Json.make("{'ok':'1','message':'Transaction has been reversed.','balance':'Customer: Susan Shopper\\n\\nBalance: $306.56\\nTradable for cash: $178.83'}"); // undo
+            } else {
+
+                ContentValues values = new ContentValues();
+                A.auPair(pairs, "created", String.valueOf(A.now()));
+                for (String k : DbHelper.TXS_FIELDS.split(" ")) values.put(k, A.duPair(k, pairs));
+                values.put("status", A.TX_PENDING);
+                values.put("agent", A.agent); // gets added to pairs in A.post (not yet)
+                values.put("txid", A.duPair("code")); // temporarily store card code (from identify op) in txid field
+                for (Map.Entry<String, Object> k : values.valueSet()) A.deb(String.format("Tx value %s: %s", k.getKey(), k.getValue()));
+                A.lastTxRow = A.db.insert("txs", values);
+                A.deb("Tx A.lastTxRow just set to " + A.lastTxRow);
+                Q r = A.db.q("SELECT rowid, * FROM txs", new String[] {});
+                if (r != null) {A.deb("Tx txid=" + r.getString("txid") + " customer=" + r.getString("customer")); r.close();}
+                else A.deb("r is null");
+
+                return A.apiGetJson(A.region, pairs, true);
+            }
         }
 
         @Override
-        protected void onPostExecute(String json) {act.afterTx(json);}
+        protected void onPostExecute(Json json) {act.afterTx(json);}
     }
-
 }

@@ -16,26 +16,31 @@ public class rCard {
      *              (RC2.ME for real cards, RC4.ME for test cards)
      */
     public rCard(String qrUrl) throws Exception {
-        String account, mark;
+        String account;
         String[] parts = qrUrl.split("[/\\.-]");
         int count = parts.length;
+        //A.deb("count=" + count);
         if (count != 9 && count != 7) throw new Exception("That is not a valid rCard.");
 
         region = parts[2];
         code = parts[count - 1];
         account = parts[count - 2];
         boolean isTestCard = parts[3].toUpperCase().equals("RC4");
-        boolean proSe = (A.agent.indexOf('.') > 0);
-
-        if (A.testing ^ isTestCard) {
-            A.testing = isTestCard;
-            A.defaults = "";
-            A.signOut();
-            throw new Exception(A.context.getString(isTestCard ? R.string.switch_to_test : R.string.switch_to_real));
-        }
+        //boolean proSe = (A.nn(A.agent).indexOf('.') > 0);
+        //A.deb("isTestCard=" + String.valueOf(isTestCard));
 
         int markPos = qrUrl.length() - code.length() - (count == 9 ? account.length() + 2 : 1);
         isAgent = qrUrl.substring(markPos, markPos + 1).equals("-");
         qid = region + (isAgent ? ":" : ".") + account;
+
+        if (A.testing ^ isTestCard) {
+            A.setMode(isTestCard);
+            throw new Exception("mode");
+        }
+    }
+
+    public static String qidRegion(String qid) {
+        String[] parts = qid.split("[\\.-]");
+        return parts[0];
     }
 }

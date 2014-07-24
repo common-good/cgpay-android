@@ -153,4 +153,13 @@
         android:layout_marginLeft="16dp"
         android:gravity="center"/>
 
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="192dp"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:id="@+id/debug"
+        android:scrollbarAlwaysDrawVerticalTrack="true"
+        android:scrollbars="vertical"
+        android:textColor="#010101"/>
+
 </FrameLayout>

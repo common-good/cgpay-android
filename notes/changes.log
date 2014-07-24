@@ -1,16 +1,43 @@
 To Do:
-. LATER detect the time being wrong (perhaps via http://tf.nist.gov/tf-cgi/servers.cgi ?) and alert the user
-. rework KeyguardManager lines with WindowManager.FLAG_DISMISS_KEYGUARD (see zxing code for tips)
-. LATER talk to Blake about why not to use AyncTask
+. bug: if you change orientation several times while waiting for customer photo to appear, the app crashes
+. from Mike: Could we teach the app to try to ping the DNS server and/or the base station and try to diagnose the problem ahead of time?
+. experiment with making the buttons show a bigger splash when pressed. That might make it more obvious when a digit is missed. Or maybe making the amount figure change more obviously.
+. give frequent hints about what to do next
+. LATER maybe make the Demo handle all three customers. Start each with $100. Report accurate balances (everything is offline -- don't demo the offline feature).
+. time out manager (after 24 hours?)
 . LATER * use assets instead of literals
 . LATER * ask user to confirm small and large amounts (a magnitude off their average? -- research bank algorithms)
+. rework KeyguardManager lines with WindowManager.FLAG_DISMISS_KEYGUARD (see zxing code for tips)
+. LATER talk to Blake about why not to use AyncTask
 . LATER settings activity: simply (Toast) say all settings are on website?
 . LATER customer activity: show just ID as name, while async activity fills in the rest
 . LATER change "change desc" button to fling left?
-. LATER change "r->" buttons to swipe left and right?
 . LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
 . LATER (for tests) keep acore from repetitive death on fakeScan mode
 . LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
+
+2014-07-23
+. added recovery from transactions thought to have been made offline, but that actually went through
+. use a separate test db and open/switch on gotAgent
+. made db global
+. many bug fixes
+. added cancel option to all questions
+. put Periodic class in its own file
+. avoided "StaleDataException: Access closed cursor" errors by finishing with Q object before making an API call
+. we no longer make the user scan a card twice when switching from real mode to test mode or vice versa
+
+2014-07-10
+. now syncs its clock to the server on startup and scan-in
+. now records basic data about each customer, including a small B&W photo
+. now records each transaction made on the device
+. now gives cashier the option of accepting a transaction offline
+. refactored json strings as a class
+. new DbHelper, Db, and Q classes for managing the database
+. revised the RPC interface to accommodate all these changes
+
+2014-03-17
+. activated flashlight!
+. activated continuous focus in preferences.xml
 
 2014-01-31
 . Intercepts "The rCredits server is not reachable at the moment. Try again later. (No peer certificate)" and changes it to "Can't connect to the rCredits server, probably because your clock is way off.".

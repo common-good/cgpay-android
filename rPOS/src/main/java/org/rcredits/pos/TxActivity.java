@@ -142,7 +142,7 @@ public class TxActivity extends Act {
         String goods = (description.equals(A.DESC_CASH_IN) || description.equals(A.DESC_CASH_OUT)) ? "0" : "1";
 
         List<NameValuePair> pairs = A.auPair(null, "op", "charge");
-        A.auPair(pairs, "member", customer);
+        A.auPair(pairs, "customer", customer);
         A.auPair(pairs, "amount", amount);
         A.auPair(pairs, "goods", goods);
         A.auPair(pairs, "description", description);
