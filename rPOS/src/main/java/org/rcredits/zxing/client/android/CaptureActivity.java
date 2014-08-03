@@ -316,10 +316,10 @@ public final class CaptureActivity extends Act implements SurfaceHolder.Callback
                 return true;
             // Use volume up/down to turn on light
             case KeyEvent.KEYCODE_VOLUME_DOWN:
-                // cgf 2014-03-17 cameraManager.setTorch(false);
+                cameraManager.setTorch(false);
                 return true;
             case KeyEvent.KEYCODE_VOLUME_UP:
-                // cgf 2014-03-17 cameraManager.setTorch(true);
+                cameraManager.setTorch(true);
                 return true;
         }
         return super.onKeyDown(keyCode, event);

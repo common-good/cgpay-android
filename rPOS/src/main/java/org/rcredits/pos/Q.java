@@ -1,13 +1,12 @@
 package org.rcredits.pos;
 
-import android.database.CharArrayBuffer;
 import android.database.Cursor;
 
 /**
  * Created by William on 7/8/14.
  */
 public class Q {
-    private static Cursor q;
+    private Cursor q;
 
     Q(Cursor cursor) {q = cursor;}
 
@@ -21,4 +20,5 @@ public class Q {
     public boolean moveToNext() {return q.moveToNext();}
     public void close() {if (q != null) q.close();}
     public boolean invalid() {return (q == null);}
+    public boolean isAgent() {return (getInt(DbHelper.AGT_FLAG) == A.TX_AGENT);}
 }

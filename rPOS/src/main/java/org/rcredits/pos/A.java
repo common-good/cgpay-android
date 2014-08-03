@@ -1,7 +1,6 @@
 package org.rcredits.pos;
 
 import android.app.Application;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -16,16 +15,14 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.hardware.Camera;
-import android.os.AsyncTask;
 import android.os.SystemClock;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
@@ -34,7 +31,6 @@ import org.apache.http.util.EntityUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.List;
 
 import static android.graphics.BitmapFactory.decodeResource;
@@ -59,6 +55,29 @@ import static java.lang.Thread.sleep;
  *
  * Some cameras don't tell Android that their camera faces front (and therefore needs flipping), so a separate
  * version (rposb) should be built with flip=true in onCreate()
+ *
+ * TESTS:
+ * Upgrade AND Clean Install (run all relevant tests for each)
+ * (assuming charge permission for cashier, all permissions except usd4r for agent)
+ * A 0. Sign in, sign out. Charge customer $9,999.99. Get error message.
+ * A 1. (signed out) Charge cust 11 cent. Check "balance" button. Repeat in landscape, charging 12 cents.
+ *   2. (signed in) (undo and bal buttons show). Undo. Check "balance" button. Sign out (no balance or undo buttons).
+ *   3. (signed in) refund customer 13 cents, check balance and undo, undo, check balance.
+ *   4. (signed in) give customer 14 cents in rCredits for USD, check balance and undo, undo, check balance.
+ * B 0. Install clean. Wifi off. Try scanning agent and customer card, check for good error messages. Wifi on, sign in/out.
+ *   1-4. Repeat A1-4 with wifi off, using amounts 21, 22, 23, and 24 cents.
+ * C 1. (wifi off, signed out) Scan cust, wifi on, charge 31 cents.
+ *   2. (wifi on, signed out) Scan cust, wifi off, charge 32 cents.
+ * D 1. (wifi off) Sign in, scan cust, wifi on, charge 41 cents.
+ *   2. (wifi off) Sign in, wifi on, scan cust, wifi off, charge 42 cents.
+ *   3. (wifi off) Sign in, wifi on, scan cust, charge 43 cents.
+ *   4. (wifi on) Sign in, wifi off, scan cust, charge 44 cents.
+ *   5. (wifi on) Sign in, wifi off, scan cust, wifi on, charge 45 cents.
+ *   6. (wifi on) Sign in, scan cust, wifi off, charge 46 cents.
+ * E 1. (wifi on, signed in) Scan cust, charge 51 cents, wifi off, undo.
+ *   2. (wifi off, signed in) Scan cust, charge 52 cents, wifi on, undo.
+ * E After online reconciles, should see transactions for:
+ *   11, 12, -12, -13, 13, -14, 14, 21, 31-32, 41-46, 51, -51, 52, -52 (or maybe neither 52 nor -52)
  */
 public class A extends Application {
     public static Boolean demo = false; // set this true to build a demo version that does not require internet
@@ -74,36 +93,45 @@ public class A extends Application {
     public static String deviceId = null; // set once ever in storage upon first scan-in, read upon startup
     public static String debugString = null; // for debug messages
     public static Periodic periodic = null; // periodic reconciliation process running in background
+    public static Integer period = null; // how often to tickle (reconcile offline with server, etc.)
     public static boolean flip; // whether to flip the scanned image (for front-facing cameras)
     public static boolean positiveId; // did online customer identification succeed
     public static SQLiteDatabase db_real;
     public static SQLiteDatabase db_test;
 
     // variables that get reset when testing (or not testing)
-    public static Boolean testing = demo ? true : false;
+    public static boolean testing = demo ? true : false;
+    public static boolean wifi = true; // wifi can be disabled
     public static Db db; // real or test db (should be always open when needed)
     public static Json defaults = null; // parameters to use when no agent is signed in (empty if not allowed)
     public static String region = null; // set upon scan-in
-    public static String agent = null; // set upon scan-in (eg NEW:AAB)
+    public static String agent = null; // set upon scan-in (eg NEW:AAB), otherwise null
     public static String xagent = null; // previous agent
     public static String agentName = null; // set upon scan-in
-    public static List<NameValuePair> rpcPairs = null; // parameters for last RPC request (in case wifi is not available)
+    public static Pairs rpcPairs = null; // parameters from last RPC request
     public static String customerName = null; // set upon identifying a customer
     public static String balance = null; // message about last customer's balance
     public static String undo = null; // message about reversing last transaction
-    public static String lastTx = null; // number of last transaction
     public static Long lastTxRow = null; // row number of last transaction in local db
     public static String httpError = null; // last HTTP failure message
 
     public static List<String> descriptions; // set upon scan-in
     public final static String DESC_REFUND = "refund";
-    public final static String DESC_CASH_IN = "cash in";
-    public final static String DESC_CASH_OUT = "cash out";
+    public final static String DESC_USD_IN = "USD in";
+    public final static String DESC_USD_OUT = "USD out";
 
-    public static int can = 0; // what the agent can do
-    public final static int CAN_REFUND =     1 << 1;
-    public final static int CAN_SELL_CASH =  1 << 2;
-    public final static int CAN_BUY_CASH =   1 << 3;
+    public static int can = 0; // what the user can do (permissions come from PrefsActivity, limited by server)
+    public final static int CAN_CHARGE    = 0;
+    public final static int CAN_UNDO      = 1;
+    public final static int CAN_R4USD     = 2;
+    public final static int CAN_USD4R     = 3;
+    public final static int CAN_REFUND    = 4;
+    public final static int CAN_BUY       = 5;
+    public final static int CAN_U6        = 6; // unused
+    public final static int CAN_MANAGE    = 7; // never true unless signed in
+
+    public final static int CAN_CASHIER   = 0; // how far right to shift bits for cashier permissions
+    public final static int CAN_AGENT     = 8; // how far right to shift bits for agent permissions
 
     public final static String MSG_DOWNLOAD_SUCCESS = "Update download is complete.";
 
@@ -113,10 +141,13 @@ public class A extends Application {
     public final static int TX_OFFLINE = 1; // connection failed, offline transaction is waiting to be uploaded
     public final static int TX_DONE = 2; // completed transaction is on server
 
-    public final static int PERIOD = 20 * 60; // (20 mins.) how often to tickle (reconcile offline with server, etc.)
+    public final static int REAL_PERIOD = 20 * 60; // (20 mins.) how often to tickle when not testing
+    public final static int TEST_PERIOD = 20; // (20 secs.) how often to tickle
     public final static int PIC_H = 600; // standard pixel height of photos
     public final static int PIC_H_OFFLINE = 60; // standard pixel height of photos stored for offline use
     public final static double PIC_ASPECT = .75; // standard photo aspect ratio
+
+    public final static int TX_AGENT = -1; // agent flag in AGT_FLAG field (negative to distinguish)
 
     private final static String PREFS_NAME = "rCreditsPOS";
 //    private final static String REAL_API_PATH = "https://<region>.rcredits.org/pos"; // the real server (rc2.me fails)
@@ -136,8 +167,6 @@ public class A extends Application {
         db_test = (new DbHelper(true)).getWritableDatabase();
         A.setMode(false);
 
-        A.setTime(A.getTime()); // check for updates first thing
-
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             versionCode = pInfo.versionCode + "";
@@ -148,6 +177,9 @@ public class A extends Application {
         Camera.getCameraInfo(0, info);
         flip = (Camera.getNumberOfCameras() == 1 && info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
         //flip = true; versionCode = "0" + versionCode; // uncomment for old devices with only an undetectable front-facing camera.
+
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+
     }
 
     /**
@@ -155,30 +187,43 @@ public class A extends Application {
      * @param testing: <new mode is test mode (otherwise real)>
      */
     public static void setMode(boolean testing) {
-        A.signOut();
         A.testing = testing;
         A.defaults = Json.make(A.getStored(testing ? "defaults_test" : "defaults"));
-        if (A.defaults != null) A.agent = A.defaults.get("default"); // prevents "you have to scan in" message
+        A.signOut();
 
         A.db = new Db(testing);
 
+        A.period = testing ? TEST_PERIOD : REAL_PERIOD;
         if (A.periodic != null) A.periodic.cancel(true); // cancel the old tickler, if any (allowing it to finish with its db)
         (A.periodic = new Periodic()).execute(new String[1]); // launch a tickler for the new db
     }
 
     public static void setDefaults(Json json) {
-        A.setStored(testing ? "defaults_test" : "defaults", (A.defaults = json).s);
+        if (json == null) return;
+        A.defaults = json.copy();
+        A.setStored(A.testing ? "defaults_test" : "defaults", json.s);
+    }
+
+    public static void useDefaults() {
+        if (A.agent != null || A.defaults == null) return;
+        A.agent = A.xagent = A.defaults.get("default");
+        A.region = A.agent.substring(0, A.agent.indexOf('.'));
+        A.agentName = A.defaults.get("company");
+        A.descriptions = A.defaults.getArray("descriptions");
+        A.can = Integer.valueOf(A.defaults.get("can"));
     }
 
     /**
      * Reset all global variables to the "signed out" state.
      */
     public static void signOut() {
-        A.agent = A.xagent = A.agentName = A.region = A.balance = A.undo = A.lastTx = null;
+        A.agent = A.xagent = A.agentName = A.region = A.balance = A.undo = null;
         A.customerName = A.httpError = null;
-        A.rpcPairs = null;
         A.lastTxRow = null;
+        A.useDefaults();
     }
+
+    public static boolean signedIn() {return (A.defaults != null && !A.agent.equals(A.defaults.get("default")));}
 
     public static String getStored(String name) {
         if (A.settings == null) A.settings = A.context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
@@ -198,12 +243,15 @@ public class A extends Application {
      * @param ui: <called by user interaction>
      * @return: the server's response. null if failure (with message in A.httpError)
      */
-    public static HttpResponse post(String region, List<NameValuePair> pairs, boolean ui) {
+    public static HttpResponse post(String region, Pairs pairs, boolean ui) {
         final int timeout = 5 * 1000; // milliseconds
-        A.auPair(pairs, "agent", A.agent);
-        A.auPair(pairs, "device", A.deviceId);
-        A.auPair(pairs, "version", A.versionCode);
-        //A.auPair(pairs, "location", A.location);
+        pairs.add("agent", A.agent);
+        pairs.add("device", A.deviceId);
+        pairs.add("version", A.versionCode);
+        //pairs.add("location", A.location);
+
+        if (ui) A.rpcPairs = pairs.copy().add("region", region);
+        if (!A.wifi) return null;
 
         String api = A.testing ? TEST_API_PATH : REAL_API_PATH;
         HttpPost post = new HttpPost(api.replace("<region>", region));
@@ -213,16 +261,13 @@ public class A extends Application {
         HttpConnectionParams.setConnectionTimeout(params, timeout);
         HttpConnectionParams.setSoTimeout(params, timeout);
         DefaultHttpClient client = new DefaultHttpClient(params);
-        HttpResponse response;
 
         try {
-            post.setEntity(new UrlEncodedFormEntity(pairs));
+            post.setEntity(new UrlEncodedFormEntity(pairs.list));
             return client.execute(post);
         } catch (Exception e) {
-            if (ui) { // set global vars for UI
+            if (ui) {
                 String msg = e.getMessage();
-                A.auPair(pairs, "region", region);
-                A.rpcPairs = pairs; // remember operation, to let cashier accept and store it
                 A.httpError = msg.equals("No peer certificate") ? t(R.string.clock_off) : t(R.string.http_err);
 //                : (t(R.string.http_err) + " (" + msg + ")");
             }
@@ -237,10 +282,11 @@ public class A extends Application {
      * @param ui: <called by user interaction>
      * @return the response
      */
-    public static Json apiGetJson(String region, List<NameValuePair> pairs, boolean ui) {
+    public static Json apiGetJson(String region, Pairs pairs, boolean ui) {
         A.deb("apiGetJson pairs is null: " + (pairs == null ? "yes" : "no"));
-        A.deb("apiGetJson region=" + region + " ui=" + ui + " pairs: " + A.showPairs(pairs));
+//        A.deb("apiGetJson region=" + region + " ui=" + ui + " pairs: " + pairs.show());
         HttpResponse response = A.post(region, pairs, ui);
+        A.deb("apiGetJson: after post response null? " + ((response == null) ? "yes" : "no"));
         try {
             return response == null ? null : Json.make(EntityUtils.toString(response.getEntity()));
         } catch (IOException e) {
@@ -253,10 +299,9 @@ public class A extends Application {
      * Get the customer's photo from his/her server.
      * @param qid: the customer's account ID
      * @param code: the customer's rCard security code
-     * @param ui: <called by user interaction>
      * @return: the customer's photo, as a byte array
      */
-    public static byte[] apiGetPhoto(String qid, String code, boolean ui) {
+    public static byte[] apiGetPhoto(String qid, String code) {
         if (A.demo) {
             Bitmap bitmap = decodeResource(A.resources, R.drawable.shopper);
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -265,10 +310,10 @@ public class A extends Application {
             return stream.toByteArray();
         }
 
-        List<NameValuePair> pairs = A.auPair(null, "op", "photo");
-        A.auPair(pairs, "customer", qid);
-        A.auPair(pairs, "code", code);
-        HttpResponse response = A.post(rCard.qidRegion(qid), pairs, ui);
+        Pairs pairs = new Pairs("op", "photo");
+        pairs.add("member", qid);
+        pairs.add("code", code);
+        HttpResponse response = A.post(rCard.qidRegion(qid), pairs, false); // (!ui: never record rpcPairs for photo)
         try {
             return response == null ? null : EntityUtils.toByteArray(response.getEntity());
         } catch (IOException e) {
@@ -283,7 +328,7 @@ public class A extends Application {
      */
     public static String getTime() {
         if (A.region == null) return null; // time is tied to region
-        HttpResponse response = A.post(region, A.auPair(null, "op", "time"), false);
+        HttpResponse response = A.post(region, new Pairs("op", "time"), false);
 
         try {
             if (response == null) return null;
@@ -312,44 +357,6 @@ public class A extends Application {
     }
 
     /**
-     * Convert the name and value to a "pair" (a NameValuePair) and add it to the list.
-     * @param pairs: (returned) the list to add to (null if no list yet)
-     * @param name: name of parameter to add
-     * @param value: value of parameter to add
-     * @return: the modified list
-     */
-    public static List<NameValuePair> auPair(List<NameValuePair> pairs, String name, String value) {
-        if (pairs == null) pairs = new ArrayList<NameValuePair>(1);
-        pairs.add(new BasicNameValuePair(name, value));
-        return pairs;
-    }
-
-    /**
-     * Extract the named value from the array of name/value pairs.
-     */
-    public static String duPair(String k, List<NameValuePair> pairs) {
-        for (NameValuePair pair : pairs) {
-            if (pair.getName().equals(k)) return pair.getValue();
-        }
-        return null;
-    }
-
-    public static String duPair(String k) {
-        return duPair(k, A.rpcPairs);
-    }
-
-    public static String showPairs(List<NameValuePair> pairs) {
-//        A.deb("showPairs pairs is null: " + (pairs == null ? "yes" : "no"));
-        String result = "";
-        for (NameValuePair pair : pairs) {
-//            A.deb("showPairs result=" + result);
-//            A.deb("showPairs pair k=" + pair.getName());
-            result = result + " " + pair.getName() + "=" + pair.getValue();
-        }
-        return result;
-    }
-
-    /**
      * Add a string parameter to the activity we are about to launch.
      * @param intent: the intended activity
      * @param key: parameter name
@@ -373,10 +380,16 @@ public class A extends Application {
 
     /**
      * Say whether the agent can do something
-     * @param permissions: bits representing things the agent might do
+     * @param permission: bits representing things the agent might do
      * @return true if the agent can do it
      */
-    public static boolean agentCan(int permissions) {return (A.can & permissions) != 0;}
+    public static boolean can(int permission) {
+        int can = A.can >> (A.signedIn() ? CAN_AGENT : CAN_CASHIER);
+        A.deb("permission=" + permission + " can=" + can + " A.can=" + A.can + " signed in:" + A.signedIn() + " 1<<perm=" + (1<<permission));
+        return ((can & (1 << permission)) != 0);
+    }
+
+    public static void setCan(int bit, boolean how) {A.can = how ? (A.can | (1 << bit)) : (A.can & ~(1 << bit));}
 
     /**
      * Say whether the customer's balance is to be kept secret.
@@ -461,6 +474,7 @@ public class A extends Application {
     public static Bitmap bray2bm(byte[] bray) {return BitmapFactory.decodeByteArray(bray, 0, bray.length);}
 
     public static String nn(String s) {return s == null ? "" : s;}
+    public static Long n(String s) {return s == null ? null : Long.parseLong(s);}
     public static String ucFirst(String s) {return s.substring(0, 1).toUpperCase() + s.substring(1);}
     public static String t(int stringResource) {return A.resources.getString(stringResource);}
     public static Long now0() {return System.currentTimeMillis() / 1000L;}

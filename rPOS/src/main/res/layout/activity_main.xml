@@ -79,7 +79,9 @@
                     android:id="@+id/test"
                     android:layout_gravity="bottom|right"
                     android:textColor="#ac021c"
-                    android:textStyle="bold"/>
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:onClick="setWifi"/>
             </FrameLayout>
 
             <FrameLayout
@@ -107,7 +109,9 @@
                     android:textAppearance="?android:attr/textAppearanceSmall"
                     android:text="version"
                     android:id="@+id/version"
-                    android:layout_gravity="bottom|left"/>
+                    android:layout_gravity="bottom|left"
+                    android:clickable="true"
+                    android:onClick="showTables"/>
             </FrameLayout>
 
         </LinearLayout>
@@ -161,5 +165,14 @@
         android:scrollbarAlwaysDrawVerticalTrack="true"
         android:scrollbars="vertical"
         android:textColor="#010101"/>
+
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/settings"
+        android:background="@drawable/gear"
+        android:layout_gravity="right"
+        android:layout_margin="5dp"
+        android:onClick="doPrefs"/>
 
 </FrameLayout>

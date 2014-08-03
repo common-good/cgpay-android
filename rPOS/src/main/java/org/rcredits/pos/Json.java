@@ -15,6 +15,8 @@ public class Json {
 
     Json(String s) {this.s = s;} // externally use Json.make(s) instead
     public static Json make(String s) {return (s == null || s.equals("")) ? null : new Json(s);}
+    public static Json copy(Json json) {return Json.make(json == null ? null : json.s);}
+    public Json copy() {return new Json(this.s);}
 
     /**
      * Return a keyed value from an api response array (json-encoded).

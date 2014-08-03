@@ -21,18 +21,17 @@ import android.app.Activity;
 import android.app.KeyguardManager;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.TextView;
 
-import org.apache.http.NameValuePair;
 import org.rcredits.zxing.client.android.CaptureActivity;
+import org.rcredits.zxing.client.android.PreferencesActivity;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -40,7 +39,6 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Calendar;
-import java.util.List;
 
 /**
  * Give the user (usually a cashier) a button to press, to scan rCards at POS.
@@ -106,7 +104,7 @@ public final class MainActivity extends Act {
         if (A.failMessage != null) {
             act.sayError(A.failMessage, null); // show failure message from previous (failed) activity
             A.failMessage = null;
-        } else if (A.update != null && !A.testing) {
+        } /*else if (A.update != null && !A.testing) {
             act.askOk("Okay to update now? (takes a few seconds)", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     dialog.cancel();
@@ -114,7 +112,8 @@ public final class MainActivity extends Act {
                     new UpdateApp().execute(A.update); // download the update in the background
                 }
             });
-        }
+        } */
+
         // } else if ... mention(R.string.connect_soon); // if this business is often offline, ask for ID
 
         /*
@@ -149,20 +148,15 @@ public final class MainActivity extends Act {
         TextView version = (TextView) findViewById(R.id.version);
         if (version != null) version.setText("v. " + A.versionName);
 
-        if (A.agent == null && A.defaults != null) {
-            A.agent = A.xagent = A.defaults.get("default");
-            A.region = A.agent.substring(0, A.agent.indexOf('.'));
-            A.agentName = A.defaults.get("company");
-            A.descriptions = A.defaults.getArray("descriptions");
-            A.can = 0; // default cashier gets rock bottom permissions
-        }
+        A.useDefaults(); // get agent, etc., if necessary
 
-        boolean showUndo = (A.agentCan(A.CAN_REFUND) && A.lastTx != null && A.undo != null);
+        boolean showUndo = (A.can(A.CAN_UNDO) && A.undo != null);
         boolean showBalance = (A.balance != null);
-        findViewById(R.id.undo_last).setVisibility(showUndo ? View.VISIBLE : View.GONE);
-        findViewById(R.id.show_balance).setVisibility(showBalance ? View.VISIBLE : View.GONE);
-        findViewById(R.id.test).setVisibility((A.testing != null && A.testing) ? View.VISIBLE : View.GONE);
+        findViewById(R.id.undo_last).setVisibility(showUndo ? View.VISIBLE : View.INVISIBLE);
+        findViewById(R.id.show_balance).setVisibility(showBalance ? View.VISIBLE : View.INVISIBLE);
+        findViewById(R.id.test).setVisibility(A.testing ? View.VISIBLE : View.INVISIBLE);
         if (A.demo) ((TextView) findViewById(R.id.test)).setText("DEMO");
+        findViewById(R.id.settings).setVisibility(A.can(A.CAN_MANAGE) ? View.INVISIBLE : View.INVISIBLE); // not used yet
 
         if (A.agent == null) {
             welcome.setText(R.string.no_company);
@@ -177,10 +171,16 @@ public final class MainActivity extends Act {
         }
     }
 
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_MENU) {
+            act.start(PrefsActivity.class);
+            return true;
+        } else return super.onKeyUp(keyCode, event);
+    }
 
     /**
+     * NO LONGER USED
      * from ldmuniz at http://stackoverflow.com/questions/4967669/android-install-apk-programmatically
-     */
     private class UpdateApp extends AsyncTask<String, Void, Void> {
         @Override
         protected Void doInBackground(String... urls) {
@@ -222,23 +222,13 @@ public final class MainActivity extends Act {
             act.progress(false);
         }
     }
+*/
 
-    /**
-     * Start the Capture activity (when the user presses the SCAN button).
-     * @param v
-     */
-    public void doScan(View v) {
-        Intent intent = new Intent(this, CaptureActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-        startActivity(intent);
-    }
+    public void doScan(View v) {act.start(CaptureActivity.class);} // user pressed the SCAN button
+    // NOT YET USED public void doPrefs(View v) {act.start(PrefsActivity.class);} // user pressed the gear button
 
-    /**
-     * Show the last customer's balance (when the user presses the "Balance" button).
-     * @param v
-     */
     public void doShowBalance(View v) {
-        act.sayOk("Customer Balance", A.balance, null);
+        act.sayOk("Customer Balance", A.balance, null); // user pressed the Balance button
     }
 
     /**
@@ -249,10 +239,15 @@ public final class MainActivity extends Act {
         act.askOk(A.undo, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
-                List<NameValuePair> pairs = A.auPair(null, "op", "undo");
-                A.auPair(pairs, "txid", A.lastTx);
+                act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
+                A.db.changeStatus(A.lastTxRow, A.TX_CANCEL, null);
+                new Act.Tx().execute(A.lastTxRow);
+                /*
+                Pairs pairs = new Pairs("op", "undo");
+                pairs.add("txid", A.lastTx);
                 act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
                 new Tx().execute(pairs); // act.Tx (but android does not recognize that syntax)
+                */
             }
         });
     }
@@ -262,7 +257,7 @@ public final class MainActivity extends Act {
      */
     public void doSignOut(View v) {
         //if (A.agent.equals(A.dftAgent)) return; // already signed out
-        if (A.agent != null) act.askOk("Sign out and restart?", new DialogInterface.OnClickListener() {
+        if (A.agent != null) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 A.signOut();

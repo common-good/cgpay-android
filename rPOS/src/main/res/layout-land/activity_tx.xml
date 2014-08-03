@@ -12,78 +12,103 @@ android:background="@color/background">
         android:layout_width="fill_parent"
         android:layout_height="fill_parent">
 
-        <FrameLayout
+        <LinearLayout
+            android:orientation="vertical"
             android:layout_width="wrap_content"
             android:layout_height="fill_parent"
             android:layout_weight="1">
 
-            <TextView
+            <FrameLayout
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_span="2"
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                android:text="$0.00"
-                android:id="@+id/amount"
-                android:textSize="40dp"
-                android:singleLine="true"
-                android:autoText="false"
-                android:paddingTop="5dp"
-                android:layout_gravity="left|top"
                 android:layout_marginLeft="5dp"
-                android:layout_marginTop="5dp"/>
+                android:layout_marginTop="3dp"
+                android:layout_marginRight="5dp">
 
-            <ImageButton
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/change_description"
-                android:layout_weight="0"
-                android:background="@drawable/change2"
-                android:onClick="onChangeDescriptionClick"
-                android:clickable="true"
-                android:layout_gravity="center_vertical|left"
-                android:layout_marginLeft="5dp"/>
-
-            <LinearLayout
-                android:orientation="vertical"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_alignParentEnd="false"
-                android:layout_alignParentBottom="true"
-                android:id="@+id/description_row"
-                android:layout_weight="0"
-                android:layout_gravity="center_horizontal|bottom">
-
-
-                <Button
-                    android:layout_width="fill_parent"
-                    android:layout_height="fill_parent"
-                    android:layout_span="3"
-                    android:id="@+id/goods"
-                    android:layout_gravity="center_horizontal"
-                    android:textSize="30dp"
-                    android:onClick="onGoClick"
-                    android:clickable="true"
-                    android:textColor="#ffffff"
-                    style="@style/ButtonGoods"
-                    android:text="description"
-                    android:ellipsize="end"
-                    android:paddingTop="5dp"
-                    android:paddingBottom="10dp"
-                    android:layout_margin="5dp"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"/>
-
-                <TextView
+                <ImageButton
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textAppearance="?android:attr/textAppearanceSmall"
-                    android:text="spacer"
-                    android:id="@+id/textView"
-                    android:textColor="#ffffff"
-                    android:textSize="5dp"/>
+                    android:id="@+id/tx_back"
+                    android:background="@drawable/button_back"
+                    android:onClick="onTxBack"
+                    android:layout_weight="0"
+                    android:layout_gravity="left"/>
 
-            </LinearLayout>
-        </FrameLayout>
+                <ImageButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/change_description"
+                    android:layout_weight="0"
+                    android:background="@drawable/change2"
+                    android:onClick="onChangeDescriptionClick"
+                    android:clickable="true"
+                    android:layout_marginLeft="5dp"
+                    android:layout_gravity="center_horizontal"/>
+            </FrameLayout>
+
+            <FrameLayout
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:layout_weight="1">
+
+                <TextView
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_span="2"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:text="$0.00"
+                    android:id="@+id/amount"
+                    android:textSize="40dp"
+                    android:singleLine="true"
+                    android:autoText="false"
+                    android:paddingTop="5dp"
+                    android:layout_gravity="left|top"
+                    android:layout_marginLeft="5dp"
+                    android:layout_marginTop="5dp"/>
+
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="false"
+                    android:layout_alignParentBottom="true"
+                    android:id="@+id/description_row"
+                    android:layout_weight="0"
+                    android:layout_gravity="center_horizontal|bottom">
+
+
+                    <Button
+                        android:layout_width="fill_parent"
+                        android:layout_height="fill_parent"
+                        android:layout_span="3"
+                        android:id="@+id/description"
+                        android:layout_gravity="center_horizontal"
+                        android:textSize="30dp"
+                        android:onClick="onGoClick"
+                        android:clickable="true"
+                        android:textColor="#ffffff"
+                        style="@style/ButtonGoods"
+                        android:text="description"
+                        android:ellipsize="end"
+                        android:paddingTop="5dp"
+                        android:paddingBottom="10dp"
+                        android:layout_margin="5dp"
+                        android:paddingLeft="5dp"
+                        android:paddingRight="5dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
+                        android:text="spacer"
+                        android:id="@+id/textView"
+                        android:textColor="#ffffff"
+                        android:textSize="5dp"/>
+
+                </LinearLayout>
+            </FrameLayout>
+
+        </LinearLayout>
 
         <LinearLayout
             android:orientation="vertical"

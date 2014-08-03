@@ -10,6 +10,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,7 +26,7 @@ import java.util.Map;
  */
 public class Act extends Activity {
     private final Act act = this;
-    private static ProgressDialog progressDlg; // for standard progress spinner
+    private ProgressDialog progressDlg; // for standard progress spinner
     private AlertDialog alertDialog;
 
 //    @Override        public void onBackPressed() {
@@ -133,6 +134,12 @@ public class Act extends Activity {
         startActivity(intent); // restart
     }
 
+    public void start(Class cls) {
+        Intent intent = new Intent(act, cls);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+        startActivity(intent);
+    }
+
     /**
      * Return a string to the parent activity.
      * @param resultName: name of the returned value
@@ -146,32 +153,36 @@ public class Act extends Activity {
     }
 
     /**
+     * Turn wifi on or off for this app (useful for saving time when out of range for a long time).
+     */
+    public void setWifi(boolean wifi) {
+        if (A.demo) return; // disable when irrelevant
+        A.wifi = wifi;
+        act.sayOk("Wifi", wifi ? R.string.wifi_on : R.string.wifi_off, null);
+    }
+
+    public void showTables(View v) {if (A.testing) sayOk("Records", A.db.showCust() + "\n\n" + A.db.showTxs(), null);}
+
+    /**
+     * Provide wifi toggle shortcuts when testing (clicking +id/test, +id/customer_place, or +id/amount).
+     * @param v
+     */
+    public void setWifi(View v) {if (A.testing) setWifi(!A.wifi);}
+
+    /**
      * After requesting a transaction, handle the server's response.
      * @param json: json-format parameter string returned from server
      */
     public void afterTx(final Json json) {
         act.progress(false);
 
-        if (json == null) { // no response from server -- ask cashier about doing it offline, if we haven't yet
-            if (A.positiveId) {
-                act.askOk(A.nn(A.httpError) + " " + A.t(R.string.try_offline), new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.cancel();
-                        act.offlineTx();
-                    }
-                });
-            } else act.offlineTx();
-            return;
-        };
-
         String message = json.get("message");
         A.balance = A.balanceMessage(A.customerName, json); // null if secret or no balance was returned
 
         if (json.get("ok").equals("1")) {
             A.undo = json.get("undo");
-            A.lastTx = json.get("txid");
-            A.deb("afterTx lastTx=" + A.lastTx + " lastTxRow=" + A.lastTxRow);
-            A.db.completeTx(A.lastTxRow, json);
+            if (A.undo != null && (A.undo.equals("") || A.undo.matches("\\d+"))) A.undo = null;
+            A.db.completeTx(A.lastTxRow, json); // mark tx complete in db (unless deleted)
 
             act.sayOk("Success!", message, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
@@ -186,22 +197,27 @@ public class Act extends Activity {
      * Store the transaction for later.
      */
     public void offlineTx() {
+        String msg;
         A.balance = null;
-        A.lastTx = null;
-        boolean charging = A.duPair("op").equals("charge");
+        boolean charging = A.rpcPairs.get("force").equals("" + A.TX_PENDING);
+        String customer = A.db.customerName(A.rpcPairs.get("member"));
+        String amount = A.rpcPairs.get("amount");
+        boolean positive = (amount.indexOf("-") < 0);
+        amount = A.fmtAmt(amount.replace("-", ""), true);
+        String tofrom = (charging ^ positive) ? "to" : "from";
+        String action = (charging ^ positive) ? "credited" : "charged";
 
-        if (charging) {
-            String customer = A.db.customerName(A.duPair("customer"));
-            String amount = A.duPair("amount");
-            String tofrom = (Double.valueOf(amount) < 0) ? "to" : "from";
-            amount = A.fmtAmt(amount.replace("-", ""), true);
-            A.undo = String.format("Undo transfer of %s %s %s?", amount, tofrom, customer);
-        } else A.undo = null;
+        if (charging) { // set up undo text, if charging
+            msg = String.format("OFFLINE You %s %s $%s.", action, customer, amount);
+            A.undo = String.format("Undo transfer of $%s %s %s?", amount, tofrom, customer);
+            A.db.changeStatus(A.lastTxRow, A.TX_OFFLINE, null);
+        } else {
+            msg = String.format("OFFLINE The transaction has been canceled. You transferred $%s back %s %s.",
+                    amount, tofrom, customer);
+            A.undo = null;
+        }
 
-        A.db.changeStatus(A.lastTxRow, charging ? A.TX_OFFLINE : A.TX_CANCEL, null);
-
-        String msg = String.format("The transaction has been %s.", charging ? "stored" : "canceled");
-        act.sayOk("Done!", msg, new DialogInterface.OnClickListener() {
+        act.sayOk("Done!", msg + A.t(R.string.connect_soon), new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 act.restart();
@@ -210,39 +226,45 @@ public class Act extends Activity {
     }
 
     /**
-     * Submit and handle a transaction request, in the background.
+     * Submit and handle a transaction request, in the background (but called from the UI).
+     * If the status of the transaction is pending, complete it.
+     * If the status is TX_DONE, reverse it.
      */
-    public class Tx extends AsyncTask<List<NameValuePair>, Void, Json> {
+    public class Tx extends AsyncTask<Long, Void, Json> {
         @Override
-        protected Json doInBackground(List<NameValuePair>... pairss) {
-            List<NameValuePair> pairs = pairss[0];
-            if (A.demo) {
+        protected Json doInBackground(Long... txRows) {
+            Long rowid = txRows[0];
+
+            Pairs pairs = A.db.txPairs(rowid);
+            if (Integer.valueOf(pairs.get("force")) == A.TX_PENDING) {
+                if (A.setTime(A.getTime())) A.db.fixTxTime(rowid, pairs); // sync creation date with server time
+                return A.apiGetJson(A.region, pairs, true);
+            } else return A.db.cancelTx(rowid, true);
+
+/*            if (A.demo) {
                 SystemClock.sleep(1000);
-                if (A.duPair("op", pairs).equals("charge")) {
-                    String amount = A.duPair("amount", pairs);
+                if (pairs.get("op").equals("charge")) {
+                    String amount = pairs.get("amount");
                     if (amount == null) amount = "23";
                     return Json.make("{'ok':'1','message':'You charged Susan Shopper $AMOUNT (reward: 10%).','tx':'4069','balance':'Customer: Susan Shopper\\n\\nBalance: $285.86\\nSpendable: $284.94\\nTradable for cash: $154.91\\n\\nWe just charged $AMOUNT.','undo':'Undo transfer of $AMOUNT from Susan Shopper?'}".replaceAll("AMOUNT", amount));
                 } else return Json.make("{'ok':'1','message':'Transaction has been reversed.','balance':'Customer: Susan Shopper\\n\\nBalance: $306.56\\nTradable for cash: $178.83'}"); // undo
-            } else {
-
-                ContentValues values = new ContentValues();
-                A.auPair(pairs, "created", String.valueOf(A.now()));
-                for (String k : DbHelper.TXS_FIELDS.split(" ")) values.put(k, A.duPair(k, pairs));
-                values.put("status", A.TX_PENDING);
-                values.put("agent", A.agent); // gets added to pairs in A.post (not yet)
-                values.put("txid", A.duPair("code")); // temporarily store card code (from identify op) in txid field
-                for (Map.Entry<String, Object> k : values.valueSet()) A.deb(String.format("Tx value %s: %s", k.getKey(), k.getValue()));
-                A.lastTxRow = A.db.insert("txs", values);
-                A.deb("Tx A.lastTxRow just set to " + A.lastTxRow);
-                Q r = A.db.q("SELECT rowid, * FROM txs", new String[] {});
-                if (r != null) {A.deb("Tx txid=" + r.getString("txid") + " customer=" + r.getString("customer")); r.close();}
-                else A.deb("r is null");
-
-                return A.apiGetJson(A.region, pairs, true);
-            }
+            }*/
         }
 
         @Override
-        protected void onPostExecute(Json json) {act.afterTx(json);}
+        protected void onPostExecute(Json json) {
+            if (json == null) act.offlineTx(); else act.afterTx(json);
+        }
+
+/*            if (A.positiveId) {
+                act.askOk(A.nn(A.httpError) + " " + A.t(R.string.try_offline), new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                        act.offlineTx();
+                    }
+                });
+            } else act.offlineTx();
+            return;
+        }; */
     }
 }

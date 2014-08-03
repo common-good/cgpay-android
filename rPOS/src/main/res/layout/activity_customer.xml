@@ -24,6 +24,14 @@
             android:layout_marginLeft="1dp"
             />
 
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/cust_back"
+            android:background="@drawable/button_back"
+            android:onClick="onCustBack"
+            android:layout_margin="4dp"/>
+
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -43,9 +51,9 @@
             <ImageButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:id="@+id/cashin"
-                android:contentDescription="cash in"
-                android:background="@drawable/cash_in"
+                android:id="@+id/usdin"
+                android:contentDescription="USD in"
+                android:background="@drawable/usd_in"
                 android:onClick="onRClick"
                 android:layout_marginLeft="4dp"
                 android:layout_marginRight="4dp"/>
@@ -59,10 +67,10 @@
             <ImageButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:id="@+id/cashout"
-                android:contentDescription="cash out"
+                android:id="@+id/usdout"
+                android:contentDescription="USD out"
                 android:cropToPadding="false"
-                android:background="@drawable/cash_out"
+                android:background="@drawable/usd_out"
                 android:onClick="onRClick"
                 android:layout_marginLeft="4dp"
                 android:layout_marginRight="4dp"/>
@@ -121,7 +129,9 @@
             android:id="@+id/customer_place"
             android:gravity="center"
             android:textColor="#004400"
-            android:background="@color/background"/>
+            android:background="@color/background"
+            android:clickable="true"
+            android:onClick="setWifi"/>
     </LinearLayout>
 
 </LinearLayout>

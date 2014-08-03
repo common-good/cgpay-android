@@ -13,30 +13,43 @@ android:background="@color/background">
         android:layout_height="wrap_content"
         android:layout_weight="0">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_span="2"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="$0.00"
-            android:id="@+id/amount"
-            android:textSize="40dp"
-            android:singleLine="true"
-            android:autoText="false"
-            android:paddingTop="5dp"
-            android:layout_gravity="left"
-            android:layout_marginLeft="5dp"
-            android:layout_marginTop="5dp"/>
-
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp"
+            android:layout_marginLeft="3dp"
+            android:layout_marginRight="3dp"
             android:layout_alignParentStart="true"
             android:layout_weight="0"
-            android:layout_gravity="right">
+            >
+
+            <ImageButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/tx_back"
+                android:background="@drawable/button_back"
+                android:onClick="onTxBack"
+                android:layout_weight="0"
+                android:layout_gravity="left"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_span="2"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:text="$0.00"
+                android:id="@+id/amount"
+                android:textSize="40dp"
+                android:singleLine="true"
+                android:autoText="false"
+                android:paddingTop="5dp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginTop="5dp"
+                android:layout_weight="10"
+                android:textAlignment="center"
+                android:layout_gravity="center_horizontal"
+                android:clickable="true"
+                android:onClick="setWifi"/>
 
             <ImageButton
                 android:layout_width="wrap_content"
@@ -278,7 +291,7 @@ android:background="@color/background">
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             android:layout_span="3"
-            android:id="@+id/goods"
+            android:id="@+id/description"
             android:layout_gravity="center_horizontal"
             android:textSize="30dp"
             android:onClick="onGoClick"

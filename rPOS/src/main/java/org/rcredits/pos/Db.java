@@ -1,9 +1,9 @@
 package org.rcredits.pos;
 
 import android.content.ContentValues;
-import android.content.Context;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+
+import java.util.Map;
 
 /**
  * Handle database operations.
@@ -11,7 +11,7 @@ import android.database.sqlite.SQLiteDatabase;
  * Created by William on 7/7/14.
  */
 public class Db {
-    private static SQLiteDatabase db;
+    private SQLiteDatabase db;
 
     Db(boolean testing) {
         db = testing ? A.db_test : A.db_real;
@@ -52,6 +52,29 @@ public class Db {
     public void endTransaction() {db.endTransaction();}
 //    public void close() {db.close(); db = null;}
 
+    public Q getRow(String table, String where, String[] params) {
+        return q("SELECT rowid, * FROM " + table + " WHERE " + where, params);
+    }
+
+    public Q getRow(String table, Long rowid) {return getRow(table, "rowid=?", new String[] {"" + rowid});}
+
+    public String getField(String field, String table, String where, String[] params) {
+        Q q = getRow(table, where, params);
+        if (q == null) return null;
+        String res = q.getString(field);
+        q.close();
+        return res;
+    }
+
+    public String getField(String field, String table, Long rowid) {
+        return getField(field, table, "rowid=?", new String[] {"" + rowid});
+    }
+
+    public String txQid(Long rowid) {return getField("member", "txs", rowid);}
+    public String custField(String qid, String field) {return getField(field, "members", custRowid(qid));}
+    public Long custRowid(String qid) {return A.n(getField("rowid", "members", "qid=?", new String[] {qid}));}
+
+
     /**
      * Change a transaction status.
      * @param rowid : which transaction to change
@@ -66,21 +89,24 @@ public class Db {
     }
 
     /**
-     * Mark a transaction DONE and update the customer record.
+     * Mark a transaction DONE (if it exists) and update the customer record.
      * @param txRowid: transaction rowid
      * @param txid: transaction record ID on the server
      * @param balance: customer's current balance
      * @param rewards: customer's rewards ever
      */
     public void completeTx(Long txRowid, String txid, String balance, String rewards, String lastTx) {
+        String qid = txQid(txRowid);
+        if (qid == null) return; // record is deleted, so no action needed
+
         ContentValues values = new ContentValues();
         values.put("balance", balance);
         values.put("rewards", rewards);
         values.put("lastTx", lastTx);
-        Long custRowid = customerRowid(txQid(txRowid)); // find the corresponding customer record, if any
+        Long custRowid = custRowid(qid); // find the corresponding customer record, if any
 
         beginTransaction();
-        if (custRowid != null) this.update("customers", values, custRowid);
+        if (custRowid != null) this.update("members", values, custRowid);
         changeStatus(txRowid, A.TX_DONE, Long.valueOf(txid));
         setTransactionSuccessful();
         endTransaction();
@@ -91,17 +117,17 @@ public class Db {
                 txJson.get("rewards"), txJson.get("created"));
     }
 
-    public static void saveCustomer(String qid, byte[] image, Json idJson) {
+    public void saveCustomer(String qid, byte[] image, Json idJson) {
 //        if (!rcard.region.equals(A.region)) return; // don't record customers outside the region?
 
-        Q q = A.db.oldCustomer(qid);
+        Q q = oldCustomer(qid);
         if (q == null) { // new customer!
             ContentValues values = new ContentValues();
             for (String k : DbHelper.CUSTOMERS_FIELDS.split(" ")) values.put(k, idJson.get(k));
             values.put("qid", qid);
             values.put("photo", A.shrink(image));
-            A.db.insert("customers", values);
-            Q r = A.db.oldCustomer(qid); if (r != null) {A.deb("saveCustomer r.qid=" + r.getString("qid") + " r.name=" + r.getString("name")); r.close();}
+            insert("members", values);
+//            Q r = A.db.oldCustomer(qid); if (r != null) {A.deb("saveCustomer r.qid=" + r.getString("qid") + " r.name=" + r.getString("name")); r.close();}
         } else q.close();
     }
 
@@ -112,21 +138,12 @@ public class Db {
      */
     public Q oldCustomer(String qid) {
         A.deb("oldCustomer qid=" + qid);
-        return q("SELECT rowid, * FROM customers WHERE qid=?", new String[] {A.nn(qid)});
-    }
-
-    public Long customerRowid(String qid) {
-        Q q = oldCustomer(qid);
-        if (q == null) return null;
-        Long rowid = q.rowid();
-        q.close();
-        A.deb("customerRowid rowid=" + rowid);
-        return rowid;
+        return q("SELECT rowid, * FROM members WHERE qid=?", new String[] {A.nn(qid)});
     }
 
     public String customerName(String qid) {
         Q q = oldCustomer(qid);
-        if (q == null) return "";
+        if (q == null) return "Member " + qid;
         String name = q.getString("name");
         String company = q.getString("company");
         q.close();
@@ -134,14 +151,139 @@ public class Db {
         return A.customerName(name, company);
     }
 
-    public String txQid(Long rowid) {
-        A.deb("txQid rowid=" + rowid);
-        if (rowid == null) return null;
-        Q q = q("SELECT customer FROM txs WHERE rowid=?", new String[] {String.valueOf(rowid)});
-        if (q == null) return null;
-        String qid = q.getString("customer");
+    public Long storeTx(Pairs pairs) {
+        pairs.add("created", String.valueOf(A.now()));
+
+        ContentValues values = new ContentValues();
+        for (String k : DbHelper.TXS_FIELDS.split(" ")) values.put(k, pairs.get(k));
+        values.put("status", A.TX_PENDING);
+        values.put("agent", A.agent); // gets added to pairs in A.post (not yet)
+        values.put(DbHelper.TXS_CARDCODE, A.rpcPairs.get("code")); // temporarily store card code (from identify op)
+        for (Map.Entry<String, Object> k : values.valueSet()) A.deb(String.format("Tx value %s: %s", k.getKey(), k.getValue()));
+        A.lastTxRow = A.db.insert("txs", values);
+        A.deb("Tx A.lastTxRow just set to " + A.lastTxRow);
+/*                Q r = A.db.q("SELECT rowid, * FROM txs", new String[] {});
+                if (r != null) {A.deb("Tx txid=" + r.getString("txid") + " customer=" + r.getString("member")); r.close();}
+                else A.deb("r is null"); */
+        return A.lastTxRow;
+    }
+
+    public Pairs txPairs(Long txRow) {
+        Q q = q("SELECT rowid, * FROM txs WHERE rowid=?", new String[] {"" + txRow});
+        Pairs pairs = new Pairs("op", "charge");
+        for (String k : DbHelper.TXS_FIELDS.split(" ")) pairs = pairs.add(k, q.getString(k));
+        pairs.add("force", q.getString("status")); // handle according to status
         q.close();
-        A.deb("txQid qid=" + qid);
-        return qid;
+        return pairs;
+    }
+
+    /**
+     * Cancel or delete the transaction.
+     * @param rowid:
+     * @param ui: <called by user interaction>
+     * NOTE: q gets invalidated by the call to apiGetJson().
+     *         So be done with it sooner, to avoid "StaleDataException: Access closed cursor"
+     * This should not be called on the UI thread.
+     */
+    public Json cancelTx(long rowid, boolean ui) {
+        Pairs pairs = txPairs(rowid).add("force", "" + A.TX_CANCEL);
+        Json json = A.apiGetJson(A.region, pairs, ui);
+        if (json != null && json.get("ok").equals("1")) {
+            if (json.get("txid").equals("0")) {
+                delete("txs", rowid); // does not exist on server, so just delete it
+            } else reverseTx(rowid, json.get("undo"), json.get("txid"), json.get("created"), (ui ? A.agent : null));
+        }
+        return json;
+    }
+
+    /**
+     * Record a reversing transaction from the server.
+     * @param rowid1: original (local) transaction record ID
+     * @param txid1: original transaction ID on server
+     * @param txid2: reversing transaction ID on server
+     * @param created2: reversing transaction creation time
+     * @param agent: reversing agent, if known
+     */
+    private void reverseTx(long rowid1, String txid1, String txid2,  String created2, String agent) {
+        Q q = getRow("txs", rowid1);
+        ContentValues values2 = new ContentValues();
+        for (String k : DbHelper.TXS_FIELDS.split(" ")) values2.put(k, q.getString(k));
+        q.close();
+
+        values2.put("txid", txid2); // remember record ID of reversing transaction on server
+        values2.put("status", A.TX_DONE); // mark offsetting transaction done
+        values2.put("created", created2); // reversal date
+        values2.put("amount", A.fmtAmt(-values2.getAsDouble("amount"), false)); // negate
+        values2.put("description", "undo");
+        if (agent != null) values2.put("agent", agent); // otherwise use agent of original tx
+
+        beginTransaction();
+        insert("txs", values2); // record offsetting transaction from server
+        changeStatus(rowid1, A.TX_DONE, Long.valueOf(txid1)); // mark original transaction done
+        setTransactionSuccessful();
+        endTransaction();
+    }
+
+    public String showTxs() {
+        Q q = q("SELECT rowid, * FROM txs", new String[] {});
+        if (q == null) return "";
+
+        String show = "";
+        do {
+            show += String.format("row#%s sta=%s dt=%s agt=%s cust=%s amt=%s g=%s desc=%s", q.rowid(),
+                    q.getInt("status"), q.getInt("created"), q.getString("agent"), q.getString("member"),
+                    A.fmtAmt(q.getDouble("amount"), true), q.getInt("goods"), q.getString("description"));
+        } while (q.moveToNext());
+        q.close();
+        return show;
+    }
+
+    public String showCust() {
+        Q q = q("SELECT rowid, * FROM members", new String[] {});
+        if (q == null) return "";
+
+        String show = "";
+        do {
+            show += String.format("row#%s qid=%s nm=%s co=%s" +
+                    (q.isAgent() ? "agt=%s code=%s can=%s flg=%s" : "place=%s bal=%s rew=%s last=%s"),
+                    q.rowid(), q.getString("qid"), q.getString("name"), q.getString("company"), q.getString("place"),
+                    q.getString("balance"), q.getString("rewards"), q.getInt("lastTx"));
+        } while (q.moveToNext());
+        q.close();
+        return show;
+    }
+
+    /**
+     * Update the creation time in db and pairs.
+     */
+    public void fixTxTime(Long rowid, Pairs pairs) {
+        Long created = A.now();
+        pairs.add("created", "" + created);
+        ContentValues values = new ContentValues();
+        values.put("created", created);
+        update("txs", values, rowid);
+    }
+
+    public void saveAgent(String qid, String cardCode, byte[] image, Json json) {
+        ContentValues values = new ContentValues();
+        values.put("name", json.get("name"));
+        values.put("company", json.get("company"));
+        values.put(DbHelper.AGT_COMPANY_QID, json.get("default"));
+        values.put(DbHelper.AGT_CARDCODE, cardCode);
+        values.put(DbHelper.AGT_CAN, json.get("can"));
+        values.put("photo", image);
+
+        Long rowid = custRowid(qid);
+
+        if (rowid == null) {
+            values.put("qid", qid);
+            values.put(DbHelper.AGT_FLAG, A.TX_AGENT);
+            insert("members", values);
+        } else update("members", values, rowid);
+    }
+
+    public boolean badAgent(String qid, String cardCode) {
+        String savedCardCode = custField(qid, DbHelper.AGT_CARDCODE);
+        return (savedCardCode == null || !savedCardCode.equals(cardCode));
     }
 }

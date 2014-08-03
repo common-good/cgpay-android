@@ -2,31 +2,27 @@ package org.rcredits.pos;
 
         import android.content.Intent;
         import android.content.res.Configuration;
-        import android.os.AsyncTask;
         import android.os.Bundle;
-        import android.view.Menu;
         import android.view.View;
         import android.widget.Button;
         import android.widget.ImageButton;
         import android.widget.TextView;
 
-        import org.apache.http.NameValuePair;
-
-        import java.util.List;
-
 /**
  * Let the user type an amount and say go, sometimes with an option to change the charge description.
- * @intent String description: the current transaction description
- * Charges, "cash in", "cash out", and "refund" are all treated similarly.
+ * @intent customer: customer's account ID
+ * @intent description: the current transaction description
+ * @intent goods: "1" if the transaction is for real goods and services, else "0"
+ * Charges, "USD in", "USD out", and "refund" are all treated similarly.
  */
 public class TxActivity extends Act {
     private final Act act = this;
-    private static final int maxDigits = 6; // maximum number of digits allowed
-    private static final int preCommaDigits = 5; // maximum number of digits before we need a comma
-    private static String customer; // qid of current customer
-    private static String description; // transaction description
-    private static String amount; // the transaction amount
-    private Button goods; // is this a purchase/refund of real goods & services (or an exchange for cash)
+    private final int maxDigits = 6; // maximum number of digits allowed
+    private final int preCommaDigits = 5; // maximum number of digits before we need a comma
+    private String customer; // qid of current customer
+    private String description; // transaction description
+    private String amount; // the transaction amount
+    private String goods; // is this a purchase/refund of real goods & services (or an exchange for cash)
 
     /**
      * Show the appropriate options.
@@ -37,7 +33,8 @@ public class TxActivity extends Act {
         super.onCreate(savedInstanceState);
 
         customer = A.getIntentString(this.getIntent(), "customer");
-        description = A.getIntentString(this.getIntent(), "description").toLowerCase();
+        description = A.getIntentString(this.getIntent(), "description");
+        goods = A.getIntentString(this.getIntent(), "goods");
         amount = "0.00";
         setLayout();
     }
@@ -47,20 +44,24 @@ public class TxActivity extends Act {
      */
     private void setLayout() {
         setContentView(R.layout.activity_tx);
-        goods = (Button) findViewById(R.id.goods);
+        Button desc = (Button) findViewById(R.id.description);
         ImageButton changeDesc = (ImageButton) findViewById(R.id.change_description);
 
-        if (description.equals(A.DESC_CASH_IN) || description.equals(A.DESC_CASH_OUT)) {
+        if (description.equals(A.DESC_USD_IN) || description.equals(A.DESC_USD_OUT)) {
+            desc.setText(description);
             changeDesc.setVisibility(View.GONE);
         } else if (description.equals(A.DESC_REFUND)) {
+            desc.setText(description);
             changeDesc.setVisibility(View.GONE);
         } else { // charging
             if (A.descriptions.size() < 2) {
                 if (description.equals("")) description = "charge"; // don't let it be blank
                 changeDesc.setVisibility(View.GONE);
             }
+            //desc.setText(A.ucFirst(description.toLowerCase()));
+            desc.setText(description.toLowerCase());
         }
-        goods.setText(A.ucFirst(description));
+
         if (amount != null) ((TextView) findViewById(R.id.amount)).setText("$" + amount);
     }
 
@@ -73,6 +74,13 @@ public class TxActivity extends Act {
         super.onConfigurationChanged(newConfig);
         setLayout();
     }
+
+    /**
+     * Go back to Customer activity.
+     */
+    @Override
+    public void onBackPressed() {act.finish();}
+    public void onTxBack(View v) {onBackPressed();}
 
     /**
      * Handle a calculator button press.
@@ -122,7 +130,9 @@ public class TxActivity extends Act {
         if (requestCode == R.id.change_description) {
             if(resultCode == RESULT_OK) {
                 description = data.getStringExtra("description");
-                goods.setText(A.ucFirst(description));
+                Button desc = (Button) findViewById(R.id.description);
+                //desc.setText(A.ucFirst(description.toLowerCase()));
+                desc.setText(description);
             }
             if (resultCode == RESULT_CANCELED) {} // do nothing if no result
         }
@@ -138,15 +148,15 @@ public class TxActivity extends Act {
             sayError("You must enter an amount.", null);
             return;
         }
-        if (description.equals(A.DESC_REFUND) || description.equals(A.DESC_CASH_IN)) amount = "-" + amount; // a negative doTx
-        String goods = (description.equals(A.DESC_CASH_IN) || description.equals(A.DESC_CASH_OUT)) ? "0" : "1";
+        if (description.equals(A.DESC_REFUND) || description.equals(A.DESC_USD_IN)) amount = "-" + amount; // a negative doTx
+        String goods = (description.equals(A.DESC_USD_IN) || description.equals(A.DESC_USD_OUT)) ? "0" : "1";
 
-        List<NameValuePair> pairs = A.auPair(null, "op", "charge");
-        A.auPair(pairs, "customer", customer);
-        A.auPair(pairs, "amount", amount);
-        A.auPair(pairs, "goods", goods);
-        A.auPair(pairs, "description", description);
+        Pairs pairs = new Pairs("op", "charge");
+        pairs.add("member", customer);
+        pairs.add("amount", amount);
+        pairs.add("goods", goods);
+        pairs.add("description", description);
         act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
-        new Tx().execute(pairs); // act.Tx (but android does not recognize that syntax)
+        new Act.Tx().execute(A.db.storeTx(pairs));
     }
 }

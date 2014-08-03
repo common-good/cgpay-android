@@ -92,6 +92,15 @@
             <ImageButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:id="@+id/settings"
+                android:background="@drawable/gear"
+                android:layout_gravity="center_horizontal|top"
+                android:onClick="doPrefs"
+                />
+
+            <ImageButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:id="@+id/scan"
                 android:src="@drawable/scan"
                 android:background="@color/background"

@@ -1,4 +1,5 @@
 To Do:
+. disallow UNDO of stale transactions
 . bug: if you change orientation several times while waiting for customer photo to appear, the app crashes
 . from Mike: Could we teach the app to try to ping the DNS server and/or the base station and try to diagnose the problem ahead of time?
 . experiment with making the buttons show a bigger splash when pressed. That might make it more obvious when a digit is missed. Or maybe making the amount figure change more obviously.
@@ -15,6 +16,14 @@ To Do:
 . LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
 . LATER (for tests) keep acore from repetitive death on fakeScan mode
 . LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
+
+2014-08-03 (version 201 - first in Play Store)
+. refactored pairs as their own class
+. when op is completed offline, say so
+. check time only before each transaction
+. change "cash in" and "cash out" to "USD in" and "USD out"
+. allow agents to sign in offline
+. distinguish canSignedIn from canSignedOut (return both in can)
 
 2014-07-23
 . added recovery from transactions thought to have been made offline, but that actually went through
