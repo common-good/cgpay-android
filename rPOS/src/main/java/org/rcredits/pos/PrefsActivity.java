@@ -74,7 +74,10 @@ public final class PrefsActivity extends Act {
      */
     @Override
     public void onBackPressed() {act.restart();}
-    public void onPrefsBack(View v) {onBackPressed();}
+
+    @Override
+    public void goBack(View v) {onBackPressed();}
+
     public void onWifiToggle(View v) {
         boolean setting = ((CheckBox) findViewById(R.id.wifi)).isChecked();
         if (setting) {

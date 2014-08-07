@@ -241,7 +241,8 @@ public final class MainActivity extends Act {
                 dialog.cancel();
                 act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
                 A.db.changeStatus(A.lastTxRow, A.TX_CANCEL, null);
-                new Act.Tx().execute(A.lastTxRow);
+//                new Act.Tx().execute(A.lastTxRow);
+                A.executeAsyncTask(new Act.Tx(), A.lastTxRow);
                 /*
                 Pairs pairs = new Pairs("op", "undo");
                 pairs.add("txid", A.lastTx);

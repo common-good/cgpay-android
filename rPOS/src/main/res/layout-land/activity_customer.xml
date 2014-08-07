@@ -31,9 +31,9 @@
         <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/cust_back"
+            android:id="@+id/back"
             android:background="@drawable/button_back"
-            android:onClick="onCustBack"
+            android:onClick="goBack"
             android:layout_margin="4dp"/>
 
         <LinearLayout

@@ -1,5 +1,6 @@
 package org.rcredits.pos;
 
+import android.annotation.TargetApi;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
@@ -15,6 +16,8 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.hardware.Camera;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -195,7 +198,8 @@ public class A extends Application {
 
         A.period = testing ? TEST_PERIOD : REAL_PERIOD;
         if (A.periodic != null) A.periodic.cancel(true); // cancel the old tickler, if any (allowing it to finish with its db)
-        (A.periodic = new Periodic()).execute(new String[1]); // launch a tickler for the new db
+//        (A.periodic = new Periodic()).execute(new String[1]); // launch a tickler for the new db
+        A.executeAsyncTask(A.periodic = new Periodic(), new String[1]); // launch a tickler for the new db
     }
 
     public static void setDefaults(Json json) {
@@ -268,8 +272,8 @@ public class A extends Application {
         } catch (Exception e) {
             if (ui) {
                 String msg = e.getMessage();
-                A.httpError = msg.equals("No peer certificate") ? t(R.string.clock_off) : t(R.string.http_err);
-//                : (t(R.string.http_err) + " (" + msg + ")");
+                A.httpError = msg.equals("No peer certificate") ? t(R.string.clock_off) //: t(R.string.http_err);
+                : (t(R.string.http_err) + " (" + msg + ")");
             }
             return null;
         }
@@ -376,6 +380,21 @@ public class A extends Application {
     public static String getIntentString(Intent intent, String key) {
         String pkg = intent.getComponent().getPackageName();
         return intent.getStringExtra(pkg + "." + key);
+    }
+
+    /**
+     * Avoid single-thread limitation of some API versions.
+     * Thanks to http://stackoverflow.com/questions/4068984/running-multiple-asynctasks-at-the-same-time-not-possible
+     * @param asyncTask
+     * @param params
+     * @param <T>
+     */
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB) // API 11
+    public static <T> void executeAsyncTask(AsyncTask<T, ?, ?> asyncTask, T... params) {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+            asyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, params);
+        else
+            asyncTask.execute(params);
     }
 
     /**

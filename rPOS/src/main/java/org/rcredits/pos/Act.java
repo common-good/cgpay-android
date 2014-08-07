@@ -29,7 +29,7 @@ public class Act extends Activity {
     private ProgressDialog progressDlg; // for standard progress spinner
     private AlertDialog alertDialog;
 
-//    @Override        public void onBackPressed() {
+    public void goBack(View v) {onBackPressed();}
 
     /**
      * Show a short message briefly (2 secs) -- or longer (3.5 secs) for longer messages
@@ -117,11 +117,10 @@ public class Act extends Activity {
      * @param go: true to start, false to stop
      */
     public void progress(boolean go) {
+        if (progressDlg != null) progressDlg.dismiss();
         if (go) {
             progressDlg = ProgressDialog.show(act, "In Progress", "Contacting server...");
-        } else {
-            progressDlg.dismiss();
-        }
+        } else progressDlg = null;
     }
 
     /**

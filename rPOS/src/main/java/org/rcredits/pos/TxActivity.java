@@ -1,5 +1,6 @@
 package org.rcredits.pos;
 
+        import android.content.DialogInterface;
         import android.content.Intent;
         import android.content.res.Configuration;
         import android.os.Bundle;
@@ -17,8 +18,13 @@ package org.rcredits.pos;
  */
 public class TxActivity extends Act {
     private final Act act = this;
-    private final int maxDigits = 6; // maximum number of digits allowed
-    private final int preCommaDigits = 5; // maximum number of digits before we need a comma
+    private final int MAX_DIGITS = 6; // maximum number of digits allowed
+    private final int PRECOMMA_DIGITS = 5; // maximum number of digits before we need a comma
+    private final int CHANGE_DESC = 1; // change-description activity
+    private final int GET_USD_TYPE = 2; // usd-type activity
+    private final String USD_CHECK_FEE = "$3";
+    private final String USD_CARD_FEE = "3%";
+
     private String customer; // qid of current customer
     private String description; // transaction description
     private String amount; // the transaction amount
@@ -76,13 +82,6 @@ public class TxActivity extends Act {
     }
 
     /**
-     * Go back to Customer activity.
-     */
-    @Override
-    public void onBackPressed() {act.finish();}
-    public void onTxBack(View v) {onBackPressed();}
-
-    /**
      * Handle a calculator button press.
      * @param button: which button was pressed (c = clear, b = backspace)
      */
@@ -95,17 +94,17 @@ public class TxActivity extends Act {
         } else if (c.equals("b")) {
             amount = amount.substring(0, amount.length() - 1);
             if (amount.length() < 3) amount = "0" + amount;
-        } else if (amount.length() < maxDigits) { // don't let the number get too big
+        } else if (amount.length() < MAX_DIGITS) { // don't let the number get too big
             amount += c;
         } else {
-            act.mention("You can have only up to " + maxDigits + " digits. Press clear (c) or backspace (\u25C0).");
+            act.mention("You can have only up to " + MAX_DIGITS + " digits. Press clear (c) or backspace (\u25C0).");
         }
 
         int len = amount.length();
         amount = amount.substring(0, len - 2) + "." + amount.substring(len - 2);
         if (len > 3 && amount.substring(0, 1).equals("0")) amount = amount.substring(1);
         if (len < 3) amount = "0" + amount;
-        if (len > preCommaDigits) amount = amount.substring(0, len - preCommaDigits) + "," + amount.substring(len - preCommaDigits);
+        if (len > PRECOMMA_DIGITS) amount = amount.substring(0, len - PRECOMMA_DIGITS) + "," + amount.substring(len - PRECOMMA_DIGITS);
         text.setText("$" + amount);
     }
 
@@ -117,7 +116,16 @@ public class TxActivity extends Act {
         Intent intent = new Intent(this, DescriptionActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
         A.putIntentString(intent, "description", description);
-        startActivityForResult(intent, R.id.change_description);
+        startActivityForResult(intent, CHANGE_DESC);
+    }
+
+    /**
+     * For USD in, find out what kind of USD payment customer prefers.
+     */
+    public void getUsdType() {
+        Intent intent = new Intent(this, UsdActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+        startActivityForResult(intent, GET_USD_TYPE);
     }
 
     /**
@@ -127,14 +135,26 @@ public class TxActivity extends Act {
      * @param data: the new description
      */
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == R.id.change_description) {
+        if (requestCode == CHANGE_DESC) {
             if(resultCode == RESULT_OK) {
                 description = data.getStringExtra("description");
                 Button desc = (Button) findViewById(R.id.description);
                 //desc.setText(A.ucFirst(description.toLowerCase()));
                 desc.setText(description);
-            }
-            if (resultCode == RESULT_CANCELED) {} // do nothing if no result
+            } else if (resultCode == RESULT_CANCELED) {} // do nothing if no result
+        } else if (requestCode == GET_USD_TYPE) {
+            if(resultCode == RESULT_OK) {
+                final int usdType = Integer.valueOf(data.getStringExtra("type"));
+                if (usdType != R.id.cash) {
+                    String fee = usdType == R.id.check ? (USD_CHECK_FEE + " check fee.") : (USD_CARD_FEE + " card fee.");
+                    act.askOk("The customer will be charged a " + fee, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            dialog.cancel();
+                            finishTx(usdType);
+                        }
+                    }); // otherwise do nothing (stay in this Tx Activity)
+                }
+            } else if (resultCode == RESULT_CANCELED) {} // do nothing if no result
         }
     }
 
@@ -148,15 +168,28 @@ public class TxActivity extends Act {
             sayError("You must enter an amount.", null);
             return;
         }
-        if (description.equals(A.DESC_REFUND) || description.equals(A.DESC_USD_IN)) amount = "-" + amount; // a negative doTx
+        if (description.equals(A.DESC_USD_IN)) getUsdType(); else finishTx(null);
+    }
+
+    /**
+     * Complete the transaction, as appropriate.
+     * @param usdType: type cash-in payment type (null if not applicable)
+     */
+    public void finishTx(Integer usdType) {
+        if (description.equals(A.DESC_REFUND) || description.equals(A.DESC_USD_IN)) amount = "-" + amount; // a negative tx
         String goods = (description.equals(A.DESC_USD_IN) || description.equals(A.DESC_USD_OUT)) ? "0" : "1";
+        String desc = description; // copy, because we might come here again if tx fails
+        if (desc.equals(A.DESC_USD_IN)) {
+            desc += usdType == R.id.cash ? " (cash)" : (usdType == R.id.check ? " (check)" : " (card)");
+        }
 
         Pairs pairs = new Pairs("op", "charge");
         pairs.add("member", customer);
         pairs.add("amount", amount);
         pairs.add("goods", goods);
-        pairs.add("description", description);
+        pairs.add("description", desc);
         act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
-        new Act.Tx().execute(A.db.storeTx(pairs));
+//        new Act.Tx().execute(A.db.storeTx(pairs));
+        A.executeAsyncTask(new Act.Tx(), A.db.storeTx(pairs));
     }
 }

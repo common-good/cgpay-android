@@ -26,4 +26,12 @@
         android:paddingBottom="20dp"
         android:textSize="30dp"/>
 
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/back"
+        android:background="@drawable/button_back"
+        android:onClick="goBack"
+        android:layout_margin="4dp"/>
+
 </FrameLayout>

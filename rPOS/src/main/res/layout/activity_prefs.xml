@@ -2,7 +2,6 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:keepScreenOn="true"
     android:background="@color/background"
     android:clickable="false"
     android:padding="5dp">
@@ -10,9 +9,9 @@
     <ImageButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/prefs_backtton"
+        android:id="@+id/back"
         android:background="@drawable/button_back"
-        android:onClick="onPrefsBack"/>
+        android:onClick="goBack"/>
 
     <LinearLayout
         android:orientation="vertical"

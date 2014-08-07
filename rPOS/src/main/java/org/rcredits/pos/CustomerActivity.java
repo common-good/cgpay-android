@@ -60,7 +60,7 @@ public class CustomerActivity extends Act {
     private void setLayout() {
         setContentView(R.layout.activity_customer);
 
-        int[] buttons = {R.id.refund, R.id.usdin, R.id.usdout, R.id.charge, R.id.cust_back};
+        int[] buttons = {R.id.refund, R.id.usdin, R.id.usdout, R.id.charge, R.id.back};
         for (int b : buttons) findViewById(b).setVisibility(View.INVISIBLE); // hide here so we can see them on layout
         findViewById(R.id.customer_company).setVisibility(View.GONE); // show only as needed
 
@@ -71,7 +71,8 @@ public class CustomerActivity extends Act {
 
         act.progress(true); // this progress meter gets turned off in handleScan()
         if (scanResult == null) {
-            new Identify().execute(qr); // query the server in the background
+//        new Identify().execute(qr); // query the server in the background
+            A.executeAsyncTask(new Identify(), qr); // query the server in the background
         } else handleScan(scanResult);
     }
 
@@ -80,7 +81,9 @@ public class CustomerActivity extends Act {
      */
     @Override
     public void onBackPressed() {act.restart();}
-    public void onCustBack(View v) {onBackPressed();}
+
+    @Override
+    public void goBack(View v) {onBackPressed();}
 
     /**
      * The user clicked one of four buttons: charge, refund, USD in, or USD out. Handle each in the Tx Activity.
@@ -131,15 +134,16 @@ public class CustomerActivity extends Act {
             }
         }
 
-        if (scanningIn) { // scanning in (
-            A.can = Integer.parseInt(json.get("can"));
+        if (scanningIn) { // company agent card
+            A.can = Integer.parseInt(json.get("can")); // stay up-to-date on the signed-out permissions
             A.descriptions = json.getArray("descriptions");
             if (A.deviceId == null) A.setStored("deviceId", A.deviceId = json.get("device"));
             A.setDefaults(json);
             A.setTime(json.get("time")); // region/server changed so clock might be different (or not set yet)
             A.db.saveAgent(rcard.qid, rcard.code, image, json); // save or update manager info
             return SCAN_AGENT;
-        } else { // for a customer, we need their photo too
+        } else { // customer card
+            if (A.agent == null) A.can = Integer.parseInt(json.get("can")); // stay up-to-date on the signed-out permissions
             A.db.saveCustomer(rcard.qid, image, json);
             return SCAN_CUSTOMER;
         }
@@ -150,7 +154,8 @@ public class CustomerActivity extends Act {
             act.sayOk("Changed Mode",  A.t(A.testing ? R.string.switch_to_test : R.string.switch_to_real), new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     dialog.cancel();
-                    new Identify().execute(qr); // re-query the (other) server in the background
+//                    new Identify().execute(qr); // re-query the (other) server in the background
+                    A.executeAsyncTask(new Identify(), qr); // re-query the (other) server in the background
                     return;
                 }
             });
@@ -226,7 +231,7 @@ public class CustomerActivity extends Act {
         if (A.can(A.CAN_R4USD)) findViewById(R.id.usdin).setVisibility(View.VISIBLE);
         if (A.can(A.CAN_USD4R)) findViewById(R.id.usdout).setVisibility(View.VISIBLE);
         if (A.can(A.CAN_CHARGE)) findViewById(R.id.charge).setVisibility(View.VISIBLE);
-        findViewById(R.id.cust_back).setVisibility(View.VISIBLE);
+        findViewById(R.id.back).setVisibility(View.VISIBLE);
 
         setField(R.id.customer_name, name);
         setField(R.id.customer_company, company).setVisibility(company == null ? View.GONE : View.VISIBLE);

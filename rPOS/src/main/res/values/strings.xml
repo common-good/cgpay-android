@@ -11,6 +11,7 @@
     <string name="title_activity_prefs">Preferences</string>
     <string name="title_activity_customer">Customer Profile</string>
     <string name="title_activity_restart_app">Restart App</string>
+    <string name="title_activity_usd">Exchange: Payment Type</string>
     <string name="not_signed_in"></string>
     <string name="welcome"></string>
     <string name="no_company">Welcome to rPOS!\nScan your Company Agent rCard\nto get started.</string>

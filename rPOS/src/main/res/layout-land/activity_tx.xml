@@ -28,9 +28,9 @@ android:background="@color/background">
                 <ImageButton
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:id="@+id/tx_back"
+                    android:id="@+id/back"
                     android:background="@drawable/button_back"
-                    android:onClick="onTxBack"
+                    android:onClick="goBack"
                     android:layout_weight="0"
                     android:layout_gravity="left"/>
 
@@ -43,7 +43,7 @@ android:background="@color/background">
                     android:onClick="onChangeDescriptionClick"
                     android:clickable="true"
                     android:layout_marginLeft="5dp"
-                    android:layout_gravity="center_horizontal"/>
+                    android:layout_gravity="right"/>
             </FrameLayout>
 
             <FrameLayout

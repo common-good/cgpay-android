@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.rcredits.pos"
-    android:versionCode="201"
+    android:versionCode="202"
     android:versionName="2.0"
     android:installLocation="auto" >
 
@@ -86,6 +86,11 @@
         <activity
             android:name=".DescriptionActivity"
             android:label="@string/title_activity_change_description"
+            android:clearTaskOnLaunch="true">
+        </activity>
+        <activity
+            android:name=".UsdActivity"
+            android:label="@string/title_activity_usd"
             android:clearTaskOnLaunch="true">
         </activity>
     </application>
