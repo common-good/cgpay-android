@@ -54,6 +54,8 @@ public final class PrefsActivity extends Act {
         setContentView(R.layout.activity_prefs);
 
         ((CheckBox) findViewById(R.id.wifi)).setChecked(A.wifi);
+        ((CheckBox) findViewById(R.id.demo)).setChecked(A.demo);
+        findViewById(R.id.demo_mode_row).setVisibility(A.testing ? View.VISIBLE : View.GONE);
 
         /*
         for (int i = 0; i < A.CAN_AGENT - 2; i++) { // -2: ignore CAN_U6 and CAN_MANAGE permission
@@ -83,6 +85,11 @@ public final class PrefsActivity extends Act {
         if (setting) {
             A.wifi = true; // avoid giving a message
         } else act.setWifi(setting); // warn about re-connecting soon
+    }
+
+    public void onDemoToggle(View v) {
+        A.demo = ((CheckBox) findViewById(R.id.demo)).isChecked();
+        A.setStored("demo", A.demo ? "1" : "0");
     }
 
     private int find(int needle, int[] hay) {

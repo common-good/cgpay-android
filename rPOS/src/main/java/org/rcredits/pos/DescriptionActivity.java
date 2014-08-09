@@ -44,7 +44,7 @@ public class DescriptionActivity extends Act {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 TextView v = (TextView) super.getView(position, convertView, parent);
-                v.setBackgroundColor(v.getText().equals(description) ? Color.CYAN : Color.WHITE);
+                v.setBackgroundColor(v.getText().toString().equals(description) ? Color.CYAN : Color.WHITE);
                 v.setPadding(sidePadding, 0, sidePadding, 0);
                 return v;
             }

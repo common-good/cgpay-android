@@ -343,6 +343,33 @@
                     />
             </TableRow>
 
+            <TableRow
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:id="@+id/demo_mode_row">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:text="\nDemo mode"
+                    android:id="@+id/textView12"
+                    android:textStyle="bold"
+                    android:textSize="18sp"
+                    android:layout_marginRight="10dp"/>
+
+                <CheckBox
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/demo"
+                    android:layout_gravity="center_horizontal"
+                    android:clickable="true"
+                    android:enabled="true"
+                    android:singleLine="false"
+                    android:textSize="2dp"
+                    android:onClick="onDemoToggle"/>
+            </TableRow>
+
         </TableLayout>
 
     </LinearLayout>

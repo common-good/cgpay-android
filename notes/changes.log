@@ -1,4 +1,7 @@
 To Do:
+. test showing message from server (may need to choose failure message or server message (else))
+. show "did" in demo mode
+. test out-of-storage handling
 . automated testing!
 . disallow UNDO of stale transactions
 . bug: if you change orientation several times while waiting for customer photo to appear, the app crashes
@@ -18,7 +21,13 @@ To Do:
 . LATER (for tests) keep acore from repetitive death on fakeScan mode
 . LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
 
-2014-08-?? (version 202)
+2014-08-09 (version 203)
+. handle out of storage and keep it from happening (delete old transactions and customers!)
+. fixed bug: needed textView.getText().toString() rather than casting to String (for recent APIs)
+. almost totally functional demo mode, including showing updated balance, multiple customers, and color photos
+. displays message from server after getting time (for update reminders, etc.)
+
+2014-08-06 (version 202)
 . changed AsyncTask to accommodate API versions that weren't working
 . added UsdActivity, to select USD in method
 . server now sends "can" on all identify ops (app uses it only for the current op and only if signed out)

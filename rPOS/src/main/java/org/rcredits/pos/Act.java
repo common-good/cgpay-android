@@ -155,7 +155,6 @@ public class Act extends Activity {
      * Turn wifi on or off for this app (useful for saving time when out of range for a long time).
      */
     public void setWifi(boolean wifi) {
-        if (A.demo) return; // disable when irrelevant
         A.wifi = wifi;
         act.sayOk("Wifi", wifi ? R.string.wifi_on : R.string.wifi_off, null);
     }
@@ -197,9 +196,10 @@ public class Act extends Activity {
      */
     public void offlineTx() {
         String msg;
-        A.balance = null;
         boolean charging = A.rpcPairs.get("force").equals("" + A.TX_PENDING);
-        String customer = A.db.customerName(A.rpcPairs.get("member"));
+        String qid = A.rpcPairs.get("member");
+        String customer = A.db.customerName(qid);
+        A.balance = A.demo ? A.balanceMessage(customer, qid) : null;
         String amount = A.rpcPairs.get("amount");
         boolean positive = (amount.indexOf("-") < 0);
         amount = A.fmtAmt(amount.replace("-", ""), true);
@@ -207,16 +207,17 @@ public class Act extends Activity {
         String action = (charging ^ positive) ? "credited" : "charged";
 
         if (charging) { // set up undo text, if charging
-            msg = String.format("OFFLINE You %s %s $%s.", action, customer, amount);
+            msg = String.format("You %s %s $%s.", action, customer, amount);
             A.undo = String.format("Undo transfer of $%s %s %s?", amount, tofrom, customer);
             A.db.changeStatus(A.lastTxRow, A.TX_OFFLINE, null);
         } else {
-            msg = String.format("OFFLINE The transaction has been canceled. You transferred $%s back %s %s.",
+            msg = String.format("The transaction has been canceled. You transferred $%s back %s %s.",
                     amount, tofrom, customer);
             A.undo = null;
         }
 
-        act.sayOk("Done!", msg + A.t(R.string.connect_soon), new DialogInterface.OnClickListener() {
+        if (!A.wifi) msg = "OFFLINE " + msg + A.t(R.string.connect_soon); // in demo mode maybe pretending wifi is ON
+        act.sayOk("Done!", msg, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 act.restart();
@@ -235,19 +236,11 @@ public class Act extends Activity {
             Long rowid = txRows[0];
 
             Pairs pairs = A.db.txPairs(rowid);
+
             if (Integer.valueOf(pairs.get("force")) == A.TX_PENDING) {
                 if (A.setTime(A.getTime())) A.db.fixTxTime(rowid, pairs); // sync creation date with server time
                 return A.apiGetJson(A.region, pairs, true);
             } else return A.db.cancelTx(rowid, true);
-
-/*            if (A.demo) {
-                SystemClock.sleep(1000);
-                if (pairs.get("op").equals("charge")) {
-                    String amount = pairs.get("amount");
-                    if (amount == null) amount = "23";
-                    return Json.make("{'ok':'1','message':'You charged Susan Shopper $AMOUNT (reward: 10%).','tx':'4069','balance':'Customer: Susan Shopper\\n\\nBalance: $285.86\\nSpendable: $284.94\\nTradable for cash: $154.91\\n\\nWe just charged $AMOUNT.','undo':'Undo transfer of $AMOUNT from Susan Shopper?'}".replaceAll("AMOUNT", amount));
-                } else return Json.make("{'ok':'1','message':'Transaction has been reversed.','balance':'Customer: Susan Shopper\\n\\nBalance: $306.56\\nTradable for cash: $178.83'}"); // undo
-            }*/
         }
 
         @Override

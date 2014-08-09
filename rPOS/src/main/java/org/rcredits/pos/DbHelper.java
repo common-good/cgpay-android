@@ -17,11 +17,13 @@ public class DbHelper extends SQLiteOpenHelper {
     public static final String AGT_COMPANY_QID = "place"; // name of field where manager's cardcode is stored
     public static final String AGT_CAN = "rewards"; // name of field where manager's permissions are stored
     public static final String AGT_FLAG = "lastTx"; // name of field that equals TX_AGENT for managers
+    public static final String DB_REAL_NAME = "rpos.db";
+    public static final String DB_TEST_NAME = "rpos_test.db";
 
     private static final int DATABASE_VERSION = 1;
 
     DbHelper(boolean testing) {
-        super(A.context, testing ? "rpos_test.db" : "rpos.db", null, DATABASE_VERSION);
+        super(A.context, testing ? DB_TEST_NAME : DB_REAL_NAME, null, DATABASE_VERSION);
     }
 
     @Override

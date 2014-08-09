@@ -48,49 +48,11 @@ import java.util.Calendar;
  */
 public final class MainActivity extends Act {
     private final Act act = this;
-/*
-    private byte[] shrink(byte[] image) {
-        final int width = 60;
-        final int height = 4 * width / 3;
-        Bitmap bm = BitmapFactory.decodeByteArray(image, 0, image.length);
-        bm = Bitmap.createScaledBitmap(bm, width, height, true);
-        A.deb("shrink img len=" + image.length + " bm size=" + (bm.getRowBytes() * bm.getHeight()));
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        bm.compress(Bitmap.CompressFormat.PNG, 100, stream);
-        return stream.toByteArray();
-
-        Bitmap bmGray = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
-        Canvas c = new Canvas(bmGray);
-        Paint paint = new Paint();
-        ColorMatrix cm = new ColorMatrix();
-        cm.setSaturation(0);
-        ColorMatrixColorFilter f = new ColorMatrixColorFilter(cm);
-        paint.setColorFilter(f);
-        c.drawBitmap(bm, 0, 0, paint);
-
-    }
-
-    /**
-     * Return an image that announces the unavailability of a photo for the customer.
-     * @return: a byte array image
-    private byte[] nonPhoto() {
-        Bitmap bm = BitmapFactory.decodeResource(act.getResources(), R.drawable.no_photo_available);
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        bm.compress(Bitmap.CompressFormat.PNG, 100, stream);
-        return stream.toByteArray();
-    }
-*/
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-/*
-        ImageView photo = (ImageView) findViewById(R.id.scan);
-        byte[] image = shrink(nonPhoto());
-        photo.setImageBitmap(BitmapFactory.decodeByteArray(image, 0, image.length));
-*/
 
         KeyguardManager keyguardManager = (KeyguardManager)getSystemService(Activity.KEYGUARD_SERVICE);
         KeyguardManager.KeyguardLock lock = keyguardManager.newKeyguardLock(KEYGUARD_SERVICE);
@@ -104,7 +66,13 @@ public final class MainActivity extends Act {
         if (A.failMessage != null) {
             act.sayError(A.failMessage, null); // show failure message from previous (failed) activity
             A.failMessage = null;
-        } /*else if (A.update != null && !A.testing) {
+        }
+        if (A.serverMessage != null) {
+            act.sayOk("Note", A.serverMessage, null); // show failure message from previous (failed) activity
+            A.serverMessage = null;
+        }
+
+        /*else if (A.update != null && !A.testing) {
             act.askOk("Okay to update now? (takes a few seconds)", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     dialog.cancel();
@@ -146,7 +114,7 @@ public final class MainActivity extends Act {
         Button signedAs = (Button) findViewById(R.id.signed_as);
         TextView welcome = (TextView) findViewById(R.id.welcome);
         TextView version = (TextView) findViewById(R.id.version);
-        if (version != null) version.setText("v. " + A.versionName);
+        if (version != null) version.setText("v. " + ((A.testing && !A.demo) ? A.versionCode : A.versionName));
 
         A.useDefaults(); // get agent, etc., if necessary
 

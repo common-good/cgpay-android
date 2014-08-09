@@ -2,6 +2,7 @@ package org.rcredits.pos;
 
 import android.content.ContentValues;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.StatFs;
 
 import java.util.Map;
 
@@ -12,12 +13,15 @@ import java.util.Map;
  */
 public class Db {
     private SQLiteDatabase db;
+    private final static int MIN_K = 100; // keep at least this much room available
+    public class NoRoom extends Exception { }
 
     Db(boolean testing) {
         db = testing ? A.db_test : A.db_real;
     }
 
-    public long insert(String table, ContentValues values) {
+    public long insert(String table, ContentValues values) throws NoRoom {
+        if (!enoughRoom()) throw new NoRoom();
         long rowid = db.insert(table, null, values);
         assert rowid > 0;
         return rowid;
@@ -38,7 +42,7 @@ public class Db {
      * @return: the recordset (null if empty)
      */
     public Q q(String sql, String[] selectionArgs) {
-        Q q = new Q(db.rawQuery(sql, selectionArgs));
+        Q q = new Q(db.rawQuery(sql, selectionArgs == null ? new String[] {} : selectionArgs));
         if (q.moveToFirst()) {
             return q;
         } else {
@@ -70,10 +74,22 @@ public class Db {
         return getField(field, table, "rowid=?", new String[] {"" + rowid});
     }
 
+    public Long rowid(String table, String where, String[] params) {
+        String res = getField("rowid", table, where, params);
+        return res == null ? null : Long.valueOf(res);
+    }
+
     public String txQid(Long rowid) {return getField("member", "txs", rowid);}
     public String custField(String qid, String field) {return getField(field, "members", custRowid(qid));}
     public Long custRowid(String qid) {return A.n(getField("rowid", "members", "qid=?", new String[] {qid}));}
 
+    public Double sum(String field, String table, String where, String[] params) {
+        Q q = q("SELECT SUM(" + field + ") FROM " + table + " WHERE " + where, params);
+        if (q == null) return Double.valueOf(0);
+        Double sum = q.getDouble(0);
+        q.close();
+        return sum;
+    }
 
     /**
      * Change a transaction status.
@@ -117,7 +133,7 @@ public class Db {
                 txJson.get("rewards"), txJson.get("created"));
     }
 
-    public void saveCustomer(String qid, byte[] image, Json idJson) {
+    public void saveCustomer(String qid, byte[] image, Json idJson) throws NoRoom {
 //        if (!rcard.region.equals(A.region)) return; // don't record customers outside the region?
 
         Q q = oldCustomer(qid);
@@ -151,7 +167,7 @@ public class Db {
         return A.customerName(name, company);
     }
 
-    public Long storeTx(Pairs pairs) {
+    public Long storeTx(Pairs pairs) throws NoRoom {
         pairs.add("created", String.valueOf(A.now()));
 
         ContentValues values = new ContentValues();
@@ -191,7 +207,11 @@ public class Db {
         if (json != null && json.get("ok").equals("1")) {
             if (json.get("txid").equals("0")) {
                 delete("txs", rowid); // does not exist on server, so just delete it
-            } else reverseTx(rowid, json.get("undo"), json.get("txid"), json.get("created"), (ui ? A.agent : null));
+            } else {
+                try {
+                    reverseTx(rowid, json.get("undo"), json.get("txid"), json.get("created"), (ui ? A.agent : null));
+                } catch(NoRoom e) {delete("txs", rowid);}
+            }
         }
         return json;
     }
@@ -204,7 +224,7 @@ public class Db {
      * @param created2: reversing transaction creation time
      * @param agent: reversing agent, if known
      */
-    private void reverseTx(long rowid1, String txid1, String txid2,  String created2, String agent) {
+    private void reverseTx(long rowid1, String txid1, String txid2,  String created2, String agent) throws NoRoom {
         Q q = getRow("txs", rowid1);
         ContentValues values2 = new ContentValues();
         for (String k : DbHelper.TXS_FIELDS.split(" ")) values2.put(k, q.getString(k));
@@ -225,7 +245,7 @@ public class Db {
     }
 
     public String showTxs() {
-        Q q = q("SELECT rowid, * FROM txs", new String[] {});
+        Q q = q("SELECT rowid, * FROM txs", null);
         if (q == null) return "";
 
         String show = "";
@@ -239,7 +259,7 @@ public class Db {
     }
 
     public String showCust() {
-        Q q = q("SELECT rowid, * FROM members", new String[] {});
+        Q q = q("SELECT rowid, * FROM members", null);
         if (q == null) return "";
 
         String show = "";
@@ -264,7 +284,7 @@ public class Db {
         update("txs", values, rowid);
     }
 
-    public void saveAgent(String qid, String cardCode, byte[] image, Json json) {
+    public void saveAgent(String qid, String cardCode, byte[] image, Json json) throws NoRoom {
         ContentValues values = new ContentValues();
         values.put("name", json.get("name"));
         values.put("company", json.get("company"));
@@ -285,5 +305,26 @@ public class Db {
     public boolean badAgent(String qid, String cardCode) {
         String savedCardCode = custField(qid, DbHelper.AGT_CARDCODE);
         return (savedCardCode == null || !savedCardCode.equals(cardCode));
+    }
+
+    /**
+     * Return the amount of external storage space remaining, in kilobytes.
+     */
+    private float kLeft() {
+        StatFs stat = new StatFs(A.context.getDatabasePath(DbHelper.DB_REAL_NAME).getPath());
+        long bytesAvailable = (long)stat.getBlockSize() * (long)stat.getAvailableBlocks();
+        return bytesAvailable / 1024.f;
+    }
+
+    private boolean enoughRoom() {
+        Long rowid;
+        while (kLeft() < MIN_K) {
+            rowid = rowid("txs", "status=? ORDER BY created LIMIT 1", new String[]{"" + A.TX_DONE});
+            if (rowid == null) {
+                rowid = rowid("members", "lastTx>0 ORDER BY lastTx LIMIT 1", null);
+                if (rowid == null) return false; else delete("members", rowid);
+            } else delete("txs", rowid);
+        }
+        return true;
     }
 }

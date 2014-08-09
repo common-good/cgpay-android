@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -105,18 +106,24 @@ public class CustomerActivity extends Act {
      * Get agent, agentName, customer (etc), device, success, message from server, and handle it.
      * @return result code (SCAN_CUSTOMER, SCAN_AGENT, SCAN_NO_WIFI, or SCAN_FAIL)
      */
-    public int onScan() {
+    public int onScan() throws Db.NoRoom {
+        image = null; // no image yet
         Pairs pairs = new Pairs("op", "identify");
         pairs.add("member", rcard.qid);
         pairs.add("code", rcard.code);
-        if (A.demo) {
-            json = Json.make(rcard.qid.equals("NEW.ABB") ? "{'ok':'1','logon':'0','name':'Susan Shopper','place':'Montague, MA','company':'','balance':'Customer: Susan Shopper\\n\\nBalance: $306.56\\nTradable for cash: $178.83'}" // customer
+
+
+            /*json = Json.make(rcard.qid.equals("NEW.ABB") ? "{'ok':'1','logon':'0','name':'Susan Shopper','place':'Montague, MA','company':'','balance':'Customer: Susan Shopper\\n\\nBalance: $306.56\\nTradable for cash: $178.83'}" // customer
                     : "{'ok':'1','logon':'1','device':'3i2ifsapEjwev3CwBCV7','name':'Bob Bossman','company':'Corner Store','descriptions':['groceries','gifts','sundries','deli','baked goods'],'can':14,'default':'NEW.AAB'}"); // manager
-            SystemClock.sleep(1000);
-        } else json = A.apiGetJson(rcard.region, pairs, true); // get json-encoded info
+                    */
+        if (A.demo) SystemClock.sleep(1000); // pretend to contact server
+/*            json = null;
+            return SCAN_NO_WIFI; // depend on stored customer data
+        } */
+
+        json = A.apiGetJson(rcard.region, pairs, true); // get json-encoded info
 
         A.deb("onScan json message: " + A.nn(json.get("message")));
-        image = null; // no image yet
         if (json == null) return SCAN_NO_WIFI; // assume it's a customer (since we can't tell)
 
         if (!json.get("ok").equals("1")) {
@@ -129,7 +136,7 @@ public class CustomerActivity extends Act {
         if (!scanningIn || A.db.badAgent(rcard.qid, rcard.code)) { // we need a photo
             image = A.apiGetPhoto(rcard.qid, rcard.code);
             if (image == null || image.length == 0) {
-                image = nonPhoto();
+                image = photoFile("no_photo");
                 return SCAN_NO_WIFI;
             }
         }
@@ -137,7 +144,7 @@ public class CustomerActivity extends Act {
         if (scanningIn) { // company agent card
             A.can = Integer.parseInt(json.get("can")); // stay up-to-date on the signed-out permissions
             A.descriptions = json.getArray("descriptions");
-            if (A.deviceId == null) A.setStored("deviceId", A.deviceId = json.get("device"));
+            if (A.deviceId.equals("")) A.setStored("deviceId", A.deviceId = json.get("device"));
             A.setDefaults(json);
             A.setTime(json.get("time")); // region/server changed so clock might be different (or not set yet)
             A.db.saveAgent(rcard.qid, rcard.code, image, json); // save or update manager info
@@ -170,6 +177,10 @@ public class CustomerActivity extends Act {
         act.progress(false);
     }
 
+    /**
+     * Handle the case where connection to the internet failed or is turned off (A.wifi is false).
+     * In demo mode we may come here pretending wifi is on OR off.
+     */
     private void noWifi() {
         String offline = "OFFLINE (no internet)";
         Q q = A.db.oldCustomer(rcard.qid);
@@ -178,14 +189,14 @@ public class CustomerActivity extends Act {
             gotAgent(q.getString("name"));
             q.close();
         } else if (q != null) {
-            image = q.getBlob("photo");
+            image = (A.demo && A.wifi) ? photoFile(rcard.qid.substring(4).toLowerCase()) : q.getBlob("photo");
             if (json == null) {
                 String company = q.getString("company");
                 gotCustomer(q.getString("name"), company + (company.equals("") ? "" : ", ") + q.getString("place"), offline);
             } else gotCustomer();
             q.close();
         } else {
-            image = nonPhoto();
+            image = photoFile("no_photo");
             gotCustomer("Member " + rcard.qid, "Unidentified Customer", offline);
             //if () mention(R.string.ask_for_id); // if this business is often offline, ask for ID
         }
@@ -226,6 +237,7 @@ public class CustomerActivity extends Act {
         A.undo = null; // previous customer info is no longer valid
         A.customerName = A.customerName(name, company);
         A.balance = json == null ? null : A.balanceMessage(A.customerName, json); // in case tx fails or is canceled
+        if (A.demo) A.balance = A.balanceMessage(A.customerName, rcard.qid);
 
         if (A.can(A.CAN_REFUND)) findViewById(R.id.refund).setVisibility(View.VISIBLE);
         if (A.can(A.CAN_R4USD)) findViewById(R.id.usdin).setVisibility(View.VISIBLE);
@@ -246,11 +258,13 @@ public class CustomerActivity extends Act {
     }
 
     /**
-     * Return an image that announces the unavailability of a photo for the customer.
+     * Return the named image.
+     * @param photoName: the image filename (no extension)
      * @return: a byte array image
      */
-    private byte[] nonPhoto() {
-        Bitmap bm = BitmapFactory.decodeResource(act.getResources(), R.drawable.no_photo_available);
+    private byte[] photoFile(String photoName) {
+        int photoResource = A.resources.getIdentifier(photoName, "drawable", getPackageName());
+        Bitmap bm = BitmapFactory.decodeResource(A.resources, photoResource);
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bm.compress(Bitmap.CompressFormat.PNG, 100, stream);
         return stream.toByteArray();
@@ -273,18 +287,17 @@ public class CustomerActivity extends Act {
             try {
                 rcard = new rCard(qr); // parse the coded info and save it for use throughout this activity
                 A.deb("Identify rcard qid=" + rcard.qid);
-            } catch (Exception e) {
-                String msg = e.getMessage();
-                if (msg.equals("mode")) { // not a fatal error
-                    return SCAN_MODE;
-                } else {
-                    act.sayFail(msg);
-                    return SCAN_FAIL;
-                }
+            } catch (rCard.OddCard e) {
+                if (e.type == rCard.CHANGE_MODE) return SCAN_MODE;
+                act.sayFail(e.getMessage());
+                return SCAN_FAIL;
             }
 
             try {
                 return onScan();
+            } catch (Db.NoRoom e) {
+                act.sayFail(R.string.no_room);
+                return SCAN_FAIL;
             } catch (Exception e) {
                 return SCAN_NO_WIFI;
             }

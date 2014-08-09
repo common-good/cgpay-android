@@ -8,6 +8,12 @@ public class rCard {
     public String qid; // the account ID (for example, NEW.AAA)
     public String code; // a card security code associated with the account
     public boolean isAgent; // is this a company agent card as opposed to an individual account card
+    public class OddCard extends Exception {
+        public int type;
+        OddCard(int type) {this.type = type;}
+    }
+    public static int CARD_INVALID = 0;
+    public static int CHANGE_MODE = 1;
 
     /**
      * Extract the member's QID and security code from a scanned URL
@@ -15,12 +21,12 @@ public class rCard {
      *              or HTTP://NEW.RC2.ME/I/AAA.4Dpu1m54k3T
      *              (RC2.ME for real cards, RC4.ME for test cards)
      */
-    public rCard(String qrUrl) throws Exception {
+    public rCard(String qrUrl) throws OddCard {
         String account;
         String[] parts = qrUrl.split("[/\\.-]");
         int count = parts.length;
         //A.deb("count=" + count);
-        if (count != 9 && count != 7) throw new Exception("That is not a valid rCard.");
+        if (count != 9 && count != 7) throw new OddCard(CARD_INVALID);
 
         region = parts[2];
         code = parts[count - 1];
@@ -35,7 +41,7 @@ public class rCard {
 
         if (A.testing ^ isTestCard) {
             A.setMode(isTestCard);
-            throw new Exception("mode");
+            throw new OddCard(CHANGE_MODE);
         }
     }
 

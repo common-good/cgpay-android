@@ -153,7 +153,7 @@ public class TxActivity extends Act {
                             finishTx(usdType);
                         }
                     }); // otherwise do nothing (stay in this Tx Activity)
-                }
+                } else finishTx(usdType);
             } else if (resultCode == RESULT_CANCELED) {} // do nothing if no result
         }
     }
@@ -163,7 +163,7 @@ public class TxActivity extends Act {
      * @param v
      */
     public void onGoClick(View v) {
-        String amount = ((String) ((TextView) findViewById(R.id.amount)).getText()).substring(1); // no "$"
+        String amount = ((TextView) findViewById(R.id.amount)).getText().toString().substring(1); // no "$"
         if (amount.equals("0.00")) {
             sayError("You must enter an amount.", null);
             return;
@@ -189,7 +189,12 @@ public class TxActivity extends Act {
         pairs.add("goods", goods);
         pairs.add("description", desc);
         act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
-//        new Act.Tx().execute(A.db.storeTx(pairs));
-        A.executeAsyncTask(new Act.Tx(), A.db.storeTx(pairs));
+
+        try {
+            A.executeAsyncTask(new Act.Tx(), A.db.storeTx(pairs));
+        } catch (Db.NoRoom e) {
+            act.sayFail(R.string.no_room);
+            return;
+        }
     }
 }

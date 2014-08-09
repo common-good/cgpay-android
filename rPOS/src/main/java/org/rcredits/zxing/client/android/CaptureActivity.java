@@ -61,21 +61,20 @@ import org.rcredits.pos.A;
 import org.rcredits.pos.Act;
 import org.rcredits.pos.CustomerActivity;
 import org.rcredits.pos.R;
-import org.rcredits.pos.rCard;
 import org.rcredits.zxing.client.android.camera.CameraManager;
 import org.rcredits.zxing.client.android.history.HistoryActivity;
 import org.rcredits.zxing.client.android.history.HistoryItem;
 import org.rcredits.zxing.client.android.history.HistoryManager;
-import org.rcredits.zxing.client.android.result.ResultButtonListener;
+// cgf import org.rcredits.zxing.client.android.result.ResultButtonListener;
 import org.rcredits.zxing.client.android.result.ResultHandler;
 import org.rcredits.zxing.client.android.result.ResultHandlerFactory;
-import org.rcredits.zxing.client.android.result.supplement.SupplementalInfoRetriever;
+// cgf import org.rcredits.zxing.client.android.result.supplement.SupplementalInfoRetriever;
 import org.rcredits.zxing.client.android.share.ShareActivity;
 
 import java.io.IOException;
-import java.text.DateFormat;
+// cgf import java.text.DateFormat;
 import java.util.Collection;
-import java.util.Date;
+// cgf import java.util.Date;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
@@ -173,8 +172,8 @@ public final class CaptureActivity extends Act implements SurfaceHolder.Callback
         viewfinderView = (ViewfinderView) findViewById(R.id.viewfinder_view);
         viewfinderView.setCameraManager(cameraManager);
 
-        resultView = findViewById(R.id.result_view);
-        statusView = (TextView) findViewById(R.id.status_view);
+        // cgf resultView = findViewById(R.id.result_view);
+        // cgf statusView = (TextView) findViewById(R.id.status_view);
 
         handler = null;
         lastResult = null;
@@ -502,187 +501,6 @@ public final class CaptureActivity extends Act implements SurfaceHolder.Callback
                     scaleFactor * b.getX(),
                     scaleFactor * b.getY(),
                     paint);
-        }
-    }
-
-    // Put up our own UI for how to handle the decoded contents.
-    private void handleDecodeInternally(Result rawResult, ResultHandler resultHandler, Bitmap barcode) {
-        statusView.setVisibility(View.GONE);
-        viewfinderView.setVisibility(View.GONE);
-        resultView.setVisibility(View.VISIBLE);
-
-        ImageView barcodeImageView = (ImageView) findViewById(R.id.barcode_image_view);
-        if (barcode == null) {
-            barcodeImageView.setImageBitmap(BitmapFactory.decodeResource(getResources(),
-                    R.drawable.launcher_icon));
-        } else {
-            barcodeImageView.setImageBitmap(barcode);
-        }
-
-        TextView formatTextView = (TextView) findViewById(R.id.format_text_view);
-        formatTextView.setText(rawResult.getBarcodeFormat().toString());
-
-        TextView typeTextView = (TextView) findViewById(R.id.type_text_view);
-        typeTextView.setText(resultHandler.getType().toString());
-
-        DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
-        String formattedTime = formatter.format(new Date(rawResult.getTimestamp()));
-        TextView timeTextView = (TextView) findViewById(R.id.time_text_view);
-        timeTextView.setText(formattedTime);
-
-
-        TextView metaTextView = (TextView) findViewById(R.id.meta_text_view);
-        View metaTextViewLabel = findViewById(R.id.meta_text_view_label);
-        metaTextView.setVisibility(View.GONE);
-        metaTextViewLabel.setVisibility(View.GONE);
-        Map<ResultMetadataType,Object> metadata = rawResult.getResultMetadata();
-        if (metadata != null) {
-            StringBuilder metadataText = new StringBuilder(20);
-            for (Map.Entry<ResultMetadataType,Object> entry : metadata.entrySet()) {
-                if (DISPLAYABLE_METADATA_TYPES.contains(entry.getKey())) {
-                    metadataText.append(entry.getValue()).append('\n');
-                }
-            }
-            if (metadataText.length() > 0) {
-                metadataText.setLength(metadataText.length() - 1);
-                metaTextView.setText(metadataText);
-                metaTextView.setVisibility(View.VISIBLE);
-                metaTextViewLabel.setVisibility(View.VISIBLE);
-            }
-        }
-
-        TextView contentsTextView = (TextView) findViewById(R.id.contents_text_view);
-        CharSequence displayContents = resultHandler.getDisplayContents();
-        contentsTextView.setText(displayContents);
-        // Crudely scale betweeen 22 and 32 -- bigger font for shorter text
-        int scaledSize = Math.max(22, 32 - displayContents.length() / 4);
-        contentsTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSize);
-
-        TextView supplementTextView = (TextView) findViewById(R.id.contents_supplement_text_view);
-        supplementTextView.setText("");
-        supplementTextView.setOnClickListener(null);
-        if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean(
-                PreferencesActivity.KEY_SUPPLEMENTAL, true)) {
-            SupplementalInfoRetriever.maybeInvokeRetrieval(supplementTextView,
-                    resultHandler.getResult(),
-                    historyManager,
-                    this);
-        }
-
-        int buttonCount = resultHandler.getButtonCount();
-        ViewGroup buttonView = (ViewGroup) findViewById(R.id.result_button_view);
-        buttonView.requestFocus();
-        for (int x = 0; x < ResultHandler.MAX_BUTTON_COUNT; x++) {
-            TextView button = (TextView) buttonView.getChildAt(x);
-            if (x < buttonCount) {
-                button.setVisibility(View.VISIBLE);
-                button.setText(resultHandler.getButtonText(x));
-                button.setOnClickListener(new ResultButtonListener(resultHandler, x));
-            } else {
-                button.setVisibility(View.GONE);
-            }
-        }
-
-        if (copyToClipboard && !resultHandler.areContentsSecure()) {
-            ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-            if (displayContents != null) {
-                try {
-                    clipboard.setText(displayContents);
-                } catch (NullPointerException npe) {
-                    // Some kind of bug inside the clipboard implementation, not due to null input
-                    Log.w(TAG, "Clipboard bug", npe);
-                }
-            }
-        }
-    }
-
-    // Briefly show the contents of the barcode, then handle the result outside Barcode Scanner.
-    private void handleDecodeExternally(Result rawResult, ResultHandler resultHandler, Bitmap barcode) {
-        if (barcode != null) {
-            viewfinderView.drawResultBitmap(barcode);
-        }
-
-        long resultDurationMS;
-        if (getIntent() == null) {
-            resultDurationMS = DEFAULT_INTENT_RESULT_DURATION_MS;
-        } else {
-            resultDurationMS = getIntent().getLongExtra(Intents.Scan.RESULT_DISPLAY_DURATION_MS,
-                    DEFAULT_INTENT_RESULT_DURATION_MS);
-        }
-
-        if (resultDurationMS > 0) {
-            String rawResultString = String.valueOf(rawResult);
-            if (rawResultString.length() > 32) {
-                rawResultString = rawResultString.substring(0, 32) + " ...";
-            }
-            statusView.setText(getString(resultHandler.getDisplayTitle()) + " : " + rawResultString);
-        }
-
-        if (copyToClipboard && !resultHandler.areContentsSecure()) {
-            ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-            CharSequence text = resultHandler.getDisplayContents();
-            if (text != null) {
-                try {
-                    clipboard.setText(text);
-                } catch (NullPointerException npe) {
-                    // Some kind of bug inside the clipboard implementation, not due to null input
-                    Log.w(TAG, "Clipboard bug", npe);
-                }
-            }
-        }
-
-        if (source == IntentSource.NATIVE_APP_INTENT) {
-
-            // Hand back whatever action they requested - this can be changed to Intents.Scan.ACTION when
-            // the deprecated intent is retired.
-            Intent intent = new Intent(getIntent().getAction());
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-            intent.putExtra(Intents.Scan.RESULT, rawResult.toString());
-            intent.putExtra(Intents.Scan.RESULT_FORMAT, rawResult.getBarcodeFormat().toString());
-            byte[] rawBytes = rawResult.getRawBytes();
-            if (rawBytes != null && rawBytes.length > 0) {
-                intent.putExtra(Intents.Scan.RESULT_BYTES, rawBytes);
-            }
-            Map<ResultMetadataType,?> metadata = rawResult.getResultMetadata();
-            if (metadata != null) {
-                if (metadata.containsKey(ResultMetadataType.UPC_EAN_EXTENSION)) {
-                    intent.putExtra(Intents.Scan.RESULT_UPC_EAN_EXTENSION,
-                            metadata.get(ResultMetadataType.UPC_EAN_EXTENSION).toString());
-                }
-                Integer orientation = (Integer) metadata.get(ResultMetadataType.ORIENTATION);
-                if (orientation != null) {
-                    intent.putExtra(Intents.Scan.RESULT_ORIENTATION, orientation.intValue());
-                }
-                String ecLevel = (String) metadata.get(ResultMetadataType.ERROR_CORRECTION_LEVEL);
-                if (ecLevel != null) {
-                    intent.putExtra(Intents.Scan.RESULT_ERROR_CORRECTION_LEVEL, ecLevel);
-                }
-                Iterable<byte[]> byteSegments = (Iterable<byte[]>) metadata.get(ResultMetadataType.BYTE_SEGMENTS);
-                if (byteSegments != null) {
-                    int i = 0;
-                    for (byte[] byteSegment : byteSegments) {
-                        intent.putExtra(Intents.Scan.RESULT_BYTE_SEGMENTS_PREFIX + i, byteSegment);
-                        i++;
-                    }
-                }
-            }
-            sendReplyMessage(R.id.return_scan_result, intent, resultDurationMS);
-
-        } else if (source == IntentSource.PRODUCT_SEARCH_LINK) {
-
-            // Reformulate the URL which triggered us into a query, so that the request goes to the same
-            // TLD as the scan URL.
-            int end = sourceUrl.lastIndexOf("/scan");
-            String replyURL = sourceUrl.substring(0, end) + "?q=" + resultHandler.getDisplayContents() + "&source=zxing";
-            sendReplyMessage(R.id.launch_product_query, replyURL, resultDurationMS);
-
-        } else if (source == IntentSource.ZXING_LINK) {
-
-            if (scanFromWebPageManager != null && scanFromWebPageManager.isScanFromWebPage()) {
-                String replyURL = scanFromWebPageManager.buildReplyURL(rawResult, resultHandler);
-                sendReplyMessage(R.id.launch_product_query, replyURL, resultDurationMS);
-            }
-
         }
     }
 

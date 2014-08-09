@@ -83,7 +83,7 @@ import static java.lang.Thread.sleep;
  *   11, 12, -12, -13, 13, -14, 14, 21, 31-32, 41-46, 51, -51, 52, -52 (or maybe neither 52 nor -52)
  */
 public class A extends Application {
-    public static Boolean demo = false; // set this true to build a demo version that does not require internet
+    public static boolean demo = false; // toggle true while testing, to run as a demo without an actual internet connection
     public static Context context;
     public static Resources resources;
     public static String versionCode; // version number of this software
@@ -93,6 +93,7 @@ public class A extends Application {
     public static Long timeFix = 0L; // how much to add to device's time to get server time
     public static String update = null; // URL of update to install on restart, if any ("1" means already downloaded)
     public static String failMessage = null; // error message to display upon restart, if any
+    public static String serverMessage = null; // message from server to display when convenient
     public static String deviceId = null; // set once ever in storage upon first scan-in, read upon startup
     public static String debugString = null; // for debug messages
     public static Periodic periodic = null; // periodic reconciliation process running in background
@@ -168,7 +169,9 @@ public class A extends Application {
 
         db_real = (new DbHelper(false)).getWritableDatabase();
         db_test = (new DbHelper(true)).getWritableDatabase();
-        A.setMode(false);
+
+        A.demo = getStored("demo").equals("1");
+        A.setMode(A.demo);
 
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
@@ -229,9 +232,14 @@ public class A extends Application {
 
     public static boolean signedIn() {return (A.defaults != null && !A.agent.equals(A.defaults.get("default")));}
 
+    /**
+     * Return a "shared preference" (stored value) as a string (the only way we store anything).
+     * @param name
+     * @return
+     */
     public static String getStored(String name) {
         if (A.settings == null) A.settings = A.context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        return settings.getString(name, null);
+        return settings.getString(name, "");
     }
 
     public static void setStored(String name, String value) {
@@ -248,14 +256,14 @@ public class A extends Application {
      * @return: the server's response. null if failure (with message in A.httpError)
      */
     public static HttpResponse post(String region, Pairs pairs, boolean ui) {
-        final int timeout = 5 * 1000; // milliseconds
+        final int timeout = 10 * 1000; // milliseconds
         pairs.add("agent", A.agent);
         pairs.add("device", A.deviceId);
         pairs.add("version", A.versionCode);
         //pairs.add("location", A.location);
 
         if (ui) A.rpcPairs = pairs.copy().add("region", region);
-        if (!A.wifi) return null;
+        if (A.demo || !A.wifi) return null;
 
         String api = A.testing ? TEST_API_PATH : REAL_API_PATH;
         HttpPost post = new HttpPost(api.replace("<region>", region));
@@ -306,14 +314,6 @@ public class A extends Application {
      * @return: the customer's photo, as a byte array
      */
     public static byte[] apiGetPhoto(String qid, String code) {
-        if (A.demo) {
-            Bitmap bitmap = decodeResource(A.resources, R.drawable.shopper);
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-            SystemClock.sleep(1000);
-            return stream.toByteArray();
-        }
-
         Pairs pairs = new Pairs("op", "photo");
         pairs.add("member", qid);
         pairs.add("code", code);
@@ -337,7 +337,8 @@ public class A extends Application {
         try {
             if (response == null) return null;
             Json json = Json.make(EntityUtils.toString(response.getEntity()));
-            A.update = json.get("update");
+            //A.update = json.get("update");
+            A.serverMessage = json.get("message");
             return json.get("time");
         } catch (IOException e) {
             e.printStackTrace();
@@ -434,18 +435,49 @@ public class A extends Application {
 
     /**
      * Return a suitable message for when the "Show Customer Balance" button is pressed.
-     * @param name: customer name (including agent and company name, for company agents)
-     * @return: a suitable message or null if the balance is secret
+     * @param name
+     * @param balance
+     * @param rewards
+     * @param did
+     * @return
      */
-    public static String balanceMessage(String name, Json json) {
-        String balance = json.get("balance");
-        String rewards = json.get("rewards");
-        String did = json.get("did");
+     public static String balanceMessage(String name, String balance, String rewards, String did) {
         if (A.isSecret(balance)) return null;
         return "Customer: " + name + "\n\n" +
                 "Balance: $" + A.fmtAmt(balance, true) + "\n" +
                 "Rewards: $" + A.fmtAmt(rewards, true) +
                 A.nn(did); // if not empty, did includes leading blank lines
+    }
+
+    /**
+     * Return a suitable message for when the "Show Customer Balance" button is pressed in demo mode.
+     * @param name
+     * @param qid
+     * @return
+     */
+    public static String balanceMessage(String name, String qid) {
+        assert A.demo;
+        String where = "created>? AND member=? AND status<>?";
+        String[] params = {"" + today(), qid, "" + TX_CANCEL};
+        Double total = db.sum("amount", "txs", where, params);
+        String balance = String.valueOf(1000 - total);
+        total = db.sum("amount", "txs", "goods AND " + where, params);
+        String rewards = String.valueOf(total * .10);
+        return balanceMessage(name, balance, rewards, "");
+    }
+
+    /**
+     * Return a suitable message for when the "Show Customer Balance" button is pressed NOT in demo mode.
+     * @param name: customer name (including agent and company name, for company agents)
+     * @return: a suitable message or null if the balance is secret (or no data)
+     */
+    public static String balanceMessage(String name, Json json) {
+        if (json == null) return null;
+        String balance = json.get("balance");
+        String rewards = json.get("rewards");
+        String did = json.get("did");
+
+        return balanceMessage(name, balance, rewards, did);
     }
 
     public static String customerName(String name, String company) {
@@ -498,4 +530,5 @@ public class A extends Application {
     public static String t(int stringResource) {return A.resources.getString(stringResource);}
     public static Long now0() {return System.currentTimeMillis() / 1000L;}
     public static Long now() {return A.timeFix + A.now0();}
+    public static Long today() {return now() - (now() % (60 * 60 * 24));}
 }

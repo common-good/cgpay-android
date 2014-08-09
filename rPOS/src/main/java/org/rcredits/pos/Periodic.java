@@ -92,7 +92,9 @@ public class Periodic extends AsyncTask<String, Void, Integer> {
             idJson = A.apiGetJson(rCard.qidRegion(qid), pairs, false); // get json-encoded info
             byte[] image = A.apiGetPhoto(qid, code);
             if (idJson == null || image == null || image.length == 0) return; // try again later
-            A.db.saveCustomer(qid, image, idJson);
+            try {
+                A.db.saveCustomer(qid, image, idJson);
+            } catch (Db.NoRoom e) {return;} // no room to store customer record; try later
         } else  q.close();
 
         db.completeTx(txRowid, txJson);

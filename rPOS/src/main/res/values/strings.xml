@@ -153,6 +153,7 @@
     <string name="no_permission">You do not have permission to scan a customer rCard.</string>
     <string name="wifi_on">Wifi is now ON.</string>
     <string name="wifi_off">Wifi is now OFF. Remember to connect soon, to upload saved transactions.</string>
+    <string name="no_room">You have run out of external storage. You cannot accept further transactions until you connect to the Internet, so pending transactions can be uploaded.</string>
 
 
 </resources>
