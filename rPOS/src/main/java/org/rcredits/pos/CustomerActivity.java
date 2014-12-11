@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -26,22 +25,40 @@ public class CustomerActivity extends Act {
     private byte[] image; // photo of customer
     private Json json; // json-encoded response from server
     private Integer scanResult = null; // no scan result yet
+    private String photoId = null; // no photoId yet
 
     // return values for API (see onScan())
+    private final static int GET_PHOTO_ID = -1; // scan customer's license/photo ID before permitting transaction
     private final static int SCAN_FAIL = 0;
     private final static int SCAN_CUSTOMER = 1;
     private final static int SCAN_AGENT = 2;
     private final static int SCAN_NO_WIFI = 3;
-    private final static int SCAN_MODE = 4;
 
     /**
      * Show just the scanned account code, while we get more info in the background
      * @param savedInstanceState
      */
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         qr = A.getIntentString(this.getIntent(), "qr");
+        try {
+            rcard = new rCard(qr); // parse the coded info and save it for use throughout this activity
+            A.deb("Identify rcard qid=" + rcard.qid);
+        } catch (rCard.OddCard e) {
+            if (e.type == rCard.CHANGE_MODE) {
+                String msg = A.t(A.testing ? R.string.switch_to_test : R.string.switch_to_real);
+                act.sayOk("Changed Mode",  msg, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                        onCreate(savedInstanceState); // try again
+                        //A.executeAsyncTask(new Identify(), qr); // re-query the (other) server in the background
+                        return;
+                    }
+                });
+            } else act.sayFail(e.getMessage());
+            return;
+        }
         setLayout();
     }
 
@@ -72,19 +89,19 @@ public class CustomerActivity extends Act {
 
         act.progress(true); // this progress meter gets turned off in handleScan()
         if (scanResult == null) {
-//        new Identify().execute(qr); // query the server in the background
             A.executeAsyncTask(new Identify(), qr); // query the server in the background
         } else handleScan(scanResult);
     }
 
     /**
      * Go all the way back to Main screen on Back Button press.
-     */
+     *//*
     @Override
     public void onBackPressed() {act.restart();}
 
     @Override
     public void goBack(View v) {onBackPressed();}
+*/
 
     /**
      * The user clicked one of four buttons: charge, refund, USD in, or USD out. Handle each in the Tx Activity.
@@ -98,13 +115,14 @@ public class CustomerActivity extends Act {
         A.putIntentString(intent, "description", description);
         A.putIntentString(intent, "customer", rcard.qid);
         A.putIntentString(intent, "goods", (id == R.id.charge || id == R.id.refund) ? "1" : "0");
+        A.putIntentString(intent, "photoid", photoId);
         startActivity(intent);
     }
 
     /**
      * Process the result from QR scan:
      * Get agent, agentName, customer (etc), device, success, message from server, and handle it.
-     * @return result code (SCAN_CUSTOMER, SCAN_AGENT, SCAN_NO_WIFI, or SCAN_FAIL)
+     * @return result code (SCAN_ID, SCAN_CUSTOMER, SCAN_AGENT, SCAN_NO_WIFI, or SCAN_FAIL)
      */
     public int onScan() throws Db.NoRoom {
         image = null; // no image yet
@@ -113,7 +131,7 @@ public class CustomerActivity extends Act {
         pairs.add("code", rcard.code);
 
 
-            /*json = Json.make(rcard.qid.equals("NEW.ABB") ? "{'ok':'1','logon':'0','name':'Susan Shopper','place':'Montague, MA','company':'','balance':'Customer: Susan Shopper\\n\\nBalance: $306.56\\nTradable for cash: $178.83'}" // customer
+        /*json = Json.make(rcard.qid.equals("NEW.ABB") ? "{'ok':'1','logon':'0','name':'Susan Shopper','place':'Montague, MA','company':'','balance':'Customer: Susan Shopper\\n\\nBalance: $306.56\\nTradable for cash: $178.83'}" // customer
                     : "{'ok':'1','logon':'1','device':'3i2ifsapEjwev3CwBCV7','name':'Bob Bossman','company':'Corner Store','descriptions':['groceries','gifts','sundries','deli','baked goods'],'can':14,'default':'NEW.AAB'}"); // manager
                     */
         if (A.demo) SystemClock.sleep(1000); // pretend to contact server
@@ -131,7 +149,8 @@ public class CustomerActivity extends Act {
             return SCAN_FAIL;
         }
 
-        boolean scanningIn = json.get("logon").equals("1");
+        String logon = json.get("logon");
+        boolean scanningIn = logon.equals("1");
 
         if (!scanningIn || A.db.badAgent(rcard.qid, rcard.code)) { // we need a photo
             image = A.apiGetPhoto(rcard.qid, rcard.code);
@@ -152,36 +171,46 @@ public class CustomerActivity extends Act {
         } else { // customer card
             if (A.agent == null) A.can = Integer.parseInt(json.get("can")); // stay up-to-date on the signed-out permissions
             A.db.saveCustomer(rcard.qid, image, json);
-            return SCAN_CUSTOMER;
+            return logon.equals("0") ? SCAN_CUSTOMER : GET_PHOTO_ID;
         }
     }
 
     private void handleScan(int result) {
-        if (result == SCAN_MODE) {
-            act.sayOk("Changed Mode",  A.t(A.testing ? R.string.switch_to_test : R.string.switch_to_real), new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int id) {
-                    dialog.cancel();
-//                    new Identify().execute(qr); // re-query the (other) server in the background
-                    A.executeAsyncTask(new Identify(), qr); // re-query the (other) server in the background
-                    return;
-                }
-            });
-            return;
-        }
-
         A.positiveId = (result != SCAN_NO_WIFI);
 
         if (result == SCAN_AGENT) gotAgent(json.get("name"));
         if (result == SCAN_CUSTOMER) gotCustomer(); // this has to happen on the UI thread (here, not in background)
         if (result == SCAN_NO_WIFI) noWifi();
+        if (result == GET_PHOTO_ID) getPhotoId();
         act.progress(false);
     }
 
+    /**
+     * Get cashier to ask customer for a photo ID. Save the ID number for upload with transaction info.
+     */
+    private void getPhotoId() {act.start(PhotoIdActivity.class, GET_PHOTO_ID, "place", json.get("place"));}
+
+    /**
+     * Receive the photo ID state and number.
+     * @param requestCode
+     * @param resultCode
+     * @param data: state and idNumber
+     */
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == GET_PHOTO_ID) {
+            if(resultCode == RESULT_OK) {
+                photoId = data.getStringExtra("photoId");
+                scanResult = SCAN_CUSTOMER;
+                setLayout();
+            } else if (resultCode == RESULT_CANCELED) {} // do nothing if no result
+        }
+    }
     /**
      * Handle the case where connection to the internet failed or is turned off (A.wifi is false).
      * In demo mode we may come here pretending wifi is on OR off.
      */
     private void noWifi() {
+        if (A.defaults == null) {act.sayFail(R.string.wifi_for_setup); return;}
         String offline = "OFFLINE (no internet)";
         Q q = A.db.oldCustomer(rcard.qid);
         if (q != null && q.isAgent()) {
@@ -198,7 +227,7 @@ public class CustomerActivity extends Act {
         } else {
             image = photoFile("no_photo");
             gotCustomer("Member " + rcard.qid, "Unidentified Customer", offline);
-            //if () mention(R.string.ask_for_id); // if this business is often offline, ask for ID
+            //if () mention(R.string.ask_for_id_offline); // if this business is often offline, nudge cashier to ask for ID
         }
 
 /*
@@ -283,15 +312,6 @@ public class CustomerActivity extends Act {
         protected Integer doInBackground(String... qrs) { // param list must be "Type... varname"
             String qr = qrs[0];
             //A.deb("Identify qr=" + A.nn(qr));
-
-            try {
-                rcard = new rCard(qr); // parse the coded info and save it for use throughout this activity
-                A.deb("Identify rcard qid=" + rcard.qid);
-            } catch (rCard.OddCard e) {
-                if (e.type == rCard.CHANGE_MODE) return SCAN_MODE;
-                act.sayFail(e.getMessage());
-                return SCAN_FAIL;
-            }
 
             try {
                 return onScan();
