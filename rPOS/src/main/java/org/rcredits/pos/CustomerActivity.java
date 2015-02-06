@@ -19,20 +19,20 @@ import java.io.ByteArrayOutputStream;
  * @intent qr: QR code scanned from an rCard (either a customer or cashier)
  */
 public class CustomerActivity extends Act {
-    private final Act act = this;
     private rCard rcard; // the info from the rCard, parsed
     private String qr; // the scanned QR code
     private byte[] image; // photo of customer
     private Json json; // json-encoded response from server
     private Integer scanResult = null; // no scan result yet
     private String photoId = null; // no photoId yet
+    private final static String UNKNOWN_CUST = "Unidentified Customer";
 
     // return values for API (see onScan())
-    private final static int GET_PHOTO_ID = -1; // scan customer's license/photo ID before permitting transaction
     private final static int SCAN_FAIL = 0;
     private final static int SCAN_CUSTOMER = 1;
     private final static int SCAN_AGENT = 2;
     private final static int SCAN_NO_WIFI = 3;
+    private final static int GET_PHOTO_ID = 4; // scan customer's license/photo ID before permitting transaction
 
     /**
      * Show just the scanned account code, while we get more info in the background
@@ -115,7 +115,7 @@ public class CustomerActivity extends Act {
         A.putIntentString(intent, "description", description);
         A.putIntentString(intent, "customer", rcard.qid);
         A.putIntentString(intent, "goods", (id == R.id.charge || id == R.id.refund) ? "1" : "0");
-        A.putIntentString(intent, "photoid", photoId);
+        A.putIntentString(intent, "photoId", photoId);
         startActivity(intent);
     }
 
@@ -125,24 +125,17 @@ public class CustomerActivity extends Act {
      * @return result code (SCAN_ID, SCAN_CUSTOMER, SCAN_AGENT, SCAN_NO_WIFI, or SCAN_FAIL)
      */
     public int onScan() throws Db.NoRoom {
+        A.log("scanned: " + rcard.qid);
         image = null; // no image yet
         Pairs pairs = new Pairs("op", "identify");
         pairs.add("member", rcard.qid);
         pairs.add("code", rcard.code);
 
-
-        /*json = Json.make(rcard.qid.equals("NEW.ABB") ? "{'ok':'1','logon':'0','name':'Susan Shopper','place':'Montague, MA','company':'','balance':'Customer: Susan Shopper\\n\\nBalance: $306.56\\nTradable for cash: $178.83'}" // customer
-                    : "{'ok':'1','logon':'1','device':'3i2ifsapEjwev3CwBCV7','name':'Bob Bossman','company':'Corner Store','descriptions':['groceries','gifts','sundries','deli','baked goods'],'can':14,'default':'NEW.AAB'}"); // manager
-                    */
         if (A.demo) SystemClock.sleep(1000); // pretend to contact server
-/*            json = null;
-            return SCAN_NO_WIFI; // depend on stored customer data
-        } */
-
         json = A.apiGetJson(rcard.region, pairs, true); // get json-encoded info
 
-        A.deb("onScan json message: " + A.nn(json.get("message")));
         if (json == null) return SCAN_NO_WIFI; // assume it's a customer (since we can't tell)
+        A.deb("onScan json message: " + A.nn(json.get("message")));
 
         if (!json.get("ok").equals("1")) {
             act.sayFail(json.get("message"));
@@ -152,7 +145,8 @@ public class CustomerActivity extends Act {
         String logon = json.get("logon");
         boolean scanningIn = logon.equals("1");
 
-        if (!scanningIn || A.db.badAgent(rcard.qid, rcard.code)) { // we need a photo
+// (no agent photos for now)    if (!scanningIn || A.db.badAgent(rcard.qid, rcard.code)) { // we need a photo
+        if (!scanningIn) { // we need a photo
             image = A.apiGetPhoto(rcard.qid, rcard.code);
             if (image == null || image.length == 0) {
                 image = photoFile("no_photo");
@@ -210,10 +204,12 @@ public class CustomerActivity extends Act {
      * In demo mode we may come here pretending wifi is on OR off.
      */
     private void noWifi() {
+        A.log("nowifi");
         if (A.defaults == null) {act.sayFail(R.string.wifi_for_setup); return;}
         String offline = "OFFLINE (no internet)";
         Q q = A.db.oldCustomer(rcard.qid);
-        if (q != null && q.isAgent()) {
+        if (q != null && q.isAgent()) { // got agent for current company
+            if (A.db.badAgent(rcard.qid, rcard.code)) {act.sayFail("That Company Agent rCard is not valid."); return;}
             A.can = q.getInt(DbHelper.AGT_CAN);
             gotAgent(q.getString("name"));
             q.close();
@@ -226,7 +222,7 @@ public class CustomerActivity extends Act {
             q.close();
         } else {
             image = photoFile("no_photo");
-            gotCustomer("Member " + rcard.qid, "Unidentified Customer", offline);
+            gotCustomer("Member " + rcard.qid, UNKNOWN_CUST, offline);
             //if () mention(R.string.ask_for_id_offline); // if this business is often offline, nudge cashier to ask for ID
         }
 
@@ -244,11 +240,11 @@ public class CustomerActivity extends Act {
      * Handle successful scan of company agent's rCard: remember who, check for update, report success, wait to scan.
      */
     private void gotAgent(String name) {
+        A.log("got agent: " + name);
         A.xagent = A.agent; // remember previous agent, for comparison
         A.agent = rcard.qid;
         A.region = rcard.region;
         A.agentName = "Agent: " + name;
-
         act.restart();
     }
 
@@ -259,6 +255,7 @@ public class CustomerActivity extends Act {
      * @param place
      */
     private void gotCustomer(String name, String company, String place) {
+        A.log("got customer: " + name + " company=" + company + " place=" + place);
         if (A.agent == null) {act.sayFail(R.string.no_agent); return;}
         if (!A.can(A.CAN_CHARGE) && !A.can(A.CAN_REFUND) && !A.can(A.CAN_R4USD) && !A.can(A.CAN_USD4R)) {
             act.sayFail(R.string.no_permission); return;
@@ -269,9 +266,12 @@ public class CustomerActivity extends Act {
         if (A.demo) A.balance = A.balanceMessage(A.customerName, rcard.qid);
 
         if (A.can(A.CAN_REFUND)) findViewById(R.id.refund).setVisibility(View.VISIBLE);
-        if (A.can(A.CAN_R4USD)) findViewById(R.id.usdin).setVisibility(View.VISIBLE);
-        if (A.can(A.CAN_USD4R)) findViewById(R.id.usdout).setVisibility(View.VISIBLE);
+        if (!company.equals(UNKNOWN_CUST)) { // no cash transactions without pre-identification (FinCEN requirement)
+            if (A.can(A.CAN_R4USD)) findViewById(R.id.usdin).setVisibility(View.VISIBLE);
+            if (A.can(A.CAN_USD4R)) findViewById(R.id.usdout).setVisibility(View.VISIBLE);
+        }
         if (A.can(A.CAN_CHARGE)) findViewById(R.id.charge).setVisibility(View.VISIBLE);
+
         findViewById(R.id.back).setVisibility(View.VISIBLE);
 
         setField(R.id.customer_name, name);
@@ -280,6 +280,7 @@ public class CustomerActivity extends Act {
 
         ImageView photo = (ImageView) findViewById(R.id.photo);
         photo.setImageBitmap(A.scale(A.bray2bm(image), A.PIC_H));
+        if (A.selfhelping()) onRClick(findViewById(R.id.charge));
     }
 
     private void gotCustomer() {

@@ -24,6 +24,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -47,7 +48,8 @@ import java.util.Calendar;
  * @todo: rework deprecated KeyguardManager lines with WindowManager.FLAG_DISMISS_KEYGUARD (see zxing code for tips)
  */
 public final class MainActivity extends Act {
-    private final Act act = this;
+    private final int CAPTURE = 1; // the capture activity
+    private final static int TX_OLD_INTERVAL = 15 * 60; // number of seconds Undo and Balance buttons last
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -67,20 +69,27 @@ public final class MainActivity extends Act {
             act.sayError(A.failMessage, null); // show failure message from previous (failed) activity
             A.failMessage = null;
         }
-        if (A.serverMessage != null) {
-            act.sayOk("Note", A.serverMessage, null); // show failure message from previous (failed) activity
-            A.serverMessage = null;
-        }
-
-        /*else if (A.update != null && !A.testing) {
-            act.askOk("Okay to update now? (takes a few seconds)", new DialogInterface.OnClickListener() {
+        if (A.serverMessage != null && A.serverMessage.equals("!update")) {
+            act.askOk("Okay to update now? (it takes a few seconds)", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     dialog.cancel();
-                    act.progress(true);
-                    new UpdateApp().execute(A.update); // download the update in the background
+                    if (A.periodic != null) {
+                        A.periodic.cancel(true);
+                        SystemClock.sleep(3000); // give periodic a chance to finish
+                    }
+                    Intent getApp = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=org.rcredits.pos"));
+                    act.finish();
+                    startActivity(getApp);
+                    System.exit(0);
+//                    act.progress(true);
+//                    new UpdateApp().execute(A.update); // download the update in the background
                 }
             });
-        } */
+            A.serverMessage = null;
+        } else if (A.serverMessage != null) {
+            act.sayOk("Note", A.serverMessage, null); // show a message the server wants the cashier to see
+            A.serverMessage = null;
+        }
 
         // } else if ... mention(R.string.connect_soon); // if this business is often offline, ask for ID
 
@@ -118,8 +127,8 @@ public final class MainActivity extends Act {
 
         A.useDefaults(); // get agent, etc., if necessary
 
-        boolean showUndo = (A.can(A.CAN_UNDO) && A.undo != null);
-        boolean showBalance = (A.balance != null);
+        boolean showUndo = (A.can(A.CAN_UNDO) && A.undo != null && !A.selfhelping());
+        boolean showBalance = (A.balance != null && !A.selfhelping());
         findViewById(R.id.undo_last).setVisibility(showUndo ? View.VISIBLE : View.INVISIBLE);
         findViewById(R.id.show_balance).setVisibility(showBalance ? View.VISIBLE : View.INVISIBLE);
         findViewById(R.id.test).setVisibility(A.testing ? View.VISIBLE : View.INVISIBLE);
@@ -141,7 +150,7 @@ public final class MainActivity extends Act {
 
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_MENU) {
-            act.start(PrefsActivity.class);
+            if (A.signedIn()) act.start(PrefsActivity.class, 0);
             return true;
         } else return super.onKeyUp(keyCode, event);
     }
@@ -192,11 +201,37 @@ public final class MainActivity extends Act {
     }
 */
 
-    public void doScan(View v) {act.start(CaptureActivity.class);} // user pressed the SCAN button
-    // NOT YET USED public void doPrefs(View v) {act.start(PrefsActivity.class);} // user pressed the gear button
+    public void doScan(View v) {act.start(CaptureActivity.class, CAPTURE);} // user pressed the SCAN button
+    // NOT YET USED public void doPrefs(View v) {act.start(PrefsActivity.class, 0);} // user pressed the gear button
+
+    /**
+     * Handle result callbacks from activities launched (especially to capture a QR code)
+     * @param requestCode
+     * @param resultCode
+     * @param data: data returned from the activity
+     */
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == CAPTURE) {
+            if(resultCode == RESULT_OK) {
+                act.start(CustomerActivity.class, 0, "qr", data.getStringExtra("qr"));
+            } else if (resultCode == RESULT_CANCELED) {} // do nothing if no result
+        }
+    }
 
     public void doShowBalance(View v) {
-        act.sayOk("Customer Balance", A.balance, null); // user pressed the Balance button
+        if (!oldTx()) act.sayOk("Customer Balance", A.balance, null); // user pressed the Balance button
+    }
+
+    /**
+     * Complain if the latest transaction is too old to risk remembering (cashiers mishandle old transactions).
+     * @return <transaction is too old>
+     */
+    private boolean oldTx() {
+        int created = Integer.parseInt(A.db.getField("created", "txs", A.lastTxRow));
+        if (created > A.now() - TX_OLD_INTERVAL) return false;
+        A.undo = A.balance = null;
+        act.sayFail(getString(R.string.old_tx));
+        return true;
     }
 
     /**
@@ -204,19 +239,12 @@ public final class MainActivity extends Act {
      * @param v
      */
     public void doUndo(View v) {
-        act.askOk(A.undo, new DialogInterface.OnClickListener() {
+        if (!oldTx()) act.askOk(A.undo, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
                 A.db.changeStatus(A.lastTxRow, A.TX_CANCEL, null);
-//                new Act.Tx().execute(A.lastTxRow);
                 A.executeAsyncTask(new Act.Tx(), A.lastTxRow);
-                /*
-                Pairs pairs = new Pairs("op", "undo");
-                pairs.add("txid", A.lastTx);
-                act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
-                new Tx().execute(pairs); // act.Tx (but android does not recognize that syntax)
-                */
             }
         });
     }
@@ -225,23 +253,12 @@ public final class MainActivity extends Act {
      * Sign the cashier out after confirmation.
      */
     public void doSignOut(View v) {
-        //if (A.agent.equals(A.dftAgent)) return; // already signed out
-        if (A.agent != null) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
+        if (A.signedIn()) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 A.signOut();
                 setLayout();
             }
-        });
+        }); else doScan(v);
     }
-
-    /**
-     * Just pretend to scan, when using AVD (since the webcam feature doesn't work). For testing, of course.
-     * @param v
-     *//*
-    public void onFakeScan(View v) {
-        try {
-            act.onScan(new rCard("HTTP://NEW.RC2.ME/I/" + (A.agent == null ? "ZZD-" : "ZZA.") + "zot"));
-        } catch (Exception e) {}
-    }*/
 }

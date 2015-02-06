@@ -16,6 +16,7 @@
 
 package org.rcredits.pos;
 
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
@@ -34,8 +35,6 @@ import java.util.Collection;
  * @author William Spademan 7/27/2014
  */
 public final class PrefsActivity extends Act {
-    private final Act act = this;
-
     // OLD constants
     public static final String KEY_PLAY_BEEP = "preferences_play_beep";
     public static final String KEY_VIBRATE = "preferences_vibrate";
@@ -54,8 +53,9 @@ public final class PrefsActivity extends Act {
         setContentView(R.layout.activity_prefs);
 
         ((CheckBox) findViewById(R.id.wifi)).setChecked(A.wifi);
+        ((CheckBox) findViewById(R.id.selfhelp)).setChecked(A.selfhelp);
         ((CheckBox) findViewById(R.id.demo)).setChecked(A.demo);
-        findViewById(R.id.demo_mode_row).setVisibility(A.testing ? View.VISIBLE : View.GONE);
+//        findViewById(i).setVisibility(A.testing ? View.VISIBLE : View.GONE);
 
         /*
         for (int i = 0; i < A.CAN_AGENT - 2; i++) { // -2: ignore CAN_U6 and CAN_MANAGE permission
@@ -85,6 +85,11 @@ public final class PrefsActivity extends Act {
         if (setting) {
             A.wifi = true; // avoid giving a message
         } else act.setWifi(setting); // warn about re-connecting soon
+    }
+
+    public void onSelfHelpToggle(View v) {
+        A.selfhelp = ((CheckBox) findViewById(R.id.selfhelp)).isChecked();
+        if (A.selfhelp) act.sayOk("Self-Help Mode", R.string.self_help_signout, null);
     }
 
     public void onDemoToggle(View v) {

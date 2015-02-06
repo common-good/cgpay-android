@@ -25,7 +25,6 @@ import android.widget.TextView;
  * The description selected in this activity (and passed back to the TxActivity activity) cannot be "", "(other)", or "refund".
  */
 public class DescriptionActivity extends Act {
-    private final Act act = this;
 //    Resources r = getResources();
 //    final int sidePadding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, r.getDisplayMetrics());
     final int sidePadding = 10;

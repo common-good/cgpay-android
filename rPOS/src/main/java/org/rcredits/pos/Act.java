@@ -25,9 +25,11 @@ import java.util.Map;
  *   call these methods using "act." rather than "this.".
  */
 public class Act extends Activity {
-    private final Act act = this;
-    private ProgressDialog progressDlg; // for standard progress spinner
+    protected final Act act = this;
+    protected ProgressDialog progressDlg; // for standard progress spinner
     private AlertDialog alertDialog;
+    protected String photoId; // customer's photo ID number (used in TxActivity and Act.Tx)
+    private final String YES_OR_NO = "Yes or No";
 
     public void goBack(View v) {onBackPressed();}
 
@@ -36,7 +38,7 @@ public class Act extends Activity {
      * @param message: the message to show
      */
     public void mention(String message) {
-        int duration = (message.length() < 30) ? Toast.LENGTH_SHORT : Toast.LENGTH_LONG;
+//        int duration = (message.length() < 30) ? Toast.LENGTH_SHORT : Toast.LENGTH_LONG;
         Toast toast = Toast.makeText(act, message, Toast.LENGTH_LONG);
         toast.setGravity(Gravity.CENTER_HORIZONTAL|Gravity.BOTTOM, 0, 0);
         toast.show();
@@ -70,14 +72,15 @@ public class Act extends Activity {
         }; */
         if (ok == null) ok = new doNothing();
         if (cancel == null) cancel = new doNothing();
+        A.log("SAY " + title + ": " + message);
 
         alertDialogBuilder
                 .setTitle(title)
                 .setMessage(message)
                 .setIcon(icon)
                 .setCancelable(cancelable)
-                .setPositiveButton("OK", ok);
-        if (cancelable) alertDialogBuilder.setNegativeButton("Cancel", cancel);
+                .setPositiveButton(title.equals(YES_OR_NO) ? "Yes" : "OK", ok);
+        if (cancelable) alertDialogBuilder.setNegativeButton(title.equals(YES_OR_NO) ? "No" : "Cancel", cancel);
         alertDialog = alertDialogBuilder.create();
         alertDialog.show();
     }
@@ -87,6 +90,7 @@ public class Act extends Activity {
     }
 
     public void sayFail(String message) {
+        A.log("FAIL: " + message);
         A.failMessage = message;
         act.finish();
         restart();
@@ -103,13 +107,16 @@ public class Act extends Activity {
     }
     public void sayOk(String title, int res,  DialogInterface.OnClickListener ok) {sayOk(title, A.t(res), ok);}
 
-    public void askOk(String message, DialogInterface.OnClickListener ok, DialogInterface.OnClickListener cancel) {
-        say("Confirm", R.drawable.question_icon, message, ok, true, cancel);
+    public void askOk(String title, String message, DialogInterface.OnClickListener ok, DialogInterface.OnClickListener cancel) {
+        say(title, R.drawable.question_icon, message, ok, true, cancel);
     }
-    public void askOk(String message,  DialogInterface.OnClickListener ok) {
-        say("Confirm", R.drawable.question_icon, message, ok, true, null);
+    public void askOk(String message,  DialogInterface.OnClickListener ok) {askOk("Confirm", message, ok, null);}
+    public void askOk(int res, DialogInterface.OnClickListener ok) {askOk(A.t(res), ok);}
+
+    public void askYesNo(String message, DialogInterface.OnClickListener ok, DialogInterface.OnClickListener cancel) {
+        askOk(YES_OR_NO, message, ok, cancel);
     }
-    public void askOk(int res,  DialogInterface.OnClickListener ok) {askOk(A.t(res), ok);}
+    public void askYesNo(String message, DialogInterface.OnClickListener ok) {askYesNo(message, ok, null);}
 
     /**
      * Show a standard "in progress" message.
@@ -117,7 +124,7 @@ public class Act extends Activity {
      * @param go: true to start, false to stop
      */
     public void progress(boolean go) {
-        if (progressDlg != null) progressDlg.dismiss();
+        if (progressDlg != null && progressDlg.isShowing()) progressDlg.dismiss(); // maybe use .cancel() instead?
         if (go) {
             progressDlg = ProgressDialog.show(act, "In Progress", "Contacting server...");
         } else progressDlg = null;
@@ -128,16 +135,33 @@ public class Act extends Activity {
      * (note that getApplicationContext() and startActivity() are activity methods)
      */
     public void restart() {
-        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+        Intent intent = new Intent(A.context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); // end all other activities
-        startActivity(intent); // restart
+        act.startActivity(intent); // restart
     }
 
-    public void start(Class cls) {
+    public void die(String s) {
+        A.log(new Exception(s));
+        A.deb(s);
+        act.sayFail(R.string.syserr);
+    }
+
+    /**
+     * Launch a new activity.
+     * @param cls: the activity to launch
+     * @param id: identifier for the activity when it returns a result (0 if no value returned)
+     * @param k: name of value to pass to the activity (null if none)
+     * @param v: value to pass to the activity (null if none)
+     */
+    public void start(Class cls, int id, String k, String v) {
+        A.log("starting " + cls.getName());
         Intent intent = new Intent(act, cls);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-        startActivity(intent);
+        if (k != null) A.putIntentString(intent, k, v);
+        if (id == 0) startActivity(intent); else startActivityForResult(intent, id);
     }
+
+    public void start(Class cls, int id) {act.start(cls, id, null, null);}
 
     /**
      * Return a string to the parent activity.
@@ -171,16 +195,20 @@ public class Act extends Activity {
      * After requesting a transaction, handle the server's response.
      * @param json: json-format parameter string returned from server
      */
-    public void afterTx(final Json json) {
-        act.progress(false);
-
+    public void afterTx(Json json) {
         String message = json.get("message");
         A.balance = A.balanceMessage(A.customerName, json); // null if secret or no balance was returned
+        if (A.selfhelping()) message += " Your new balance is " + A.fmtAmt(json.get("balance"), true) + ".";
 
         if (json.get("ok").equals("1")) {
             A.undo = json.get("undo");
             if (A.undo != null && (A.undo.equals("") || A.undo.matches("\\d+"))) A.undo = null;
             A.db.completeTx(A.lastTxRow, json); // mark tx complete in db (unless deleted)
+
+            String status = A.db.getField("status", "txs", A.lastTxRow); // make sure it succeeded (remove this?)
+            if (status == null) {
+                A.log("null status -- tx was deleted from db?");
+            } else if (!status.equals(A.TX_DONE + "")) act.die("status not set");
 
             act.sayOk("Success!", message, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
@@ -196,6 +224,7 @@ public class Act extends Activity {
      */
     public void offlineTx() {
         String msg;
+        A.log("offline rpcPairs=" + A.rpcPairs.show());
         boolean charging = A.rpcPairs.get("force").equals("" + A.TX_PENDING);
         String qid = A.rpcPairs.get("member");
         String customer = A.db.customerName(qid);
@@ -210,6 +239,7 @@ public class Act extends Activity {
             msg = String.format("You %s %s $%s.", action, customer, amount);
             A.undo = String.format("Undo transfer of $%s %s %s?", amount, tofrom, customer);
             A.db.changeStatus(A.lastTxRow, A.TX_OFFLINE, null);
+            if (!A.db.getField("status", "txs", A.lastTxRow).equals(A.TX_OFFLINE + "")) act.die("status not set");
         } else {
             msg = String.format("The transaction has been canceled. You transferred $%s back %s %s.",
                     amount, tofrom, customer);
@@ -238,14 +268,22 @@ public class Act extends Activity {
             Pairs pairs = A.db.txPairs(rowid);
 
             if (Integer.valueOf(pairs.get("force")) == A.TX_PENDING) {
-                if (A.setTime(A.getTime())) A.db.fixTxTime(rowid, pairs); // sync creation date with server time
+                A.log("completing pending tx: " + rowid);
+                if (A.setTime(A.getTime(null))) A.db.fixTxTime(rowid, pairs); // sync creation date with server time
+                if (photoId != null) pairs.add("photoid", photoId);
                 return A.apiGetJson(A.region, pairs, true);
-            } else return A.db.cancelTx(rowid, true);
+            } else {
+                A.log("canceling tx " + rowid);
+                return A.db.cancelTx(rowid, true);
+            }
         }
 
         @Override
         protected void onPostExecute(Json json) {
-            if (json == null) act.offlineTx(); else act.afterTx(json);
+            act.progress(false);
+            if (json == null) {
+                act.offlineTx();
+            } else act.afterTx(json);
         }
 
 /*            if (A.positiveId) {

@@ -8,7 +8,6 @@ import android.view.View;
  * returns the customer's payment method (USD_CASH, USD_CHECK, or USD_CARD_
  */
 public class UsdActivity extends Act {
-    private final Act act = this;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

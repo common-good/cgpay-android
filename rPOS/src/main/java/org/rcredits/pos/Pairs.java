@@ -46,14 +46,19 @@ public class Pairs {
         return null;
     }
 
-    public String show() {
+    /**
+     * Return a printable string displaying each name/value pair.
+     * @param omit
+     * @return
+     */
+    public String show(String omit) {
 //        A.deb("showPairs pairs is null: " + (pairs == null ? "yes" : "no"));
         String result = "";
         for (NameValuePair pair : list) {
-//            A.deb("showPairs result=" + result);
-//            A.deb("showPairs pair k=" + pair.getName());
-            result = result + " " + pair.getName() + "=" + pair.getValue();
+            if (!pair.getName().equals(omit)) result = result + " " + pair.getName() + "=" + pair.getValue();
         }
         return result;
     }
+
+    public String show() {return show("");}
 }

@@ -18,7 +18,7 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:paddingTop="16dp"
-        >
+        android:layout_gravity="left|top">
 
         <TextView
             android:layout_width="wrap_content"
@@ -318,7 +318,8 @@
 
             <TableRow
                 android:layout_width="fill_parent"
-                android:layout_height="fill_parent">
+                android:layout_height="fill_parent"
+                android:id="@+id/wifi_row">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -341,6 +342,33 @@
                     android:textSize="2dp"
                     android:onClick="onWifiToggle"
                     />
+            </TableRow>
+
+            <TableRow
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:id="@+id/selfhelp_row">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:text="\nSelf-Help mode"
+                    android:id="@+id/textView13"
+                    android:textStyle="bold"
+                    android:textSize="18sp"
+                    android:layout_marginRight="10dp"/>
+
+                <CheckBox
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/selfhelp"
+                    android:layout_gravity="center_horizontal"
+                    android:clickable="true"
+                    android:enabled="true"
+                    android:singleLine="false"
+                    android:textSize="2dp"
+                    android:onClick="onSelfHelpToggle"/>
             </TableRow>
 
             <TableRow
@@ -371,6 +399,25 @@
             </TableRow>
 
         </TableLayout>
+
+        <Button
+            style="@style/ButtonGoods"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_span="3"
+            android:id="@+id/button"
+            android:layout_gravity="center_horizontal"
+            android:textSize="30dp"
+            android:onClick="goBack"
+            android:clickable="true"
+            android:textColor="#ffffff"
+            android:text="Done"
+            android:ellipsize="end"
+            android:paddingTop="5dp"
+            android:paddingBottom="10dp"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:layout_marginTop="20dp"/>
 
     </LinearLayout>
 

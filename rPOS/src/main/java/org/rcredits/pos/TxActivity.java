@@ -14,10 +14,10 @@ package org.rcredits.pos;
  * @intent customer: customer's account ID
  * @intent description: the current transaction description
  * @intent goods: "1" if the transaction is for real goods and services, else "0"
+ * @intent photoId: the customer's photo ID number, if appropriate
  * Charges, "USD in", "USD out", and "refund" are all treated similarly.
  */
 public class TxActivity extends Act {
-    private final Act act = this;
     private final int MAX_DIGITS = 6; // maximum number of digits allowed
     private final int PRECOMMA_DIGITS = 5; // maximum number of digits before we need a comma
     private final int CHANGE_DESC = 1; // change-description activity
@@ -41,6 +41,7 @@ public class TxActivity extends Act {
         customer = A.getIntentString(this.getIntent(), "customer");
         description = A.getIntentString(this.getIntent(), "description");
         goods = A.getIntentString(this.getIntent(), "goods");
+        photoId = A.getIntentString(this.getIntent(), "photoId");
         amount = "0.00";
         setLayout();
     }
@@ -68,7 +69,7 @@ public class TxActivity extends Act {
             desc.setText(description.toLowerCase());
         }
 
-        if (amount != null) ((TextView) findViewById(R.id.amount)).setText("$" + amount);
+        ((TextView) findViewById(R.id.amount)).setText("$" + amount);
     }
 
     /**
@@ -82,7 +83,7 @@ public class TxActivity extends Act {
     }
 
     /**
-     * Handle a calculator button press.
+     * Handle a number pad button press.
      * @param button: which button was pressed (c = clear, b = backspace)
      */
     public void onCalcClick(View button) {
@@ -113,20 +114,13 @@ public class TxActivity extends Act {
      * @param button
      */
     public void onChangeDescriptionClick(View button) {
-        Intent intent = new Intent(this, DescriptionActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-        A.putIntentString(intent, "description", description);
-        startActivityForResult(intent, CHANGE_DESC);
+        act.start(DescriptionActivity.class, CHANGE_DESC, "description", description);
     }
 
     /**
      * For USD in, find out what kind of USD payment customer prefers.
      */
-    public void getUsdType() {
-        Intent intent = new Intent(this, UsdActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-        startActivityForResult(intent, GET_USD_TYPE);
-    }
+    public void getUsdType() {act.start(UsdActivity.class, GET_USD_TYPE);}
 
     /**
      * Handle a change of description
@@ -163,7 +157,7 @@ public class TxActivity extends Act {
      * @param v
      */
     public void onGoClick(View v) {
-        String amount = ((TextView) findViewById(R.id.amount)).getText().toString().substring(1); // no "$"
+//        String amount = A.nn(((TextView) findViewById(R.id.amount)).getText()).substring(1); // no "$"
         if (amount.equals("0.00")) {
             sayError("You must enter an amount.", null);
             return;
@@ -188,6 +182,11 @@ public class TxActivity extends Act {
         pairs.add("amount", amount);
         pairs.add("goods", goods);
         pairs.add("description", desc);
+        if (A.db.similarTx(pairs)) {
+            act.sayFail("You already just completed a transaction for that amount with this member.");
+            return;
+        }
+// Can't add photoId to pairs until pairs stored in db and retrieved (see Act.Tx)
         act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
 
         try {

@@ -59,6 +59,7 @@ import com.google.zxing.ResultPoint;
 
 import org.rcredits.pos.A;
 import org.rcredits.pos.Act;
+import org.rcredits.pos.BuildConfig;
 import org.rcredits.pos.CustomerActivity;
 import org.rcredits.pos.R;
 import org.rcredits.zxing.client.android.camera.CameraManager;
@@ -77,6 +78,7 @@ import java.util.Collection;
 // cgf import java.util.Date;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 /**
@@ -142,7 +144,11 @@ public final class CaptureActivity extends Act implements SurfaceHolder.Callback
     @Override
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-
+        if (BuildConfig.DEBUG && false) { // cgf
+            boolean signIn = (!A.signedIn() && (A.agent == null || new Random().nextInt(2) == 1));
+            String qr = signIn ? "AAB-WeHlioM5JZv1O9G" : "ABB.ZzhWMCq0zcBowqw"; // fake scan of Bob Bossman or Susan Shopper
+            act.returnIntentString("qr", "HTTP://NEW.RC4.ME/" + qr);
+        }
         Window window = getWindow();
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_capture);
@@ -421,10 +427,13 @@ public final class CaptureActivity extends Act implements SurfaceHolder.Callback
             drawResultPoints(barcode, scaleFactor, rawResult);
         }
 
+        act.returnIntentString("qr", String.valueOf(rawResult)); // cgf
+        /*
         Intent intent = new Intent(this, CustomerActivity.class); // cgf (this whole intent block)
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
         A.putIntentString(intent, "qr", String.valueOf(rawResult));
         startActivity(intent); // process QR
+        */
     }
 
     /**

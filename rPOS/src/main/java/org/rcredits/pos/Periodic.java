@@ -24,7 +24,7 @@ public class Periodic extends AsyncTask<String, Void, Integer> {
         final String sql = "SELECT rowid, * FROM txs WHERE status<>? AND created<?";
         db = A.db; // use a private db pointer, in case user switches mode
 
-        A.setTime(A.getTime()); // check for updates first thing
+        A.setTime(A.getTime(null)); // check for updates first thing
 
         while (!isCancelled()) {
             String[] params = new String[] {String.valueOf(A.TX_DONE), String.valueOf(A.now() - A.period)};
@@ -58,7 +58,7 @@ public class Periodic extends AsyncTask<String, Void, Integer> {
     private void reconcile(Q q) {
         long rowid = q.rowid();
         int status = q.getInt("status");
-//        A.deb("status=" + status + " txid=" + q.getString("txid") + " amount=" + q.getString("amount"));
+        A.log("reconcile txid=" + q.getString("txid") + " status=" + status + " amount=" + q.getString("amount"));
 
         if (status == A.TX_CANCEL || status == A.TX_PENDING) { // change pending to cancel because cashier assumed it failed
             db.cancelTx(rowid, false);
@@ -67,11 +67,10 @@ public class Periodic extends AsyncTask<String, Void, Integer> {
             String qid = q.getString("member");
 
             Json json = A.apiGetJson(A.region, A.db.txPairs(rowid), false);
-//            A.deb("reconcile: json is null?:" + (json == null ? "yes" : "no"));
             if (json != null && json.get("ok").equals("1")) {
                 completeOldTx(rowid, qid, code, json);
             }
-        }
+        } else A.log("bad status:" + status);
     }
 
     /**
@@ -82,6 +81,7 @@ public class Periodic extends AsyncTask<String, Void, Integer> {
      * @param txJson: json parameters from the completed transaction on the server
      */
     private void completeOldTx(long txRowid, String qid, String code, Json txJson) {
+        A.log("completing old " + txRowid + " qid=" + qid + " code=? txJson=" + txJson.toString());
         Json idJson = null;
 
         Q q = A.db.oldCustomer(qid);
@@ -95,7 +95,7 @@ public class Periodic extends AsyncTask<String, Void, Integer> {
             try {
                 A.db.saveCustomer(qid, image, idJson);
             } catch (Db.NoRoom e) {return;} // no room to store customer record; try later
-        } else  q.close();
+        } else  q.close(); // we already have customer info
 
         db.completeTx(txRowid, txJson);
     }

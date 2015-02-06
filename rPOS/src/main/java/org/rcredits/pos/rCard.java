@@ -17,8 +17,8 @@ public class rCard {
 
     /**
      * Extract the member's QID and security code from a scanned URL
-     * @param qrUrl eg HTTP://NEW.RC2.ME/I/NEW.AAA-4Dpu1m54k3T
-     *              or HTTP://NEW.RC2.ME/I/AAA.4Dpu1m54k3T
+     * @param qrUrl eg HTTP://NEW.RC2.ME/I/NEW.AAA-4Dpu1m54k3T (deprecated, but some early cards use it)
+     *              or HTTP://NEW.RC2.ME/AAA.4Dpu1m54k3T
      *              (RC2.ME for real cards, RC4.ME for test cards)
      */
     public rCard(String qrUrl) throws OddCard {

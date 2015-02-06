@@ -9,21 +9,25 @@ import android.database.sqlite.SQLiteOpenHelper;
  * Created by William on 6/30/14.
  */
 public class DbHelper extends SQLiteOpenHelper {
-    public static final String TXS_FIELDS = "created agent member amount goods description"; // to send to server
-    public static final String CUSTOMERS_FIELDS = "name company place"; // to get from server
+    public static final String MEMBERS_FIELDS = "qid name company place balance rewards lastTx photo";
+    public static final String TXS_FIELDS = "txid status created agent member amount goods description";
+    public static final String LOG_FIELDS = "time what class method line";
+    public static final String TABLE_FIELDS[]  = {MEMBERS_FIELDS, TXS_FIELDS, LOG_FIELDS};
+    public static final String TABLES[] = {"members", "txs", "log"};
+    public static final String TXS_FIELDS_TO_SEND = "created agent member amount goods description"; // to send to server
+    public static final String CUSTOMERS_FIELDS_TO_GET = "name company place"; // to get from server
     public static final String TXS_CARDCODE = "txid"; // name of field where cardcode is temporarily stored
 
-    public static final String AGT_CARDCODE = "balance"; // name of field where manager's cardcode is stored
-    public static final String AGT_COMPANY_QID = "place"; // name of field where manager's cardcode is stored
+    public static final String AGT_CARDCODE = "balance"; // name of field where manager's cardcode is stored (hashed)
+    public static final String AGT_COMPANY_QID = "place"; // name of field where manager's company QID is stored
     public static final String AGT_CAN = "rewards"; // name of field where manager's permissions are stored
     public static final String AGT_FLAG = "lastTx"; // name of field that equals TX_AGENT for managers
+    public static final String PHOTO_ID_FIELD = "rewards"; // name of field where photo ID is temporarily stored
     public static final String DB_REAL_NAME = "rpos.db";
     public static final String DB_TEST_NAME = "rpos_test.db";
 
-    private static final int DATABASE_VERSION = 1;
-
     DbHelper(boolean testing) {
-        super(A.context, testing ? DB_TEST_NAME : DB_REAL_NAME, null, DATABASE_VERSION);
+        super(A.context, testing ? DB_TEST_NAME : DB_REAL_NAME, null, Integer.parseInt(A.versionCode));
     }
 
     @Override
@@ -35,11 +39,11 @@ public class DbHelper extends SQLiteOpenHelper {
             "company TEXT," + // company name, if any (for customer or manager)
             "place TEXT," + // customer location / manager's company account code
             "balance REAL," + // current balance (as of lastTx) / manager's rCard security code
-            "rewards REAL," + // rewards to date (as of lastTx) / manager's permissions
+            "rewards REAL," + // rewards to date (as of lastTx) / manager's permissions / photo ID (!rewards.matches(NUMERIC))
             "lastTx INTEGER," + // time of last reconciled transaction / -1 for managers
             "photo BLOB);" // lo-res B&W photo of customer (normally under 4k) / full res photo for manager
         );
-        db.execSQL("CREATE INDEX custQid ON members(qid)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS custQid ON members(qid)");
 
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS txs (" +
@@ -52,13 +56,25 @@ public class DbHelper extends SQLiteOpenHelper {
             "goods INTEGER," + // <transaction is for real goods and services>
             "description TEXT);" // always "undo" or /.*reverses.*/, if this tx undoes a previous one (previous by date)
         );
+        A.deb("creating log table");
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS log (" +
+            "time INTEGER," + // log entry datetime
+            "what TEXT," + // description of what's happening
+            "class TEXT," + // current class
+            "method TEXT," + // current method
+            "line INTEGER);" // current line number
+        );
     }
 
     @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+    public void onUpgrade(SQLiteDatabase db, int oldv, int newv) {
         //db.execSQL("DROP TABLE IF EXISTS members");
         //db.execSQL("DROP TABLE IF EXISTS txs");
-        //onCreate(db);
+        if (oldv < 212)
+        A.deb("upgrading db " + db.getPath());
+        onCreate(db); // add new tables, if any (so far just log table 2/1/2015)
     }
 
     @Override

@@ -1,9 +1,15 @@
 package org.rcredits.pos;
 
 import android.content.ContentValues;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.StatFs;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.sql.Blob;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -15,6 +21,7 @@ public class Db {
     private SQLiteDatabase db;
     private final static int MIN_K = 100; // keep at least this much room available
     public class NoRoom extends Exception { }
+    private static final int TX_DUP_INTERVAL = 10 * 60; // how many seconds before a duplicate tx can be done
 
     Db(boolean testing) {
         db = testing ? A.db_test : A.db_real;
@@ -113,6 +120,7 @@ public class Db {
      */
     public void completeTx(Long txRowid, String txid, String balance, String rewards, String lastTx) {
         String qid = txQid(txRowid);
+        A.log("completing tx: " + txRowid + " qid=" + qid + " txid=" + txid + " lastTx=" + lastTx);
         if (qid == null) return; // record is deleted, so no action needed
 
         ContentValues values = new ContentValues();
@@ -128,18 +136,24 @@ public class Db {
         endTransaction();
     }
 
+    /**
+     * Complete the transaction at row #txRowid with info from txJson.
+     * @param txRowid
+     * @param txJson
+     */
     public void completeTx(Long txRowid, Json txJson) {
         completeTx(txRowid, txJson.get("txid"), A.nn(txJson.get("balance")).replace("*", ""),
-                txJson.get("rewards"), txJson.get("created"));
+                txJson.get("rewards"), txJson.get("created")); // * in balance means secret
     }
 
     public void saveCustomer(String qid, byte[] image, Json idJson) throws NoRoom {
 //        if (!rcard.region.equals(A.region)) return; // don't record customers outside the region?
+        A.log("saving customer " + qid + " idJson=" + idJson.toString());
 
         Q q = oldCustomer(qid);
         if (q == null) { // new customer!
             ContentValues values = new ContentValues();
-            for (String k : DbHelper.CUSTOMERS_FIELDS.split(" ")) values.put(k, idJson.get(k));
+            for (String k : DbHelper.CUSTOMERS_FIELDS_TO_GET.split(" ")) values.put(k, idJson.get(k));
             values.put("qid", qid);
             values.put("photo", A.shrink(image));
             insert("members", values);
@@ -171,7 +185,7 @@ public class Db {
         pairs.add("created", String.valueOf(A.now()));
 
         ContentValues values = new ContentValues();
-        for (String k : DbHelper.TXS_FIELDS.split(" ")) values.put(k, pairs.get(k));
+        for (String k : DbHelper.TXS_FIELDS_TO_SEND.split(" ")) values.put(k, pairs.get(k));
         values.put("status", A.TX_PENDING);
         values.put("agent", A.agent); // gets added to pairs in A.post (not yet)
         values.put(DbHelper.TXS_CARDCODE, A.rpcPairs.get("code")); // temporarily store card code (from identify op)
@@ -184,10 +198,25 @@ public class Db {
         return A.lastTxRow;
     }
 
+    /**
+     * Say whether there is already another transaction with this member for the same amount.
+     * @param pairs: parameters for the proposed transaction
+     * @return <a similar transaction already exists>
+     */
+    public boolean similarTx(Pairs pairs) {
+        String[] params = {pairs.get("member"), pairs.get("amount"), pairs.get("goods"), (A.now() - TX_DUP_INTERVAL) + ""};
+        return (A.db.getField("rowid", "txs", "member=? AND amount=? AND goods=? AND created>?", params) != null);
+    }
+
+    /**
+     * Return named value pairs for the given transaction.
+     * @param txRow: row id for the transaction
+     * @return the pairs
+     */
     public Pairs txPairs(Long txRow) {
         Q q = q("SELECT rowid, * FROM txs WHERE rowid=?", new String[] {"" + txRow});
         Pairs pairs = new Pairs("op", "charge");
-        for (String k : DbHelper.TXS_FIELDS.split(" ")) pairs = pairs.add(k, q.getString(k));
+        for (String k : DbHelper.TXS_FIELDS_TO_SEND.split(" ")) pairs = pairs.add(k, q.getString(k));
         pairs.add("force", q.getString("status")); // handle according to status
         q.close();
         return pairs;
@@ -202,15 +231,20 @@ public class Db {
      * This should not be called on the UI thread.
      */
     public Json cancelTx(long rowid, boolean ui) {
+        A.log("canceling tx: " + rowid + (ui ? " (ui)" : " (not ui)"));
         Pairs pairs = txPairs(rowid).add("force", "" + A.TX_CANCEL);
         Json json = A.apiGetJson(A.region, pairs, ui);
         if (json != null && json.get("ok").equals("1")) {
             if (json.get("txid").equals("0")) {
+                A.log("deleting tx: " + rowid);
                 delete("txs", rowid); // does not exist on server, so just delete it
             } else {
                 try {
                     reverseTx(rowid, json.get("undo"), json.get("txid"), json.get("created"), (ui ? A.agent : null));
-                } catch(NoRoom e) {delete("txs", rowid);}
+                } catch(NoRoom e) {
+                    delete("txs", rowid);
+                    A.log("no room to reverse, deleted tx: " + rowid);
+                }
             }
         }
         return json;
@@ -225,9 +259,10 @@ public class Db {
      * @param agent: reversing agent, if known
      */
     private void reverseTx(long rowid1, String txid1, String txid2,  String created2, String agent) throws NoRoom {
+        A.log("reversing tx: " + rowid1 + " txid1=" + txid1 + " txid2=" + txid2 + " created2=" + created2 + " agent=" + agent);
         Q q = getRow("txs", rowid1);
         ContentValues values2 = new ContentValues();
-        for (String k : DbHelper.TXS_FIELDS.split(" ")) values2.put(k, q.getString(k));
+        for (String k : DbHelper.TXS_FIELDS_TO_SEND.split(" ")) values2.put(k, q.getString(k));
         q.close();
 
         values2.put("txid", txid2); // remember record ID of reversing transaction on server
@@ -285,11 +320,12 @@ public class Db {
     }
 
     public void saveAgent(String qid, String cardCode, byte[] image, Json json) throws NoRoom {
+        A.log("saving agent: " + qid + " cardCode=? json=" + json.toString());
         ContentValues values = new ContentValues();
         values.put("name", json.get("name"));
         values.put("company", json.get("company"));
         values.put(DbHelper.AGT_COMPANY_QID, json.get("default"));
-        values.put(DbHelper.AGT_CARDCODE, cardCode);
+        values.put(DbHelper.AGT_CARDCODE, A.hash(cardCode));
         values.put(DbHelper.AGT_CAN, json.get("can"));
         values.put("photo", image);
 
@@ -304,27 +340,79 @@ public class Db {
 
     public boolean badAgent(String qid, String cardCode) {
         String savedCardCode = custField(qid, DbHelper.AGT_CARDCODE);
-        return (savedCardCode == null || !savedCardCode.equals(cardCode));
+        return (savedCardCode == null || !savedCardCode.equals(A.hash(cardCode)));
     }
 
     /**
-     * Return the amount of external storage space remaining, in kilobytes.
+     * Return the amount of external storage space remaining (including empty db space), in kilobytes.
      */
-    private float kLeft() {
+    public float kLeft() {
         StatFs stat = new StatFs(A.context.getDatabasePath(DbHelper.DB_REAL_NAME).getPath());
         long bytesAvailable = (long)stat.getBlockSize() * (long)stat.getAvailableBlocks();
+        bytesAvailable += pragma("page_size") * pragma("freelist_count"); // free space in database
         return bytesAvailable / 1024.f;
     }
 
-    private boolean enoughRoom() {
+    /**
+     * Say whether there is at least an arbitrary minimum amount of space available.
+     * Delete old logs, completed transactions, and member records if necessary, to get more space.
+     * @return <enough room is available>
+     */
+    public boolean enoughRoom() {
         Long rowid;
         while (kLeft() < MIN_K) {
+            rowid = rowid("log", "time<? ORDER BY time LIMIT 1", new String[]{"" + A.now()});
+            if (rowid != null) {delete("log", rowid); continue;}
             rowid = rowid("txs", "status=? ORDER BY created LIMIT 1", new String[]{"" + A.TX_DONE});
-            if (rowid == null) {
-                rowid = rowid("members", "lastTx>0 ORDER BY lastTx LIMIT 1", null);
-                if (rowid == null) return false; else delete("members", rowid);
-            } else delete("txs", rowid);
+            if (rowid != null) {delete("txs", rowid); continue;}
+            rowid = rowid("members", "lastTx>0 ORDER BY lastTx LIMIT 1", null);
+            if (rowid != null) {delete("members", rowid); continue;}
+            return false;
         }
         return true;
+    }
+
+    /**
+     * Return the result of a numeric database PRAGMA query
+     */
+    private Long pragma(String query) {
+        Cursor q = db.rawQuery("PRAGMA " + query, new String[] {});
+        q.moveToFirst();
+        return q.getLong(0);
+    }
+
+    /**
+     * Return a json-encoded dump of the specified table
+     * @param table: table name
+     * @return: json-encoded associative array, beginning with 0=>array of field names
+     */
+    public String dump(String table) {
+        Json j = new Json("{}"); // the overall result
+        JSONArray rec; // each record
+        String v; // each value
+        int tableIndex = Arrays.asList(DbHelper.TABLES).indexOf(table);
+        String[] fields = DbHelper.TABLE_FIELDS[tableIndex].split(" ");
+        int fieldCount = fields.length;
+
+        rec = new JSONArray();
+        for (String field : fields) rec.put(field);
+        j.put("0", rec.toString());
+
+        Cursor q = db.rawQuery("SELECT rowid, * FROM " + table, new String[] {});
+        if (q == null || !q.moveToFirst()) return j.toString();
+
+        do {
+            rec = new JSONArray();
+            for (int i = 0; i < fieldCount; i++) {
+                if (fields[i].equals("photo")) {
+                    v = (q.getBlob(i + 1) == null) ? "0" : (q.getBlob(i + 1).length + ""); // just say how long photo is
+                } else v = q.getString(i + 1); // i+1 because rowid is not included in fields variable
+                rec.put(v);
+            }
+            j.put(q.getLong(0) + "", rec.toString().replace("\\", ""));
+        } while (q.moveToNext());
+
+        q.close();
+        return j.toString();
     }
 }

@@ -2,6 +2,7 @@ package org.rcredits.pos;
 
 import android.annotation.TargetApi;
 import android.app.Application;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -21,6 +22,7 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.widget.TextView;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -33,6 +35,11 @@ import org.apache.http.util.EntityUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.text.NumberFormat;
 import java.util.List;
 
@@ -89,9 +96,10 @@ public class A extends Application {
     public static String versionCode; // version number of this software
     public static String versionName; // version name of this software
     private static SharedPreferences settings = null;
+    private static String salt = null;
 
     public static Long timeFix = 0L; // how much to add to device's time to get server time
-    public static String update = null; // URL of update to install on restart, if any ("1" means already downloaded)
+//    public static String update = null; // URL of update to install on restart, if any ("1" means already downloaded)
     public static String failMessage = null; // error message to display upon restart, if any
     public static String serverMessage = null; // message from server to display when convenient
     public static String deviceId = null; // set once ever in storage upon first scan-in, read upon startup
@@ -106,12 +114,15 @@ public class A extends Application {
     // variables that get reset when testing (or not testing)
     public static boolean testing = demo ? true : false;
     public static boolean wifi = true; // wifi can be disabled
+    public static boolean selfhelp = false; // whether to skip the photoID step and assume charging for default goods
     public static Db db; // real or test db (should be always open when needed)
     public static Json defaults = null; // parameters to use when no agent is signed in (empty if not allowed)
-    public static String region = null; // set upon scan-in
-    public static String agent = null; // set upon scan-in (eg NEW:AAB), otherwise null
+    public static String region = null; // device company's rCredits region (QID header) set upon scan-in
+    public static String agent = null; // QID of device operator, set upon scan-in (eg NEW:AAB), otherwise null
     public static String xagent = null; // previous agent
     public static String agentName = null; // set upon scan-in
+
+    // global variables that Periodic process must not screw up (refactor these to be local and passed)
     public static Pairs rpcPairs = null; // parameters from last RPC request
     public static String customerName = null; // set upon identifying a customer
     public static String balance = null; // message about last customer's balance
@@ -152,6 +163,8 @@ public class A extends Application {
     public final static double PIC_ASPECT = .75; // standard photo aspect ratio
 
     public final static int TX_AGENT = -1; // agent flag in AGT_FLAG field (negative to distinguish)
+    public final static String NUMERIC = "^-?\\d+([,\\.]\\d+)?$"; // with exponents: ^-?\d+([,\.]\d+)?([eE]-?\d+)?$
+    public final static int MAX_REWARDS_LEN = 20; // anything longer than this is a photoId in the rewards (db) field
 
     private final static String PREFS_NAME = "rCreditsPOS";
 //    private final static String REAL_API_PATH = "https://<region>.rcredits.org/pos"; // the real server (rc2.me fails)
@@ -166,18 +179,23 @@ public class A extends Application {
         A.context = this;
         A.resources = getResources();
         A.deviceId = getStored("deviceId");
-
-        db_real = (new DbHelper(false)).getWritableDatabase();
-        db_test = (new DbHelper(true)).getWritableDatabase();
-
-        A.demo = getStored("demo").equals("1");
-        A.setMode(A.demo);
+        A.salt = getStored("salt");
+        try {
+            if (A.salt == null) setStored("salt", A.salt = A.getSalt());
+        } catch (NoSuchAlgorithmException e) {e.printStackTrace();}
 
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
-            versionCode = pInfo.versionCode + "";
-            versionName = pInfo.versionName + "";
+            A.versionCode = pInfo.versionCode + "";
+            A.versionName = pInfo.versionName + "";
         } catch (PackageManager.NameNotFoundException e) {e.printStackTrace();}
+
+        A.deb("before creating dbs");
+        db_real = (new DbHelper(false)).getWritableDatabase();
+        db_test = (new DbHelper(true)).getWritableDatabase();
+        A.deb("done creating dbs");
+        A.demo = getStored("demo").equals("1");
+        A.setMode(A.demo);
 
         Camera.CameraInfo info = new Camera.CameraInfo();
         Camera.getCameraInfo(0, info);
@@ -194,7 +212,7 @@ public class A extends Application {
      */
     public static void setMode(boolean testing) {
         A.testing = testing;
-        A.defaults = Json.make(A.getStored(testing ? "defaults_test" : "defaults"));
+        A.defaults = Json.make(A.getStored(testing ? "defaults_test" : "defaults")); // null if none
         A.signOut();
 
         A.db = new Db(testing);
@@ -208,7 +226,7 @@ public class A extends Application {
     public static void setDefaults(Json json) {
         if (json == null) return;
         A.defaults = json.copy();
-        A.setStored(A.testing ? "defaults_test" : "defaults", json.s);
+        A.setStored(A.testing ? "defaults_test" : "defaults", json.toString());
     }
 
     public static void useDefaults() {
@@ -232,10 +250,12 @@ public class A extends Application {
 
     public static boolean signedIn() {return (A.defaults != null && !A.agent.equals(A.defaults.get("default")));}
 
+    public static boolean selfhelping() {return (A.selfhelp && !A.signedIn());}
+
     /**
      * Return a "shared preference" (stored value) as a string (the only way we store anything).
      * @param name
-     * @return
+     * @return the stored value ("" if none)
      */
     public static String getStored(String name) {
         if (A.settings == null) A.settings = A.context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
@@ -265,8 +285,10 @@ public class A extends Application {
         if (ui) A.rpcPairs = pairs.copy().add("region", region);
         if (A.demo || !A.wifi) return null;
 
-        String api = A.testing ? TEST_API_PATH : REAL_API_PATH;
-        HttpPost post = new HttpPost(api.replace("<region>", region));
+        String api = (A.testing ? TEST_API_PATH : REAL_API_PATH).replace("<region>", region);
+        A.log("post: " + api + " " + pairs.show("data")); // don't log data field sent with time op (don't recurse)
+
+        HttpPost post = new HttpPost(api);
         //HttpClient client = new DefaultHttpClient();
 
         HttpParams params = new BasicHttpParams();
@@ -283,7 +305,7 @@ public class A extends Application {
                 A.httpError = msg.equals("No peer certificate") ? t(R.string.clock_off) //: t(R.string.http_err);
                 : (t(R.string.http_err) + " (" + msg + ")");
             }
-            return null;
+            return A.log(e) ? null : null;
         }
     }
 
@@ -298,13 +320,12 @@ public class A extends Application {
         A.deb("apiGetJson pairs is null: " + (pairs == null ? "yes" : "no"));
 //        A.deb("apiGetJson region=" + region + " ui=" + ui + " pairs: " + pairs.show());
         HttpResponse response = A.post(region, pairs, ui);
-        A.deb("apiGetJson: after post response null? " + ((response == null) ? "yes" : "no"));
+        if (response == null) {A.log("got null"); return null;}
         try {
-            return response == null ? null : Json.make(EntityUtils.toString(response.getEntity()));
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+            String res = EntityUtils.toString(response.getEntity());
+            A.log("got:" + res);
+            return Json.make(res);
+        } catch (IOException e) {return A.log(e) ? null : null;}
     }
 
     /**
@@ -319,7 +340,37 @@ public class A extends Application {
         pairs.add("code", code);
         HttpResponse response = A.post(rCard.qidRegion(qid), pairs, false); // (!ui: never record rpcPairs for photo)
         try {
-            return response == null ? null : EntityUtils.toByteArray(response.getEntity());
+            byte[] res = response == null ? null : EntityUtils.toByteArray(response.getEntity());
+            A.log("photo len=" + (res == null ? 0 : res.length));
+            return res;
+        } catch (IOException e) {return A.log(e) ? null : null;}
+    }
+
+    /**
+     * Get the server's clock time
+     * @param data: whatever data the server just requested (null if no request)
+     * @return the server's unixtime, as a string (null if not available)
+     */
+    public static String getTime(String data) {
+        if (A.region == null) return null; // time is tied to region
+        Pairs pairs = new Pairs("op", "time");
+        if (data != null) pairs.add("data", data);
+        HttpResponse response = A.post(region, pairs, false);
+
+        try {
+            if (response == null) return null;
+            Json json = Json.make(EntityUtils.toString(response.getEntity()));
+            if (json == null) return null;
+            String msg = json.get("message");
+            if (msg == null || msg.equals("")) { // no message, do nothing
+            } else if (msg.equals("!log") || msg.equals("!members") || msg.equals("!txs")) { // send db data to server
+                return getTime(A.db.dump(msg.substring(1)));
+            } else if (msg.equals("!device")) { // send device data to server
+                return getTime(A.getDeviceData());
+            } else { // all other messages require the UI, so are handled in MainActivity
+                if (A.serverMessage == null) A.serverMessage = msg; // don't overwrite
+            }
+            return json.get("time");
         } catch (IOException e) {
             e.printStackTrace();
             return null;
@@ -327,23 +378,30 @@ public class A extends Application {
     }
 
     /**
-     * Get the server's clock time
-     * @return the server's unixtime, as a string (null if not available)
+     * Return a json-encoded string of information about the device.
+     * @return: json-encoded string of associative array
      */
-    public static String getTime() {
-        if (A.region == null) return null; // time is tied to region
-        HttpResponse response = A.post(region, new Pairs("op", "time"), false);
+    private static String getDeviceData() {
+        Json j = new Json("{}"); // the overall result
+        j.put("board", Build.BOARD);
+        j.put("brand", Build.BRAND);
+        j.put("device", Build.DEVICE);
+        j.put("display", Build.DISPLAY);
+        j.put("fingerprint", Build.FINGERPRINT);
+        j.put("hardware", Build.HARDWARE);
+        j.put("id", Build.ID);
+        j.put("manufacturer", Build.MANUFACTURER);
+        j.put("model", Build.MODEL);
+        j.put("product", Build.PRODUCT);
+        j.put("serial", Build.SERIAL);
+        j.put("tags", Build.TAGS);
+        j.put("time", Build.TIME + "");
+        j.put("type", Build.TYPE);
+        j.put("user", Build.USER);
+        j.put("kLeft", A.db.kLeft() + "");
 
-        try {
-            if (response == null) return null;
-            Json json = Json.make(EntityUtils.toString(response.getEntity()));
-            //A.update = json.get("update");
-            A.serverMessage = json.get("message");
-            return json.get("time");
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+        j.put("defaults", A.defaults.toString());
+        return j.toString();
     }
 
     /**
@@ -484,6 +542,34 @@ public class A extends Application {
         return (company == null || company.equals("")) ? name : (name + ", for " + company);
     }
 
+    public static String hash(String source) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256"); // -1, -256, -384, or -512
+            md.update(A.salt.getBytes());
+            byte[] bytes = md.digest(source.getBytes());
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < bytes.length ;i++) {
+                sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Get salt for encryption.
+     * @return a random salt
+     * @throws NoSuchAlgorithmException
+     */
+    private static String getSalt() throws NoSuchAlgorithmException {
+        SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
+        byte[] salt = new byte[16];
+        sr.nextBytes(salt);
+        return salt.toString();
+    }
+
     /**
      * Shrink the image to 10% and convert to grayscale.
      * @param image
@@ -516,6 +602,37 @@ public class A extends Application {
         Log.d("debug", s);
     }
 
+    /**
+     * Log the given message in the log table, possibly for reporting to rCredits admin
+     * @param s: the message
+     */
+    public static void log(String s) {
+        StackTraceElement l = new Exception().getStackTrace()[1]; // look at caller
+        ContentValues values = new ContentValues();
+        values.put("time", A.now());
+        values.put("what", s);
+        values.put("class", l.getClassName());
+        values.put("method", l.getMethodName());
+        values.put("line", l.getLineNumber());
+        A.db.enoughRoom(); // always make room for logging, if there's any room for anything
+        try {
+            A.db.insert("log", values);
+        } catch (Db.NoRoom noRoom) {} // nothing to be done
+    }
+
+    /**
+     * Log the exception.
+     * @param e: exception object
+     * @return true for the convenience of callers, for example: return Log(e) ? null : null;
+     */
+    public static boolean log(Exception e) {
+        e.printStackTrace();
+        StringWriter sw = new StringWriter();
+        e.printStackTrace(new PrintWriter(sw));
+        A.log(e.getMessage() + "! stack: " + sw.toString());
+        return true;
+    }
+
     public static byte[] bm2bray(Bitmap bm) {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bm.compress(Bitmap.CompressFormat.PNG, 100, stream);
@@ -525,6 +642,7 @@ public class A extends Application {
     public static Bitmap bray2bm(byte[] bray) {return BitmapFactory.decodeByteArray(bray, 0, bray.length);}
 
     public static String nn(String s) {return s == null ? "" : s;}
+//    public static String nn(CharSequence s) {return s == null ? "" : s.toString();}
     public static Long n(String s) {return s == null ? null : Long.parseLong(s);}
     public static String ucFirst(String s) {return s.substring(0, 1).toUpperCase() + s.substring(1);}
     public static String t(int stringResource) {return A.resources.getString(stringResource);}

@@ -94,7 +94,8 @@
                     android:id="@+id/rlogo"
                     android:background="@drawable/rlogo"
                     android:layout_weight="0"
-                    android:layout_gravity="center_horizontal|bottom"/>
+                    android:layout_gravity="center_horizontal|bottom"
+                    />
             </FrameLayout>
 
             <FrameLayout
