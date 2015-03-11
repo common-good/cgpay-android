@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.rcredits.pos"
-    android:versionCode="212"
-    android:versionName="2.12">
+    android:versionCode="214"
+    android:versionName="2.14">
     <!-- Do NOT use android:installLocation="auto" or ="preferExternal"! which can result in data loss -->
 
     <uses-sdk

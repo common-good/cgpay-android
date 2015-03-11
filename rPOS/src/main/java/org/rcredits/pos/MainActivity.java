@@ -91,6 +91,11 @@ public final class MainActivity extends Act {
             A.serverMessage = null;
         }
 
+        A.db.q("DELETE from log WHERE time<?", new String[]{"" + A.daysAgo(7)});
+        A.db.q("DELETE from txs WHERE created<?", new String[]{"" + A.daysAgo(180)});
+        String where = String.format("%s<>%s AND lastTx<?", DbHelper.AGT_FLAG, A.TX_AGENT); // don't delete agents
+        A.db.q("DELETE from members WHERE " + where, new String[]{"" + A.daysAgo(180)});
+
         // } else if ... mention(R.string.connect_soon); // if this business is often offline, ask for ID
 
         /*

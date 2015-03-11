@@ -70,11 +70,8 @@ public class DbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldv, int newv) {
-        //db.execSQL("DROP TABLE IF EXISTS members");
-        //db.execSQL("DROP TABLE IF EXISTS txs");
-        if (oldv < 212)
         A.deb("upgrading db " + db.getPath());
-        onCreate(db); // add new tables, if any (so far just log table 2/1/2015)
+        if (oldv < 212) onCreate(db); // add new tables, if any (so far just log table 2/1/2015)
     }
 
     @Override

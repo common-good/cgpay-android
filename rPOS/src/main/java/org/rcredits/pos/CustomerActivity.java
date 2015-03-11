@@ -114,6 +114,7 @@ public class CustomerActivity extends Act {
         final String description = id == R.id.charge ? A.descriptions.get(0) : (String) v.getContentDescription();
         A.putIntentString(intent, "description", description);
         A.putIntentString(intent, "customer", rcard.qid);
+        A.putIntentString(intent, "code", rcard.code);
         A.putIntentString(intent, "goods", (id == R.id.charge || id == R.id.refund) ? "1" : "0");
         A.putIntentString(intent, "photoId", photoId);
         startActivity(intent);

@@ -12,6 +12,7 @@ package org.rcredits.pos;
 /**
  * Let the user type an amount and say go, sometimes with an option to change the charge description.
  * @intent customer: customer's account ID
+ * @intent code: customer's rCard security code
  * @intent description: the current transaction description
  * @intent goods: "1" if the transaction is for real goods and services, else "0"
  * @intent photoId: the customer's photo ID number, if appropriate
@@ -26,6 +27,7 @@ public class TxActivity extends Act {
     private final String USD_CARD_FEE = "3%";
 
     private String customer; // qid of current customer
+    private String code; // current customer's rCard security code
     private String description; // transaction description
     private String amount; // the transaction amount
     private String goods; // is this a purchase/refund of real goods & services (or an exchange for cash)
@@ -39,6 +41,7 @@ public class TxActivity extends Act {
         super.onCreate(savedInstanceState);
 
         customer = A.getIntentString(this.getIntent(), "customer");
+        code = A.getIntentString(this.getIntent(), "code");
         description = A.getIntentString(this.getIntent(), "description");
         goods = A.getIntentString(this.getIntent(), "goods");
         photoId = A.getIntentString(this.getIntent(), "photoId");
@@ -179,7 +182,8 @@ public class TxActivity extends Act {
 
         Pairs pairs = new Pairs("op", "charge");
         pairs.add("member", customer);
-        pairs.add("amount", amount);
+        pairs.add("code", code);
+        pairs.add("amount", amount.replace(",", ""));
         pairs.add("goods", goods);
         pairs.add("description", desc);
         if (A.db.similarTx(pairs)) {

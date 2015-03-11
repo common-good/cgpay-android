@@ -367,6 +367,10 @@ public class A extends Application {
                 return getTime(A.db.dump(msg.substring(1)));
             } else if (msg.equals("!device")) { // send device data to server
                 return getTime(A.getDeviceData());
+            } else if (msg.substring(0, 8).equals("!delete:")) {
+                String[] parts = msg.split("[:,]");
+                int count = A.db.delete(parts[1], Long.valueOf(parts[2]));
+                return getTime("deleted:" + count);
             } else { // all other messages require the UI, so are handled in MainActivity
                 if (A.serverMessage == null) A.serverMessage = msg; // don't overwrite
             }
@@ -463,7 +467,7 @@ public class A extends Application {
      */
     public static boolean can(int permission) {
         int can = A.can >> (A.signedIn() ? CAN_AGENT : CAN_CASHIER);
-        A.deb("permission=" + permission + " can=" + can + " A.can=" + A.can + " signed in:" + A.signedIn() + " 1<<perm=" + (1<<permission));
+//        A.deb("permission=" + permission + " can=" + can + " A.can=" + A.can + " signed in:" + A.signedIn() + " 1<<perm=" + (1<<permission));
         return ((can & (1 << permission)) != 0);
     }
 
@@ -609,11 +613,13 @@ public class A extends Application {
     public static void log(String s) {
         StackTraceElement l = new Exception().getStackTrace()[1]; // look at caller
         ContentValues values = new ContentValues();
-        values.put("time", A.now());
-        values.put("what", s);
         values.put("class", l.getClassName());
         values.put("method", l.getMethodName());
         values.put("line", l.getLineNumber());
+        Log.d(s, values.toString());
+        values.put("time", A.now());
+        values.put("what", s);
+
         A.db.enoughRoom(); // always make room for logging, if there's any room for anything
         try {
             A.db.insert("log", values);
@@ -629,8 +635,29 @@ public class A extends Application {
         e.printStackTrace();
         StringWriter sw = new StringWriter();
         e.printStackTrace(new PrintWriter(sw));
-        A.log(e.getMessage() + "! stack: " + sw.toString());
+        A.log(e.getMessage() + "! stack: " + terseTrace(sw.toString()));
         return true;
+    }
+
+    /**
+     * Return an abbreviated stacktrace for common known issues
+     * @param s
+     * @return s abbreviated, if possible
+     */
+    private static String terseTrace(String s) {
+        String msg;
+        return (
+            s.contains(msg = "Network is unreachable") ||
+            s.contains(msg = "SSLPeerUnverifiedException") ||
+            s.contains(msg = "Connection refused") ||
+            s.contains(msg = "No address associated with hostname") ||
+            s.contains(msg = "org.apache.http.conn.ConnectTimeoutException") ||
+            s.contains(msg = "at java.net.InetAddress.lookupHostByName") ||
+            s.contains(msg = "java.net.SocketTimeoutException") ||
+            s.contains(msg = "javax.net.ssl.SSLException") ||
+            s.contains(msg = "org.apache.http.conn.HttpHostConnectException") ||
+            s.contains(msg = "java.net.SocketException")
+        ) ? msg : s;
     }
 
     public static byte[] bm2bray(Bitmap bm) {
@@ -649,4 +676,5 @@ public class A extends Application {
     public static Long now0() {return System.currentTimeMillis() / 1000L;}
     public static Long now() {return A.timeFix + A.now0();}
     public static Long today() {return now() - (now() % (60 * 60 * 24));}
+    public static Long daysAgo(int daysAgo) {return now() - daysAgo * 60 * 60 * 24;}
 }

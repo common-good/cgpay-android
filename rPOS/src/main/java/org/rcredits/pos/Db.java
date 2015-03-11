@@ -11,6 +11,7 @@ import org.json.JSONObject;
 import java.sql.Blob;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Handle database operations.
@@ -108,6 +109,7 @@ public class Db {
         ContentValues values = new ContentValues();
         values.put("status", status);
         if (txid != null) values.put("txid", txid);
+        A.log(String.format("changing status rowid=%s status=%s txid=%s", rowid, status, txid));
         this.update("txs", values, rowid);
     }
 
@@ -181,6 +183,12 @@ public class Db {
         return A.customerName(name, company);
     }
 
+    /**
+     * Store the transaction (in the txs table) before sending it to the server.
+     * @param pairs
+     * @return rowid of inserted row
+     * @throws NoRoom
+     */
     public Long storeTx(Pairs pairs) throws NoRoom {
         pairs.add("created", String.valueOf(A.now()));
 
@@ -188,7 +196,8 @@ public class Db {
         for (String k : DbHelper.TXS_FIELDS_TO_SEND.split(" ")) values.put(k, pairs.get(k));
         values.put("status", A.TX_PENDING);
         values.put("agent", A.agent); // gets added to pairs in A.post (not yet)
-        values.put(DbHelper.TXS_CARDCODE, A.rpcPairs.get("code")); // temporarily store card code (from identify op)
+//        values.put(DbHelper.TXS_CARDCODE, A.rpcPairs.get("code")); // temporarily store card code (from identify op)
+        values.put(DbHelper.TXS_CARDCODE, pairs.get("code")); // temporarily store card code
         for (Map.Entry<String, Object> k : values.valueSet()) A.deb(String.format("Tx value %s: %s", k.getKey(), k.getValue()));
         A.lastTxRow = A.db.insert("txs", values);
         A.deb("Tx A.lastTxRow just set to " + A.lastTxRow);
@@ -201,22 +210,26 @@ public class Db {
     /**
      * Say whether there is already another transaction with this member for the same amount.
      * @param pairs: parameters for the proposed transaction
-     * @return <a similar transaction already exists>
+     * @return <a similar completed transaction already exists>
      */
     public boolean similarTx(Pairs pairs) {
-        String[] params = {pairs.get("member"), pairs.get("amount"), pairs.get("goods"), (A.now() - TX_DUP_INTERVAL) + ""};
-        return (A.db.getField("rowid", "txs", "member=? AND amount=? AND goods=? AND created>?", params) != null);
+        String where = "member=? AND amount=? AND goods=? AND created>? AND status IN (?,?)";
+        String[] params = {pairs.get("member"), pairs.get("amount"), pairs.get("goods")
+                , (A.now() - TX_DUP_INTERVAL) + "", "" + A.TX_OFFLINE, "" + A.TX_DONE};
+        return (A.db.getField("rowid", "txs", where, params) != null);
     }
 
     /**
      * Return named value pairs for the given transaction.
      * @param txRow: row id for the transaction
-     * @return the pairs
+     * @return the pairs, including the temporarily-stored card code (if any)
      */
     public Pairs txPairs(Long txRow) {
         Q q = q("SELECT rowid, * FROM txs WHERE rowid=?", new String[] {"" + txRow});
         Pairs pairs = new Pairs("op", "charge");
         for (String k : DbHelper.TXS_FIELDS_TO_SEND.split(" ")) pairs = pairs.add(k, q.getString(k));
+        String code;
+        if (!Pattern.matches(A.NUMERIC, code = q.getString(DbHelper.TXS_CARDCODE))) pairs.add("code", code);
         pairs.add("force", q.getString("status")); // handle according to status
         q.close();
         return pairs;
@@ -348,7 +361,7 @@ public class Db {
      */
     public float kLeft() {
         StatFs stat = new StatFs(A.context.getDatabasePath(DbHelper.DB_REAL_NAME).getPath());
-        long bytesAvailable = (long)stat.getBlockSize() * (long)stat.getAvailableBlocks();
+        long bytesAvailable = (long)stat.getBlockSize() * (long)stat.getAvailableBlocks(); // fix requires API 18
         bytesAvailable += pragma("page_size") * pragma("freelist_count"); // free space in database
         return bytesAvailable / 1024.f;
     }
@@ -361,11 +374,11 @@ public class Db {
     public boolean enoughRoom() {
         Long rowid;
         while (kLeft() < MIN_K) {
-            rowid = rowid("log", "time<? ORDER BY time LIMIT 1", new String[]{"" + A.now()});
+            rowid = rowid("log", "time<? ORDER BY time LIMIT 1", new String[]{"" + A.daysAgo(1)});
             if (rowid != null) {delete("log", rowid); continue;}
             rowid = rowid("txs", "status=? ORDER BY created LIMIT 1", new String[]{"" + A.TX_DONE});
             if (rowid != null) {delete("txs", rowid); continue;}
-            rowid = rowid("members", "lastTx>0 ORDER BY lastTx LIMIT 1", null);
+            rowid = rowid("members", DbHelper.AGT_FLAG + "<>" + A.TX_AGENT + " ORDER BY lastTx LIMIT 1", null);
             if (rowid != null) {delete("members", rowid); continue;}
             return false;
         }
@@ -393,26 +406,38 @@ public class Db {
         int tableIndex = Arrays.asList(DbHelper.TABLES).indexOf(table);
         String[] fields = DbHelper.TABLE_FIELDS[tableIndex].split(" ");
         int fieldCount = fields.length;
+        String res = "{"; // the result (build final JSON by hand, to avoid Out of Memory on final j.toString()
+        final String MEM_ERR = ",\"MEM\":\"ERR\"}"; // add this instead of closing brace, for memory error
+        String line;
 
         rec = new JSONArray();
         for (String field : fields) rec.put(field);
-        j.put("0", rec.toString());
+        //j.put("0", rec.toString());
+        res += "\"0\":" + rec.toString();
 
-        Cursor q = db.rawQuery("SELECT rowid, * FROM " + table, new String[] {});
-        if (q == null || !q.moveToFirst()) return j.toString();
+        Cursor q = db.rawQuery("SELECT rowid, * FROM " + table + " ORDER BY rowid DESC", new String[] {});
+        if (q == null || !q.moveToFirst()) return res + "}"; // was j.toString();
 
-        do {
-            rec = new JSONArray();
-            for (int i = 0; i < fieldCount; i++) {
-                if (fields[i].equals("photo")) {
-                    v = (q.getBlob(i + 1) == null) ? "0" : (q.getBlob(i + 1).length + ""); // just say how long photo is
-                } else v = q.getString(i + 1); // i+1 because rowid is not included in fields variable
-                rec.put(v);
-            }
-            j.put(q.getLong(0) + "", rec.toString().replace("\\", ""));
-        } while (q.moveToNext());
-
+        try {
+            do {
+                rec = new JSONArray();
+                for (int i = 0; i < fieldCount; i++) {
+                    if (fields[i].equals("photo")) {
+                        v = (q.getBlob(i + 1) == null) ? "0" : (q.getBlob(i + 1).length + ""); // just say how long photo is
+                    } else v = q.getString(i + 1); // i+1 because rowid is not included in fields variable
+                    rec.put(v);
+                }
+    //            j.put(q.getLong(0) + "", rec.toString().replace("\\", ""));
+                line = ",\"" + q.getLong(0) + "\":" + rec.toString();
+                assert((res + line + MEM_ERR).length() > 0); // make sure we can add the final brace or an error notice
+                res += line;
+            } while (q.moveToNext());
+        } catch (OutOfMemoryError e) {
+            q.close();
+            return res + MEM_ERR;
+        }
         q.close();
-        return j.toString();
+//        return j.toString();
+        return res + "}"; // no memory error
     }
 }

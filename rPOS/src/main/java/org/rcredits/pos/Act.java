@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.TextView;
@@ -30,6 +31,7 @@ public class Act extends Activity {
     private AlertDialog alertDialog;
     protected String photoId; // customer's photo ID number (used in TxActivity and Act.Tx)
     private final String YES_OR_NO = "Yes or No";
+    private final static int MAX_DIGITS_OFFLINE = 5; // maximum $999.99 transaction offline
 
     public void goBack(View v) {onBackPressed();}
 
@@ -124,7 +126,12 @@ public class Act extends Activity {
      * @param go: true to start, false to stop
      */
     public void progress(boolean go) {
-        if (progressDlg != null && progressDlg.isShowing()) progressDlg.dismiss(); // maybe use .cancel() instead?
+	    try {
+            if (progressDlg != null && progressDlg.isShowing()) progressDlg.dismiss(); // use .cancel() instead?
+	    } catch (final IllegalArgumentException e) {
+		    Log.e("dismissing progress dialog", "activity vanished"); // ignore (workaround Android bug)
+		}
+		
         if (go) {
             progressDlg = ProgressDialog.show(act, "In Progress", "Contacting server...");
         } else progressDlg = null;
@@ -203,20 +210,27 @@ public class Act extends Activity {
         if (json.get("ok").equals("1")) {
             A.undo = json.get("undo");
             if (A.undo != null && (A.undo.equals("") || A.undo.matches("\\d+"))) A.undo = null;
-            A.db.completeTx(A.lastTxRow, json); // mark tx complete in db (unless deleted)
 
+            A.db.beginTransaction();
+            A.db.completeTx(A.lastTxRow, json); // mark tx complete in db (unless deleted)
+/*
             String status = A.db.getField("status", "txs", A.lastTxRow); // make sure it succeeded (remove this?)
             if (status == null) {
                 A.log("null status -- tx was deleted from db?");
             } else if (!status.equals(A.TX_DONE + "")) act.die("status not set");
-
+*/
             act.sayOk("Success!", message, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
+                    A.db.setTransactionSuccessful();
+                    A.db.endTransaction();
                     dialog.cancel();
                     act.restart();
                 }
             });
-        } else act.sayError(message, null);
+        } else {
+            A.db.delete("txs", A.lastTxRow); // remove the rejected transaction
+            act.sayError(message, null);
+        }
     }
 
     /**
@@ -225,12 +239,16 @@ public class Act extends Activity {
     public void offlineTx() {
         String msg;
         A.log("offline rpcPairs=" + A.rpcPairs.show());
-        boolean charging = A.rpcPairs.get("force").equals("" + A.TX_PENDING);
+        String amount = A.rpcPairs.get("amount");
+        boolean positive = (amount.indexOf("-") < 0);
+        if (amount.length() > MAX_DIGITS_OFFLINE + (positive ? 1 : 2)) { // account for "." and "-"
+            act.sayError("That is too large an amount for an offline transaction (Your internet connection failed).", null);
+            return;
+        }
+        boolean charging = A.rpcPairs.get("force").equals("" + A.TX_PENDING); // as opposed to TX_CANCEL
         String qid = A.rpcPairs.get("member");
         String customer = A.db.customerName(qid);
         A.balance = A.demo ? A.balanceMessage(customer, qid) : null;
-        String amount = A.rpcPairs.get("amount");
-        boolean positive = (amount.indexOf("-") < 0);
         amount = A.fmtAmt(amount.replace("-", ""), true);
         String tofrom = (charging ^ positive) ? "to" : "from";
         String action = (charging ^ positive) ? "credited" : "charged";
