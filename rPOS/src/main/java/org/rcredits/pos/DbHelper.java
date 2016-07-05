@@ -47,6 +47,7 @@ public class DbHelper extends SQLiteOpenHelper {
 
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS txs (" +
+//            "me TEXT," + // company (or device-owner) account code (qid)
             "txid INTEGER DEFAULT 0," + // transaction id (xid) on the server (for offline backup only)
             "status INTEGER," + // see A.TX_... constants
             "created INTEGER," + // transaction creation datetime
@@ -54,6 +55,7 @@ public class DbHelper extends SQLiteOpenHelper {
             "member TEXT," + // customer account code (qid)
             "amount REAL," +
             "goods INTEGER," + // <transaction is for real goods and services>
+//            "proof TEXT," + // hash of cardCode, amount, created, and me (as proof of agreement)
             "description TEXT);" // always "undo" or /.*reverses.*/, if this tx undoes a previous one (previous by date)
         );
         A.deb("creating log table");

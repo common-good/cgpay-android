@@ -3,22 +3,15 @@ package org.rcredits.pos;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
-
-import org.apache.http.NameValuePair;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * An Activity class extension that includes some utility methods.
@@ -29,11 +22,26 @@ public class Act extends Activity {
     protected final Act act = this;
     protected ProgressDialog progressDlg; // for standard progress spinner
     private AlertDialog alertDialog;
-    protected String photoId; // customer's photo ID number (used in TxActivity and Act.Tx)
+    protected String photoId; // got customer's photo ID number (null or "1", used in TxActivity and Act.Tx)
     private final String YES_OR_NO = "Yes or No";
     private final static int MAX_DIGITS_OFFLINE = 5; // maximum $999.99 transaction offline
+    public Pairs rpcPairs = null; // data to post
 
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+    }
+/*
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (!act.isTaskRoot()) goHome();
+    }
+*/
     public void goBack(View v) {onBackPressed();}
+
+    public String t(int resource) {return A.t(resource);}
 
     /**
      * Show a short message briefly (2 secs) -- or longer (3.5 secs) for longer messages
@@ -46,7 +54,7 @@ public class Act extends Activity {
         toast.show();
     }
 
-    public void mention(int res) {mention(A.t(res));}
+    public void mention(int res) {mention(t(res));}
 
     private class doNothing implements DialogInterface.OnClickListener {
         public void onClick(DialogInterface dialog, int id) {
@@ -94,26 +102,27 @@ public class Act extends Activity {
     public void sayFail(String message) {
         A.log("FAIL: " + message);
         A.failMessage = message;
+        act.progress(false);
         act.finish();
-        restart();
+        goHome();
     }
-    public void sayFail(int res) {sayFail(A.t(res));}
+    public void sayFail(int res) {sayFail(t(res));}
 
     public void sayError(String message,  DialogInterface.OnClickListener ok) {
         say("Error", R.drawable.alert_red, message, ok);
     }
-    public void sayError(int res,  DialogInterface.OnClickListener ok) {sayError(A.t(res), ok);}
+    public void sayError(int res,  DialogInterface.OnClickListener ok) {sayError(t(res), ok);}
 
     public void sayOk(String title, String message,  DialogInterface.OnClickListener ok) {
         say(title, R.drawable.smile_icon, message, ok);
     }
-    public void sayOk(String title, int res,  DialogInterface.OnClickListener ok) {sayOk(title, A.t(res), ok);}
+    public void sayOk(String title, int res,  DialogInterface.OnClickListener ok) {sayOk(title, t(res), ok);}
 
     public void askOk(String title, String message, DialogInterface.OnClickListener ok, DialogInterface.OnClickListener cancel) {
         say(title, R.drawable.question_icon, message, ok, true, cancel);
     }
     public void askOk(String message,  DialogInterface.OnClickListener ok) {askOk("Confirm", message, ok, null);}
-    public void askOk(int res, DialogInterface.OnClickListener ok) {askOk(A.t(res), ok);}
+    public void askOk(int res, DialogInterface.OnClickListener ok) {askOk(t(res), ok);}
 
     public void askYesNo(String message, DialogInterface.OnClickListener ok, DialogInterface.OnClickListener cancel) {
         askOk(YES_OR_NO, message, ok, cancel);
@@ -129,7 +138,7 @@ public class Act extends Activity {
 	    try {
             if (progressDlg != null && progressDlg.isShowing()) progressDlg.dismiss(); // use .cancel() instead?
 	    } catch (final IllegalArgumentException e) {
-		    Log.e("dismissing progress dialog", "activity vanished"); // ignore (workaround Android bug)
+		    Log.e("dismissing", "activity vanished"); // ignore (workaround Android bug)
 		}
 		
         if (go) {
@@ -141,9 +150,9 @@ public class Act extends Activity {
      * End all processes in this thread and go back to scanning cards.
      * (note that getApplicationContext() and startActivity() are activity methods)
      */
-    public void restart() {
+    public void goHome() {
         Intent intent = new Intent(A.context, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); // end all other activities
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP); // end all other activities
         act.startActivity(intent); // restart
     }
 
@@ -205,7 +214,7 @@ public class Act extends Activity {
     public void afterTx(Json json) {
         String message = json.get("message");
         A.balance = A.balanceMessage(A.customerName, json); // null if secret or no balance was returned
-        if (A.selfhelping()) message += " Your new balance is " + A.fmtAmt(json.get("balance"), true) + ".";
+        if (A.selfhelping() && A.balance != null) message += " Your new balance is " + A.fmtAmt(json.get("balance"), true) + ".";
 
         if (json.get("ok").equals("1")) {
             A.undo = json.get("undo");
@@ -224,7 +233,7 @@ public class Act extends Activity {
                     A.db.setTransactionSuccessful();
                     A.db.endTransaction();
                     dialog.cancel();
-                    act.restart();
+                    act.goHome();
                 }
             });
         } else {
@@ -238,15 +247,15 @@ public class Act extends Activity {
      */
     public void offlineTx() {
         String msg;
-        A.log("offline rpcPairs=" + A.rpcPairs.show());
-        String amount = A.rpcPairs.get("amount");
+        A.log("offline rpcPairs=" + rpcPairs.show());
+        String amount = rpcPairs.get("amount");
         boolean positive = (amount.indexOf("-") < 0);
         if (amount.length() > MAX_DIGITS_OFFLINE + (positive ? 1 : 2)) { // account for "." and "-"
             act.sayError("That is too large an amount for an offline transaction (Your internet connection failed).", null);
             return;
         }
-        boolean charging = A.rpcPairs.get("force").equals("" + A.TX_PENDING); // as opposed to TX_CANCEL
-        String qid = A.rpcPairs.get("member");
+        boolean charging = rpcPairs.get("force").equals("" + A.TX_PENDING); // as opposed to TX_CANCEL
+        String qid = rpcPairs.get("member");
         String customer = A.db.customerName(qid);
         A.balance = A.demo ? A.balanceMessage(customer, qid) : null;
         amount = A.fmtAmt(amount.replace("-", ""), true);
@@ -264,11 +273,11 @@ public class Act extends Activity {
             A.undo = null;
         }
 
-        if (!A.wifi) msg = "OFFLINE " + msg + A.t(R.string.connect_soon); // in demo mode maybe pretending wifi is ON
+        if (!A.wifi) msg = "OFFLINE " + msg + t(R.string.connect_soon); // in demo mode maybe pretending wifi is ON
         act.sayOk("Done!", msg, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
-                act.restart();
+                act.goHome();
             }
         });
     }
@@ -283,21 +292,23 @@ public class Act extends Activity {
         protected Json doInBackground(Long... txRows) {
             Long rowid = txRows[0];
 
-            Pairs pairs = A.db.txPairs(rowid);
+            rpcPairs = A.db.txPairs(rowid);
 
-            if (Integer.valueOf(pairs.get("force")) == A.TX_PENDING) {
+            if (Integer.valueOf(rpcPairs.get("force")) == A.TX_PENDING) {
                 A.log("completing pending tx: " + rowid);
-                if (A.setTime(A.getTime(null))) A.db.fixTxTime(rowid, pairs); // sync creation date with server time
-                if (photoId != null) pairs.add("photoid", photoId);
-                return A.apiGetJson(A.region, pairs, true);
+// (Do this on identifying instead)  if (A.setTime(A.getTime(null))) A.db.fixTxTime(rowid, rpcPairs); // sync creation date with server time
+                //A.db.fixTxTime(rowid, rpcPairs); // sync creation date with server time NO! might cause dups
+                if (photoId != null) rpcPairs.add("photoid", photoId);
+                return A.positiveId ? A.apiGetJson(A.region, rpcPairs) : null;
             } else {
                 A.log("canceling tx " + rowid);
-                return A.db.cancelTx(rowid, true);
+                return A.db.cancelTx(rowid, rpcPairs.get("agent"));
             }
         }
 
         @Override
         protected void onPostExecute(Json json) {
+            A.log("Tx PostExecute");
             act.progress(false);
             if (json == null) {
                 act.offlineTx();
@@ -305,7 +316,7 @@ public class Act extends Activity {
         }
 
 /*            if (A.positiveId) {
-                act.askOk(A.nn(A.httpError) + " " + A.t(R.string.try_offline), new DialogInterface.OnClickListener() {
+                act.askOk(A.nn(A.httpError) + " " + t(R.string.try_offline), new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         dialog.cancel();
                         act.offlineTx();

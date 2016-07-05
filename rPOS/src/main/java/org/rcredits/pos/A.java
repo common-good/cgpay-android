@@ -90,6 +90,7 @@ import static java.lang.Thread.sleep;
  *   11, 12, -12, -13, 13, -14, 14, 21, 31-32, 41-46, 51, -51, 52, -52 (or maybe neither 52 nor -52)
  */
 public class A extends Application {
+    public static boolean noCamera = false; // for testing in simulator, without a webcam
     public static boolean demo = false; // toggle true while testing, to run as a demo without an actual internet connection
     public static Context context;
     public static Resources resources;
@@ -123,7 +124,7 @@ public class A extends Application {
     public static String agentName = null; // set upon scan-in
 
     // global variables that Periodic process must not screw up (refactor these to be local and passed)
-    public static Pairs rpcPairs = null; // parameters from last RPC request
+//    public static Pairs rpcPairs = null; // parameters from last RPC request
     public static String customerName = null; // set upon identifying a customer
     public static String balance = null; // message about last customer's balance
     public static String undo = null; // message about reversing last transaction
@@ -198,9 +199,11 @@ public class A extends Application {
         A.setMode(A.demo);
 
         Camera.CameraInfo info = new Camera.CameraInfo();
-        Camera.getCameraInfo(0, info);
-        flip = (Camera.getNumberOfCameras() == 1 && info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
-        //flip = true; versionCode = "0" + versionCode; // uncomment for old devices with only an undetectable front-facing camera.
+        if (!A.noCamera) {
+            Camera.getCameraInfo(0, info);
+            flip = (Camera.getNumberOfCameras() == 1 && info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
+            //flip = true; versionCode = "0" + versionCode; // uncomment for old devices with only an undetectable front-facing camera.
+        }
 
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 
@@ -223,11 +226,15 @@ public class A extends Application {
         A.executeAsyncTask(A.periodic = new Periodic(), new String[1]); // launch a tickler for the new db
     }
 
-    public static void setDefaults(Json json) {
+    public static void setDefaults(Json json, String ks) {
         if (json == null) return;
-        A.defaults = json.copy();
-        A.setStored(A.testing ? "defaults_test" : "defaults", json.toString());
+
+        if (ks != null) {
+            for (String k : ks.split(" ")) A.defaults.put(k, json.get(k));
+        } else A.defaults = json.copy();
+        A.setStored(A.testing ? "defaults_test" : "defaults", A.defaults.toString());
     }
+    public static void setDefaults(Json json) {setDefaults(json, null);}
 
     public static void useDefaults() {
         if (A.agent != null || A.defaults == null) return;
@@ -271,18 +278,17 @@ public class A extends Application {
     /**
      * Send a request to the server and return its response.
      * @param region: the agent's region
-     * @param pairs: name/value pairs to send with the request
-     * @param ui: <called by user interaction>
+     * @param pairs: name/value pairs to send with the request (returned with extra info)
      * @return: the server's response. null if failure (with message in A.httpError)
      */
-    public static HttpResponse post(String region, Pairs pairs, boolean ui) {
+    public static HttpResponse post(String region, Pairs pairs) {
         final int timeout = 10 * 1000; // milliseconds
         pairs.add("agent", A.agent);
         pairs.add("device", A.deviceId);
         pairs.add("version", A.versionCode);
         //pairs.add("location", A.location);
 
-        if (ui) A.rpcPairs = pairs.copy().add("region", region);
+        pairs.add("region", region);
         if (A.demo || !A.wifi) return null;
 
         String api = (A.testing ? TEST_API_PATH : REAL_API_PATH).replace("<region>", region);
@@ -297,14 +303,12 @@ public class A extends Application {
         DefaultHttpClient client = new DefaultHttpClient(params);
 
         try {
-            post.setEntity(new UrlEncodedFormEntity(pairs.list));
+            post.setEntity(new UrlEncodedFormEntity(pairs.toPost()));
             return client.execute(post);
         } catch (Exception e) {
-            if (ui) {
-                String msg = e.getMessage();
-                A.httpError = msg.equals("No peer certificate") ? t(R.string.clock_off) //: t(R.string.http_err);
-                : (t(R.string.http_err) + " (" + msg + ")");
-            }
+            String msg = e.getMessage();
+            pairs.add("httpError", msg.equals("No peer certificate") ? t(R.string.clock_off) //: t(R.string.http_err);
+                : (t(R.string.http_err) + " (" + msg + ")"));
             return A.log(e) ? null : null;
         }
     }
@@ -312,14 +316,13 @@ public class A extends Application {
     /**
      * Get a string response from the server
      * @param region: which regional server to ask
-     * @param pairs: name/value pairs to send with the request (including op = the requested operation)
-     * @param ui: <called by user interaction>
+     * @param pairs: name/value pairs to send with the request (including op) (returned with extra info)
      * @return the response
      */
-    public static Json apiGetJson(String region, Pairs pairs, boolean ui) {
+    public static Json apiGetJson(String region, Pairs pairs) {
         A.deb("apiGetJson pairs is null: " + (pairs == null ? "yes" : "no"));
 //        A.deb("apiGetJson region=" + region + " ui=" + ui + " pairs: " + pairs.show());
-        HttpResponse response = A.post(region, pairs, ui);
+        HttpResponse response = A.post(region, pairs);
         if (response == null) {A.log("got null"); return null;}
         try {
             String res = EntityUtils.toString(response.getEntity());
@@ -338,7 +341,7 @@ public class A extends Application {
         Pairs pairs = new Pairs("op", "photo");
         pairs.add("member", qid);
         pairs.add("code", code);
-        HttpResponse response = A.post(rCard.qidRegion(qid), pairs, false); // (!ui: never record rpcPairs for photo)
+        HttpResponse response = A.post(rCard.qidRegion(qid), pairs);
         try {
             byte[] res = response == null ? null : EntityUtils.toByteArray(response.getEntity());
             A.log("photo len=" + (res == null ? 0 : res.length));
@@ -355,12 +358,13 @@ public class A extends Application {
         if (A.region == null) return null; // time is tied to region
         Pairs pairs = new Pairs("op", "time");
         if (data != null) pairs.add("data", data);
-        HttpResponse response = A.post(region, pairs, false);
+        HttpResponse response = A.post(region, pairs);
 
         try {
             if (response == null) return null;
             Json json = Json.make(EntityUtils.toString(response.getEntity()));
             if (json == null) return null;
+
             String msg = json.get("message");
             if (msg == null || msg.equals("")) { // no message, do nothing
             } else if (msg.equals("!log") || msg.equals("!members") || msg.equals("!txs")) { // send db data to server
@@ -374,6 +378,14 @@ public class A extends Application {
             } else { // all other messages require the UI, so are handled in MainActivity
                 if (A.serverMessage == null) A.serverMessage = msg; // don't overwrite
             }
+
+/*            String can = json.get("can");
+            if (can != null) {
+                A.can = Integer.parseInt(can); // stay up-to-date on the signed-out permissions
+                A.descriptions = json.getArray("descriptions");
+                if (A.defaults != null) A.setDefaults(json, "can descriptions");
+            } */
+
             return json.get("time");
         } catch (IOException e) {
             e.printStackTrace();
@@ -613,7 +625,7 @@ public class A extends Application {
     public static void log(String s) {
         StackTraceElement l = new Exception().getStackTrace()[1]; // look at caller
         ContentValues values = new ContentValues();
-        values.put("class", l.getClassName());
+        values.put("class", l.getClassName().replace("org.rcredits.", ""));
         values.put("method", l.getMethodName());
         values.put("line", l.getLineNumber());
         Log.d(s, values.toString());

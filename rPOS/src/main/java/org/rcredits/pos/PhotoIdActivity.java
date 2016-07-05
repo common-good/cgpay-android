@@ -2,21 +2,14 @@ package org.rcredits.pos;
 
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ListView;
 import android.widget.Spinner;
-import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
@@ -121,7 +114,7 @@ public class PhotoIdActivity extends Act {
         setContentView(R.layout.activity_photoid);
 
         if (A.selfhelping()) {act.sayFail(R.string.self_help_photo); return;}
-        act.askYesNo(A.t(R.string.ask_for_id), null, new DialogInterface.OnClickListener() {
+        act.askYesNo(t(R.string.ask_for_id), null, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 act.sayFail(R.string.need_photo_id);
@@ -144,7 +137,7 @@ public class PhotoIdActivity extends Act {
      * Go all the way back to Main screen on Back Button press.
      */
     @Override
-    public void onBackPressed() {act.restart();}
+    public void onBackPressed() {act.goHome();}
 
     @Override
     public void goBack(View v) {onBackPressed();}

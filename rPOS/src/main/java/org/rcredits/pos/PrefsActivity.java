@@ -16,19 +16,9 @@
 
 package org.rcredits.pos;
 
-import android.content.DialogInterface;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
-import android.preference.CheckBoxPreference;
-import android.preference.PreferenceActivity;
-import android.preference.PreferenceScreen;
 import android.view.View;
 import android.widget.CheckBox;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 
 /**
  * The main settings activity.
@@ -75,7 +65,7 @@ public final class PrefsActivity extends Act {
      * Go all the way back to Main screen on Back Button press.
      */
     @Override
-    public void onBackPressed() {act.restart();}
+    public void onBackPressed() {act.goHome();}
 
     @Override
     public void goBack(View v) {onBackPressed();}

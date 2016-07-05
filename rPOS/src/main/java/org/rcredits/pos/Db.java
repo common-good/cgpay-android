@@ -238,22 +238,22 @@ public class Db {
     /**
      * Cancel or delete the transaction.
      * @param rowid:
-     * @param ui: <called by user interaction>
+     * @param agent: current agent qid, if any
      * NOTE: q gets invalidated by the call to apiGetJson().
      *         So be done with it sooner, to avoid "StaleDataException: Access closed cursor"
      * This should not be called on the UI thread.
      */
-    public Json cancelTx(long rowid, boolean ui) {
-        A.log("canceling tx: " + rowid + (ui ? " (ui)" : " (not ui)"));
+    public Json cancelTx(long rowid, String agent) {
+        A.log("canceling tx: " + rowid + " agent:" + agent);
         Pairs pairs = txPairs(rowid).add("force", "" + A.TX_CANCEL);
-        Json json = A.apiGetJson(A.region, pairs, ui);
+        Json json = A.apiGetJson(A.region, pairs);
         if (json != null && json.get("ok").equals("1")) {
             if (json.get("txid").equals("0")) {
                 A.log("deleting tx: " + rowid);
                 delete("txs", rowid); // does not exist on server, so just delete it
             } else {
                 try {
-                    reverseTx(rowid, json.get("undo"), json.get("txid"), json.get("created"), (ui ? A.agent : null));
+                    reverseTx(rowid, json.get("undo"), json.get("txid"), json.get("created"), agent);
                 } catch(NoRoom e) {
                     delete("txs", rowid);
                     A.log("no room to reverse, deleted tx: " + rowid);

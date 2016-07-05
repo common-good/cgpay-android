@@ -1,4 +1,35 @@
 To Do:
+. save instance state in Act:
+
+@Override
+public void onSaveInstanceState(Bundle savedInstanceState) {
+  super.onSaveInstanceState(savedInstanceState);
+  // Save UI state changes to the savedInstanceState.
+  // This bundle will be passed to onCreate if the process is
+  // killed and restarted.
+  savedInstanceState.putBoolean("MyBoolean", true);
+  savedInstanceState.putDouble("myDouble", 1.9);
+  savedInstanceState.putInt("MyInt", 1);
+  savedInstanceState.putString("MyString", "Welcome back to Android");
+  // etc.
+}
+// The Bundle is essentially a way of storing a NVP ("Name-Value Pair") map, and it will get passed in to onCreate() and also onRestoreInstanceState() where you'd extract the values like this:
+
+@Override
+public void onRestoreInstanceState(Bundle savedInstanceState) {
+  super.onRestoreInstanceState(savedInstanceState);
+  // Restore UI state from the savedInstanceState.
+  // This bundle has also been passed to onCreate.
+  boolean myBoolean = savedInstanceState.getBoolean("MyBoolean");
+  double myDouble = savedInstanceState.getDouble("myDouble");
+  int myInt = savedInstanceState.getInt("MyInt");
+  String myString = savedInstanceState.getString("MyString");
+}
+
+. *** require PIN (or RFID) for self-checkout
+. cashier must ask for ID when new customer and offline
+. ** let cashier see a list of the most recent N txs that day (manager can see all)
+. figure out why the app hangs sometimes trying to update tx status
 . warn every time if not reconciled within a day (and say how long and how many pending txs)
 . maybe use https://code.google.com/p/android-market-api/ to check Google itself for rPOS update availability
 . when battery is below 20%, complain and suggest they keep it plugged in
@@ -34,6 +65,20 @@ To Do:
 . LATER change "change desc" button to fling left?
 . LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
 . LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
+
+2016-07-05
+. disabled landscape mode in Act class (ie for all activities)
+. no attempt to contact server for tx if initial identification request fails for lack of wifi
+. rewrote Pairs class using ContextValues
+. revised rCard class to accept new QR format and do more format checking (sends new QR to server without : or .)
+. added intent.FLAG_ACTIVITY_SINGLE_TOP to goHome (restart) function 
+
+2015-09-04
+. fixed 7/21/2015 NullPointerException in bray2bm
+. fixed 8/7/2015 NumberFormatException in fmtAmt in afterTx, formatting secret balance when selfhelping
+
+2015-05-12
+. fixed bug in oldTx() that caused 3 crashes (trying to parseInt null)
 
 2015-04-09 (version 2.14)
 . fixed bug: code was not getting passed properly for charges (and shouldn't be included for Undo)

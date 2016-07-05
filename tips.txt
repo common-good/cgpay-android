@@ -1,0 +1,22 @@
+When the app first starts, the output window displays the state changes of Activity A:
+
+[ActivityLifecycle.MainActivity] Activity A - OnCreate
+[ActivityLifecycle.MainActivity] Activity A - OnStart
+[ActivityLifecycle.MainActivity] Activity A - OnResume
+When we click the Start Activity B button, we see Activity A pause and stop while Activity B goes through its state changes:
+
+[ActivityLifecycle.MainActivity] Activity A - OnPause
+[ActivityLifecycle.SecondActivity] Activity B - OnCreate
+[ActivityLifecycle.SecondActivity] Activity B - OnStart
+[ActivityLifecycle.SecondActivity] Activity B - OnResume
+[ActivityLifecycle.MainActivity] Activity A - OnStop
+As a result, Activity B is started and displayed in place of Activity A:
+
+When we click the Back button, Activity B is destroyed and Activity A is resumed:
+
+[ActivityLifecycle.SecondActivity] Activity B - OnPause
+[ActivityLifecycle.MainActivity] Activity A - OnRestart
+[ActivityLifecycle.MainActivity] Activity A - OnStart
+[ActivityLifecycle.MainActivity] Activity A - OnResume
+[ActivityLifecycle.SecondActivity] Activity B - OnStop
+[ActivityLifecycle.SecondActivity] Activity B - OnDestroy

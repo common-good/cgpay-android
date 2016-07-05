@@ -1,2 +1,2 @@
 del r.apk
-ren rPOS.apk r.apk
+ren rPOS-release.apk r.apk

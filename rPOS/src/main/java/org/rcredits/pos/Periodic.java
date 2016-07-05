@@ -61,12 +61,12 @@ public class Periodic extends AsyncTask<String, Void, Integer> {
         A.log("reconcile txid=" + q.getString("txid") + " status=" + status + " amount=" + q.getString("amount"));
 
         if (status == A.TX_CANCEL || status == A.TX_PENDING) { // change pending to cancel because cashier assumed it failed
-            db.cancelTx(rowid, false);
+            db.cancelTx(rowid, null);
         } else if (status == A.TX_OFFLINE) { // tell server about a completed transaction
             String code = q.getString(DbHelper.TXS_CARDCODE); // card code was stored temporarily
             String qid = q.getString("member");
 
-            Json json = A.apiGetJson(A.region, A.db.txPairs(rowid), false);
+            Json json = A.apiGetJson(A.region, A.db.txPairs(rowid));
             if (json != null && json.get("ok").equals("1")) {
                 completeOldTx(rowid, qid, code, json);
             }
@@ -89,7 +89,7 @@ public class Periodic extends AsyncTask<String, Void, Integer> {
             Pairs pairs = new Pairs("op", "identify");
             pairs.add("member", qid);
             pairs.add("code", code);
-            idJson = A.apiGetJson(rCard.qidRegion(qid), pairs, false); // get json-encoded info
+            idJson = A.apiGetJson(rCard.qidRegion(qid), pairs); // get json-encoded info
             byte[] image = A.apiGetPhoto(qid, code);
             if (idJson == null || image == null || image.length == 0) return; // try again later
             try {

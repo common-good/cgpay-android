@@ -59,11 +59,16 @@ public final class MainActivity extends Act {
         KeyguardManager keyguardManager = (KeyguardManager)getSystemService(Activity.KEYGUARD_SERVICE);
         KeyguardManager.KeyguardLock lock = keyguardManager.newKeyguardLock(KEYGUARD_SERVICE);
         lock.disableKeyguard();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
 
         setLayout();
 
         Calendar now = Calendar.getInstance(); // catch dead clocks before trying to contact server
-        if (now.get(Calendar.YEAR) < 2014) A.failMessage = A.t(R.string.clock_off);
+        if (now.get(Calendar.YEAR) < 2014) A.failMessage = t(R.string.clock_off);
 
         if (A.failMessage != null) {
             act.sayError(A.failMessage, null); // show failure message from previous (failed) activity
@@ -206,7 +211,12 @@ public final class MainActivity extends Act {
     }
 */
 
-    public void doScan(View v) {act.start(CaptureActivity.class, CAPTURE);} // user pressed the SCAN button
+//    public void doScan(View v) {act.start(CaptureActivity.class, CAPTURE);} // user pressed the SCAN button
+    public void doScan(View v) { // user pressed the SCAN button
+        if (A.noCamera) { // debugging
+            act.start(CustomerActivity.class, 0, "qr", "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G");
+        } else act.start(CaptureActivity.class, CAPTURE);
+    }
     // NOT YET USED public void doPrefs(View v) {act.start(PrefsActivity.class, 0);} // user pressed the gear button
 
     /**
@@ -218,13 +228,20 @@ public final class MainActivity extends Act {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CAPTURE) {
             if(resultCode == RESULT_OK) {
+//                act.sayOk("Scan succeeded.", data.getStringExtra("qr"), null);
                 act.start(CustomerActivity.class, 0, "qr", data.getStringExtra("qr"));
-            } else if (resultCode == RESULT_CANCELED) {} // do nothing if no result
+            } else if (resultCode == RESULT_CANCELED) { // dunno how this happens, if ever
+//                 // do nothing
+            } // else act.sayOk("Scan failed.", "", null); // sayFail seems to fail here (?)
         }
     }
 
+    /**
+     * Announce the customer's current balance, when the "Show Balance" button is pressed.
+     * @param v
+     */
     public void doShowBalance(View v) {
-        if (!oldTx()) act.sayOk("Customer Balance", A.balance, null); // user pressed the Balance button
+        if (!oldTx()) act.sayOk("Customer Balance", A.balance, null);
     }
 
     /**
@@ -232,7 +249,8 @@ public final class MainActivity extends Act {
      * @return <transaction is too old>
      */
     private boolean oldTx() {
-        int created = Integer.parseInt(A.db.getField("created", "txs", A.lastTxRow));
+        String created0 = A.db.getField("created", "txs", A.lastTxRow);
+        int created = created0 == null ? 0 : Integer.parseInt(created0);
         if (created > A.now() - TX_OLD_INTERVAL) return false;
         A.undo = A.balance = null;
         act.sayFail(getString(R.string.old_tx));

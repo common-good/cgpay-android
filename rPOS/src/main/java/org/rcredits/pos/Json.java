@@ -28,7 +28,6 @@ public class Json {
         return (res.j == null) ? null : res;
     }
 
-    public static Json copy(JSONObject json) {return json == null ? null : new Json(json);}
     public Json copy() {return new Json(this.j);}
     public String toString() {return this.j.toString();}
 
@@ -39,7 +38,7 @@ public class Json {
      */
     public String get(String key) {
         try {
-            return String.valueOf(this.j.get(key));
+            return this.j.get(key).toString();
         } catch (JSONException e) {return null;}
     }
 
