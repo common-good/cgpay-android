@@ -239,7 +239,7 @@ public class A extends Application {
     public static void useDefaults() {
         if (A.agent != null || A.defaults == null) return;
         A.agent = A.xagent = A.defaults.get("default");
-        A.region = A.agent.substring(0, A.agent.indexOf('.'));
+        A.region = rCard.qidRegion(A.agent);
         A.agentName = A.defaults.get("company");
         A.descriptions = A.defaults.getArray("descriptions");
         A.can = Integer.valueOf(A.defaults.get("can"));

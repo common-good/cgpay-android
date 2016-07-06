@@ -44,22 +44,28 @@ public class rCard {
             }
             int agentLen = i % 4;
             if (acctLen == 6 || tail.length() < 1 + acctLen + agentLen) throw new OddCard(CARD_INVALID);
-            account = tail.substring(1, acctLen);
-            String agent = tail.substring(1 + acctLen, agentLen);
+            account = tail.substring(1, 1+ acctLen);
+            String agent = tail.substring(1 + acctLen, 1 + acctLen + agentLen);
             code = tail.substring(1 + acctLen + agentLen);
-            co = region + account;
+
+            region = n2a(a2n(region));
+            account = n2a(a2n(account));
+            agent = agentLen == 0 ? "" : ("-" + n2a(a2n(agent), -1, 26));
+
+            co = region + "." + account;
             qid = co + agent;
-            if (!qid.matches("^[A-Z0-9]{3,13}$")) throw new OddCard(CARD_INVALID);
+//            if (!qid.matches("^[A-Z0-9]{3,13}$")) throw new OddCard(CARD_INVALID);
+            if (!qid.matches("^[A-Z]{3,4}(:|\\.)[A-Z]{3,5}(-[A-Z]{1,5})?")) throw new OddCard(CARD_INVALID);
         } else { // old formats
             code = parts[count - 1];
             account = parts[count - 2];
             int markPos = qrUrl.length() - code.length() - (count == 9 ? account.length() + 2 : 1);
             isAgent = qrUrl.substring(markPos, markPos + 1).equals("-");
             co = qid = region + (isAgent ? ":" : ".") + account;
-            if (!qid.matches("^[A-Z]{3}(:|\\.)[A-Z]{3}$")) throw new OddCard(CARD_INVALID);
+            if (!qid.matches("^[A-Z]{3}(:|\\.)[A-Z]{3}")) throw new OddCard(CARD_INVALID);
         }
 
-        if (code.length() < CODE_LEN_MIN || !code.matches("^[A-Za-z0-9]+$")) throw new OddCard(CARD_INVALID);
+        if (code.length() < CODE_LEN_MIN || !code.matches("^[A-Za-z0-9]+")) throw new OddCard(CARD_INVALID);
 
         //boolean proSe = (A.nn(A.agent).indexOf('.') > 0);
         //A.deb("isTestCard=" + String.valueOf(isTestCard));
@@ -71,7 +77,50 @@ public class rCard {
     }
 
     public static String qidRegion(String qid) {
-        String[] parts = qid.split("[\\.-]");
+        String[] parts = qid.split("[\\.:]");
         return parts[0];
     }
+
+    /**
+     * Return an alphabetic representation of the given non-negative integer.
+     * A is the zero digit, B is 1, etc.
+     * @param n: the integer to represent
+     * @param len: the length of the string to return
+     *   <=0 means length >=-len
+     * @param base: the radix (2 to 26)
+     */
+    private String n2a(int n, int len, int base) {
+        final int A = (int) 'A';
+        String result = "";
+        int digit;
+        for (int i = 0; (len > 0 ? (i < len) : (n > 0 || i < -len)); i++) {
+            digit = n % base;
+//            result = Character.toString((char) (digit < 10 ? digit : (A + digit - 10))) + result;
+            result = ((char) (A + digit)) + result;
+//            result = Character.toString((char) (A + digit)) + result;
+            n /= base;
+        }
+        return result;
+    }
+    private String n2a(int n) {return n2a(n, -3, 26);}
+
+    /**
+     * Return the numeric equivalent of the given number expressed in an arbitrary base (2 to 36).
+     * @see n2a
+     */
+    private int a2n(String s, int base) {
+        final int A = (int) 'A';
+        final int zero = (int) '0';
+        int result = 0;
+        int n;
+        for (int i = 0; i < s.length(); i++) {
+            n = s.charAt(i);
+            result = result * base + n - (n >= A ? A - 10 : zero);
+        }
+        return result;
+    }
+    private int a2n(String s) {return a2n(s, 36);}
+
+
 }
+

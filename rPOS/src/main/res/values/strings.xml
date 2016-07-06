@@ -16,6 +16,7 @@
     <string name="title_activity_id_number">Get State ID Number</string>
     <string name="not_signed_in"></string>
     <string name="welcome"></string>
+    <string name="already_in">You are already signed in.</string>
     <string name="no_company">Welcome to rPOS!\nScan your Company Agent rCard\nto get started.</string>
     <string name="no_agent">You have to scan yourself in (by scanning your Company Agent rCard) before charging a customer.</string>
     <string name="switch_to_test">Switching to TEST mode.</string>
@@ -29,7 +30,7 @@
     <string name="ask_for_id_offline">Ask the customer for a photo ID.</string>
     <string name="connect_soon">\n\nRemember: connect to the Internet SOON!</string>
     <string name="wifi_for_setup">You must have an internet connection, to scan your Company Agent rCard, before charging customers.</string>
-    <string name="need_photo_id">I\'m sorry, rCredits members must show a valid photo ID before making their first purchase.</string>
+    <string name="need_photo_id">I\'m sorry, rCredits members must show a valid photo ID when the app is offline and (once) before making their first purchase.</string>
     <string name="self_help_photo">You must show a state ID or driver\'s license before your first purchase. Ask a manager here to sign in and scan your card.</string>
     <string name="self_help_signout">Remember to sign out (by pressing your name) before allowing customers to help themselves.</string>
 
@@ -164,6 +165,8 @@
     <string name="syserr">SYSTEM ERROR: The rCredits POS app has crashed. Please tell the rCredits Team, so they can fix the problem!</string>
     <string name="old_tx">That transaction is now too old to undo. Do a separate transaction instead (possibly online or with US Dollars).</string>
     <string name="offline">OFFLINE (no internet)</string>
+    <string name="no_descriptions">You have no product descriptions. Sign in at rCredits.org, select your company, and visit the Company Info Settings page to fix this.</string>
+    <string name="timed_out">Your activity timed out. Start again?</string>
 
 
 </resources>

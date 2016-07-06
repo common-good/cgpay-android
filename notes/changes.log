@@ -66,12 +66,19 @@ public void onRestoreInstanceState(Bundle savedInstanceState) {
 . LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
 . LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
 
+2016-07-06 release version 2.16
+. added a timeout function
+. changed rCard class to use XXX.YYY-W format for qids both in database and for sending to the server
+. minor bug fixes
+
 2016-07-05
 . disabled landscape mode in Act class (ie for all activities)
 . no attempt to contact server for tx if initial identification request fails for lack of wifi
 . rewrote Pairs class using ContextValues
 . revised rCard class to accept new QR format and do more format checking (sends new QR to server without : or .)
-. added intent.FLAG_ACTIVITY_SINGLE_TOP to goHome (restart) function 
+. added intent.FLAG_ACTIVITY_SINGLE_TOP to goHome (restart) function
+. cashier is now directed to ask new customer for photo ID when no wifi
+. attempt to charge self is now detected offline
 
 2015-09-04
 . fixed 7/21/2015 NullPointerException in bray2bm

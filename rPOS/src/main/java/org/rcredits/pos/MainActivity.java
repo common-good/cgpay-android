@@ -214,7 +214,8 @@ public final class MainActivity extends Act {
 //    public void doScan(View v) {act.start(CaptureActivity.class, CAPTURE);} // user pressed the SCAN button
     public void doScan(View v) { // user pressed the SCAN button
         if (A.noCamera) { // debugging
-            act.start(CustomerActivity.class, 0, "qr", "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G");
+//            act.start(CustomerActivity.class, 0, "qr", "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G");
+            act.start(CustomerActivity.class, 0, "qr", "HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G");
         } else act.start(CaptureActivity.class, CAPTURE);
     }
     // NOT YET USED public void doPrefs(View v) {act.start(PrefsActivity.class, 0);} // user pressed the gear button

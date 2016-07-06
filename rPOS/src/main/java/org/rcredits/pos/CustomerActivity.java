@@ -60,6 +60,7 @@ public class CustomerActivity extends Act {
             return;
         }
 
+        if (rcard.qid.equals(A.agent)) {act.sayFail(R.string.already_in); return;}
         setLayout();
     }
 
@@ -112,7 +113,7 @@ public class CustomerActivity extends Act {
         Intent intent = new Intent(this, TxActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
         final int id = v.getId();
-        final String description = id == R.id.charge ? A.descriptions.get(0) : (String) v.getContentDescription();
+        final String description = (id == R.id.charge && !A.descriptions.isEmpty()) ? A.descriptions.get(0) : (String) v.getContentDescription();
         A.putIntentString(intent, "description", description);
         A.putIntentString(intent, "customer", rcard.qid);
         A.putIntentString(intent, "code", rcard.code);
@@ -146,6 +147,10 @@ public class CustomerActivity extends Act {
             return SCAN_FAIL;
         }
 
+        A.can = Integer.parseInt(json.get("can")); // stay up-to-date on the signed-out permissions
+        A.descriptions = json.getArray("descriptions");
+        if (A.descriptions.isEmpty()) {act.sayFail(R.string.no_descriptions); return 0;}
+        A.setTime(json.get("time")); // region/server changed so clock might be different (or not set yet)
         String logon = json.get("logon");
 
         if (logon.equals("1")) { // company agent card
@@ -155,6 +160,7 @@ public class CustomerActivity extends Act {
             result = SCAN_AGENT;
         } else { // customer card
             A.setDefaults(json, "can descriptions");
+            if (A.defaults.get("descriptions").isEmpty()) {act.die("setDefaults description error"); return 0;}
             image = A.apiGetPhoto(rcard.qid, rcard.code);
             if (image == null || image.length == 0) {
                 image = photoFile("no_photo");
@@ -165,9 +171,6 @@ public class CustomerActivity extends Act {
             }
         }
 
-        A.can = Integer.parseInt(json.get("can")); // stay up-to-date on the signed-out permissions
-        A.descriptions = json.getArray("descriptions");
-        A.setTime(json.get("time")); // region/server changed so clock might be different (or not set yet)
         return result;
     }
 
@@ -191,7 +194,7 @@ public class CustomerActivity extends Act {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 if (json == null) {
-                    gotCustomer(UNKNOWN_CUST, "", t(R.string.offline));
+                    gotCustomer("Member " + rcard.qid, UNKNOWN_CUST, t(R.string.offline));
                 } else gotCustomer();
             }
         }, new DialogInterface.OnClickListener() {
@@ -247,7 +250,7 @@ public class CustomerActivity extends Act {
             } else gotCustomer();
             q.close();
         } else {
-            if (rcard.co == A.defaults.get("default")) {act.sayFail(R.string.wifi_for_setup); return;} // same company, must be an agent
+            if (rcard.co.equals(A.defaults.get("default"))) {act.sayFail(R.string.wifi_for_setup); return;} // same company, must be an agent
             askPhotoId(); // if this business is often offline, nudge cashier to ask for ID
         }
 

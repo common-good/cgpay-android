@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -25,20 +26,48 @@ public class Act extends Activity {
     protected String photoId; // got customer's photo ID number (null or "1", used in TxActivity and Act.Tx)
     private final String YES_OR_NO = "Yes or No";
     private final static int MAX_DIGITS_OFFLINE = 5; // maximum $999.99 transaction offline
+    private final static int TIMEOUT = 10; // number of minutes before activity times out
     public Pairs rpcPairs = null; // data to post
+    private CountDownTimer timer = null; // timeout timer
+    private boolean onTop = false; // activity is visible
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
-/*
+
     @Override
-    public void onResume() {
-        super.onResume();
-        if (!act.isTaskRoot()) goHome();
+    protected void onPause() {
+        super.onPause();
+        onTop = false;
     }
-*/
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        onTop = true;
+
+        if (timer == null) timer = new CountDownTimer(TIMEOUT * 60 * 1000, 1000) {
+
+            public void onTick(long millisUntilFinished) {}
+
+            public void onFinish() {
+                timer.cancel();
+                if (onTop) {
+                    A.balance = A.undo = null; // don't show these too long
+                    if (act.getLocalClassName().equals("MainActivity")) {
+                        onResume();
+                    } else {
+                        A.log("rCredits activity timed out.");
+                        goHome(t(R.string.timed_out));
+                    }
+                }
+            }
+        };
+        timer.start();
+    }
+
     public void goBack(View v) {onBackPressed();}
 
     public String t(int resource) {return A.t(resource);}
@@ -102,27 +131,30 @@ public class Act extends Activity {
     public void sayFail(String message) {
         A.log("FAIL: " + message);
         A.failMessage = message;
-        act.progress(false);
-        act.finish();
         goHome();
     }
+
     public void sayFail(int res) {sayFail(t(res));}
 
     public void sayError(String message,  DialogInterface.OnClickListener ok) {
         say("Error", R.drawable.alert_red, message, ok);
     }
-    public void sayError(int res,  DialogInterface.OnClickListener ok) {sayError(t(res), ok);}
+    public void sayError(int res,  DialogInterface.OnClickListener ok) {
+        sayError(t(res), ok);}
 
     public void sayOk(String title, String message,  DialogInterface.OnClickListener ok) {
         say(title, R.drawable.smile_icon, message, ok);
     }
-    public void sayOk(String title, int res,  DialogInterface.OnClickListener ok) {sayOk(title, t(res), ok);}
+    public void sayOk(String title, int res,  DialogInterface.OnClickListener ok) {sayOk(title, t(res), ok);
+    }
 
     public void askOk(String title, String message, DialogInterface.OnClickListener ok, DialogInterface.OnClickListener cancel) {
         say(title, R.drawable.question_icon, message, ok, true, cancel);
     }
     public void askOk(String message,  DialogInterface.OnClickListener ok) {askOk("Confirm", message, ok, null);}
-    public void askOk(int res, DialogInterface.OnClickListener ok) {askOk(t(res), ok);}
+    public void askOk(int res, DialogInterface.OnClickListener ok) {
+        askOk(t(res), ok);
+    }
 
     public void askYesNo(String message, DialogInterface.OnClickListener ok, DialogInterface.OnClickListener cancel) {
         askOk(YES_OR_NO, message, ok, cancel);
@@ -150,11 +182,17 @@ public class Act extends Activity {
      * End all processes in this thread and go back to scanning cards.
      * (note that getApplicationContext() and startActivity() are activity methods)
      */
-    public void goHome() {
+    public void goHome(String msg) {
+        if (msg != null) A.serverMessage = msg;
+        progress(false);
+        if (timer != null) timer.cancel();
+        act.finish();
+
         Intent intent = new Intent(A.context, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP); // end all other activities
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP); // end all other activities
         act.startActivity(intent); // restart
     }
+    public void goHome() {goHome(null);}
 
     public void die(String s) {
         A.log(new Exception(s));
@@ -233,7 +271,7 @@ public class Act extends Activity {
                     A.db.setTransactionSuccessful();
                     A.db.endTransaction();
                     dialog.cancel();
-                    act.goHome();
+                    goHome();
                 }
             });
         } else {
