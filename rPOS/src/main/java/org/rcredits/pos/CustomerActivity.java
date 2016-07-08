@@ -56,7 +56,7 @@ public class CustomerActivity extends Act {
                         return;
                     }
                 });
-            } else act.sayFail(e.getMessage());
+            } else act.sayFail(R.string.invalid_rcard);
             return;
         }
 

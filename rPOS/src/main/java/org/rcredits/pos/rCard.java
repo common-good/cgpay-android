@@ -15,7 +15,7 @@ public class rCard {
     }
     public static int CARD_INVALID = 0;
     public static int CHANGE_MODE = 1;
-    private static int CODE_LEN_MIN = 12;
+    private static int CODE_LEN_MIN = 11; // some old cards have codes this short
 
     /**
      * Extract the member's QID and security code from a scanned URL

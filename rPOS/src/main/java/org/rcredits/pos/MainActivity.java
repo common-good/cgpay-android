@@ -62,7 +62,7 @@ public final class MainActivity extends Act {
     }
 
     @Override
-    public void onResume() {
+    protected void onResume() {
         super.onResume();
 
         setLayout();
@@ -242,13 +242,14 @@ public final class MainActivity extends Act {
      * @param v
      */
     public void doShowBalance(View v) {
-        if (!oldTx()) act.sayOk("Customer Balance", A.balance, null);
+//        if (!oldTx())
+        act.sayOk("Customer Balance", A.balance, null);
     }
 
     /**
      * Complain if the latest transaction is too old to risk remembering (cashiers mishandle old transactions).
      * @return <transaction is too old>
-     */
+     *//*
     private boolean oldTx() {
         String created0 = A.db.getField("created", "txs", A.lastTxRow);
         int created = created0 == null ? 0 : Integer.parseInt(created0);
@@ -256,14 +257,15 @@ public final class MainActivity extends Act {
         A.undo = A.balance = null;
         act.sayFail(getString(R.string.old_tx));
         return true;
-    }
+    }*/
 
     /**
      * Undo the last transaction after confirmation (when the user presses the "Undo" button).
      * @param v
      */
     public void doUndo(View v) {
-        if (!oldTx()) act.askOk(A.undo, new DialogInterface.OnClickListener() {
+//        if (!oldTx())
+        act.askOk(A.undo, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()

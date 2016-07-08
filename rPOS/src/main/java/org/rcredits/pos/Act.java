@@ -56,7 +56,7 @@ public class Act extends Activity {
                 timer.cancel();
                 if (onTop) {
                     A.balance = A.undo = null; // don't show these too long
-                    if (act.getLocalClassName().equals("MainActivity")) {
+                    if (isMain()) {
                         onResume();
                     } else {
                         A.log("rCredits activity timed out.");
@@ -71,6 +71,8 @@ public class Act extends Activity {
     public void goBack(View v) {onBackPressed();}
 
     public String t(int resource) {return A.t(resource);}
+
+    private boolean isMain() {return act.getLocalClassName().equals("MainActivity");}
 
     /**
      * Show a short message briefly (2 secs) -- or longer (3.5 secs) for longer messages
@@ -186,11 +188,15 @@ public class Act extends Activity {
         if (msg != null) A.serverMessage = msg;
         progress(false);
         if (timer != null) timer.cancel();
-        act.finish();
 
-        Intent intent = new Intent(A.context, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP); // end all other activities
-        act.startActivity(intent); // restart
+        if (isMain()) {
+            onResume();
+        } else {
+            act.finish();
+            Intent intent = new Intent(A.context, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP); // end all other activities
+            act.startActivity(intent); // restart
+        }
     }
     public void goHome() {goHome(null);}
 
