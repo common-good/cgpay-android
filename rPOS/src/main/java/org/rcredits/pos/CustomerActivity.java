@@ -131,12 +131,15 @@ public class CustomerActivity extends Act {
         int result;
         A.log("scanned: " + rcard.qid);
         image = null; // no image yet
+        String codeEncrypted = A.hash(rcard.code);
+//        String was = A.decrypt(codeEncrypted, rcard.qid + rcard.code);
+//        String other = A.decrypt("e045adaf90f1ab73aa84401f917d70d8", rcard.qid + rcard.code);
 
         act.rpcPairs = new Pairs("op", "identify");
         act.rpcPairs.add("member", rcard.qid);
-        act.rpcPairs.add("code", rcard.code);
+        act.rpcPairs.add("code", codeEncrypted);
 
-        if (A.demo) SystemClock.sleep(1000); // pretend to contact server
+//        if (A.demo) SystemClock.sleep(1000); // pretend to contact server
         json = A.apiGetJson(rcard.region, act.rpcPairs); // get json-encoded info
         if (json == null) return SCAN_NO_WIFI; // assume it's a customer (since we can't tell)
 
@@ -161,10 +164,10 @@ public class CustomerActivity extends Act {
         } else { // customer card
             A.setDefaults(json, "can descriptions");
             if (A.defaults.get("descriptions").isEmpty()) {act.die("setDefaults description error"); return 0;}
-            image = A.apiGetPhoto(rcard.qid, rcard.code);
+            image = A.apiGetPhoto(rcard.qid, codeEncrypted);
             if (image == null || image.length == 0) {
                 image = photoFile("no_photo");
-                result = SCAN_NO_WIFI;
+                result = GET_PHOTO_ID;
             } else {
                 A.db.saveCustomer(rcard.qid, image, json);
                 result = (logon.equals("0") || A.selfhelping()) ? SCAN_CUSTOMER : GET_PHOTO_ID;
@@ -228,8 +231,7 @@ public class CustomerActivity extends Act {
     */
 
     /**
-     * Handle the case where connection to the internet failed or is turned off (A.wifi is false).
-     * In demo mode we may come here pretending wifi is on OR off.
+     * Handle the case where connection to the internet failed or is turned off (A.wifiOff).
      */
     private void noWifi() {
         A.log("nowifi");
@@ -243,7 +245,8 @@ public class CustomerActivity extends Act {
             gotAgent(q.getString("name"));
             q.close();
         } else if (q != null) {
-            image = (A.demo && A.wifi) ? photoFile(rcard.qid.substring(4).toLowerCase()) : q.getBlob("photo");
+//            image = (A.demo && A.wifi) ? photoFile(rcard.qid.substring(4).toLowerCase()) : q.getBlob("photo");
+            image = q.getBlob("photo");
             if (json == null) {
                 String company = q.getString("company");
                 gotCustomer(q.getString("name"), company + (company.equals("") ? "" : ", ") + q.getString("place"), t(R.string.offline));
@@ -291,7 +294,7 @@ public class CustomerActivity extends Act {
         A.undo = null; // previous customer info is no longer valid
         A.customerName = A.customerName(name, company);
         A.balance = json == null ? null : A.balanceMessage(A.customerName, json); // in case tx fails or is canceled
-        if (A.demo) A.balance = A.balanceMessage(A.customerName, rcard.qid);
+//        if (A.demo) A.balance = A.balanceMessage(A.customerName, rcard.qid);
 
         if (A.can(A.CAN_REFUND)) findViewById(R.id.refund).setVisibility(View.VISIBLE);
         if (!company.equals(UNKNOWN_CUST)) { // no cash transactions without pre-identification (FinCEN requirement)

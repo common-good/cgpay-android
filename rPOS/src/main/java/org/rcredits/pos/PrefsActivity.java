@@ -18,6 +18,7 @@ package org.rcredits.pos;
 
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.CheckBox;
 
 /**
@@ -42,9 +43,10 @@ public final class PrefsActivity extends Act {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_prefs);
 
-        ((CheckBox) findViewById(R.id.wifi)).setChecked(A.wifi);
+        findViewById(R.id.emptyTestDb).setVisibility(A.testing && A.agent != null ? View.VISIBLE : View.INVISIBLE);
+        ((CheckBox) findViewById(R.id.wifi)).setChecked(!A.wifiOff);
         ((CheckBox) findViewById(R.id.selfhelp)).setChecked(A.selfhelp);
-        ((CheckBox) findViewById(R.id.demo)).setChecked(A.demo);
+//        ((CheckBox) findViewById(R.id.demo)).setChecked(A.demo);
 //        findViewById(i).setVisibility(A.testing ? View.VISIBLE : View.GONE);
 
         /*
@@ -70,11 +72,16 @@ public final class PrefsActivity extends Act {
     @Override
     public void goBack(View v) {onBackPressed();}
 
+    public void emptyTestDb(View v) {
+        for (String table : "members txs log".split(" ")) A.db.q("DELETE FROM " + table);
+        A.db.q("VACUUM");
+    }
+
     public void onWifiToggle(View v) {
-        boolean setting = ((CheckBox) findViewById(R.id.wifi)).isChecked();
-        if (setting) {
-            A.wifi = true; // avoid giving a message
-        } else act.setWifi(setting); // warn about re-connecting soon
+        boolean wifi = ((CheckBox) findViewById(R.id.wifi)).isChecked();
+        if (wifi) {
+            A.wifiOff = false; // avoid giving a message
+        } else act.setWifi(wifi); // warn about re-connecting soon
     }
 
     public void onSelfHelpToggle(View v) {
@@ -82,11 +89,11 @@ public final class PrefsActivity extends Act {
         if (A.selfhelp) act.sayOk("Self-Help Mode", R.string.self_help_signout, null);
     }
 
-    public void onDemoToggle(View v) {
+/*    public void onDemoToggle(View v) {
         A.demo = ((CheckBox) findViewById(R.id.demo)).isChecked();
         A.setStored("demo", A.demo ? "1" : "0");
     }
-
+*/
     private int find(int needle, int[] hay) {
         for (int i = 0; i < hay.length; i++) if (hay[i] == needle) return i;
         return -1;

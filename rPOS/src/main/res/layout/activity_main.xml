@@ -57,7 +57,8 @@
         android:gravity="center_horizontal"
         android:paddingLeft="16dp"
         android:paddingTop="16dp"
-        android:paddingRight="16dp">
+        android:paddingRight="16dp"
+        android:paddingBottom="32dp">
 
         <LinearLayout
             android:layout_width="fill_parent"
@@ -125,7 +126,8 @@
             android:background="@color/background"
             android:clickable="true"
             android:onClick="doScan"
-            android:cropToPadding="false"/>
+            android:cropToPadding="false"
+            android:paddingEnd="10dp"/>
 
         <Button
             android:layout_width="wrap_content"

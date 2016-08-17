@@ -9,6 +9,8 @@ package org.rcredits.pos;
         import android.widget.ImageButton;
         import android.widget.TextView;
 
+        import static org.rcredits.pos.R.*;
+
 /**
  * Let the user type an amount and say go, sometimes with an option to change the charge description.
  * @intent customer: customer's account ID
@@ -53,9 +55,9 @@ public class TxActivity extends Act {
      * Do what needs doing on creation and orientation change.
      */
     private void setLayout() {
-        setContentView(R.layout.activity_tx);
-        Button desc = (Button) findViewById(R.id.description);
-        ImageButton changeDesc = (ImageButton) findViewById(R.id.change_description);
+        setContentView(layout.activity_tx);
+        Button desc = (Button) findViewById(id.description);
+        ImageButton changeDesc = (ImageButton) findViewById(id.change_description);
 
         if (description.equals(A.DESC_USD_IN) || description.equals(A.DESC_USD_OUT)) {
             desc.setText(description);
@@ -72,7 +74,7 @@ public class TxActivity extends Act {
             desc.setText(description.toLowerCase());
         }
 
-        ((TextView) findViewById(R.id.amount)).setText("$" + amount);
+        ((TextView) findViewById(id.amount)).setText("$" + amount);
     }
 
     /**
@@ -90,7 +92,7 @@ public class TxActivity extends Act {
      * @param button: which button was pressed (c = clear, b = backspace)
      */
     public void onCalcClick(View button) {
-        TextView text = (TextView) findViewById(R.id.amount);
+        TextView text = (TextView) findViewById(id.amount);
         amount = text.getText().toString().replaceAll("[,\\.\\$]", "");
         String c = (String) button.getContentDescription();
         if (c.equals("c")) {
@@ -135,15 +137,15 @@ public class TxActivity extends Act {
         if (requestCode == CHANGE_DESC) {
             if(resultCode == RESULT_OK) {
                 description = data.getStringExtra("description");
-                Button desc = (Button) findViewById(R.id.description);
+                Button desc = (Button) findViewById(id.description);
                 //desc.setText(A.ucFirst(description.toLowerCase()));
                 desc.setText(description);
             } else if (resultCode == RESULT_CANCELED) {} // do nothing if no result
         } else if (requestCode == GET_USD_TYPE) {
             if(resultCode == RESULT_OK) {
                 final int usdType = Integer.valueOf(data.getStringExtra("type"));
-                if (usdType != R.id.cash) {
-                    String fee = usdType == R.id.check ? (USD_CHECK_FEE + " check fee.") : (USD_CARD_FEE + " card fee.");
+                if (usdType != id.cash) {
+                    String fee = usdType == id.check ? (USD_CHECK_FEE + " check fee.") : (USD_CARD_FEE + " card fee.");
                     act.askOk("The customer will be charged a " + fee, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
                             dialog.cancel();
@@ -161,10 +163,8 @@ public class TxActivity extends Act {
      */
     public void onGoClick(View v) {
 //        String amount = A.nn(((TextView) findViewById(R.id.amount)).getText()).substring(1); // no "$"
-        if (amount.equals("0.00")) {
-            sayError("You must enter an amount.", null);
-            return;
-        }
+        if (progressing()) return; // ignore if already processing a (foreground) transaction
+        if (amount.equals("0.00")) {sayError("You must enter an amount.", null); return;}
         if (description.equals(A.DESC_USD_IN)) getUsdType(); else finishTx(null);
     }
 
@@ -173,31 +173,27 @@ public class TxActivity extends Act {
      * @param usdType: type cash-in payment type (null if not applicable)
      */
     public void finishTx(Integer usdType) {
-        if (description.equals(A.DESC_REFUND) || description.equals(A.DESC_USD_IN)) amount = "-" + amount; // a negative tx
+        String created = String.valueOf(A.now());
+        String amountPlain = A.fmtAmt(amount, false);
+        if (description.equals(A.DESC_REFUND) || description.equals(A.DESC_USD_IN)) amountPlain = "-" + amountPlain; // a negative tx
         String goods = (description.equals(A.DESC_USD_IN) || description.equals(A.DESC_USD_OUT)) ? "0" : "1";
         String desc = description; // copy, because we might come here again if tx fails
-        if (desc.equals(A.DESC_USD_IN)) {
-            desc += usdType == R.id.cash ? " (cash)" : (usdType == R.id.check ? " (check)" : " (card)");
-        }
+        if (desc.equals(A.DESC_USD_IN)) desc += usdType == id.cash ? " (cash)" : (usdType == id.check ? " (check)" : " (card)");
 
         Pairs pairs = new Pairs("op", "charge");
         pairs.add("member", customer);
-        pairs.add("code", code);
-        pairs.add("amount", amount.replace(",", ""));
+//        pairs.add("code", A.hash(code));
+        pairs.add("created", created);
+        pairs.add("amount", amountPlain);
+        pairs.add("proof", A.hash(rCard.co(A.agent) + amountPlain + customer + code + created));
         pairs.add("goods", goods);
         pairs.add("description", desc);
-        if (A.db.similarTx(pairs)) {
-            act.sayFail("You already just completed a transaction for that amount with this member.");
-            return;
-        }
+        if (A.db.similarTx(pairs)) {act.sayFail("You already just completed a transaction for that amount with this member."); return;}
 // Can't add photoId to pairs until pairs stored in db and retrieved (see Act.Tx)
         act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
 
         try {
             A.executeAsyncTask(new Act.Tx(), A.db.storeTx(pairs));
-        } catch (Db.NoRoom e) {
-            act.sayFail(R.string.no_room);
-            return;
-        }
+        } catch (Db.NoRoom e) {act.sayFail(string.no_room); return;}
     }
 }

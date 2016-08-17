@@ -161,6 +161,7 @@
     <string name="no_permission">You do not have permission to scan a customer rCard. Adjust permissions settings online on the Company and Relations pages.</string>
     <string name="wifi_on">Wifi is now ON.</string>
     <string name="wifi_off">Wifi is now OFF. Remember to connect soon, to upload saved transactions.</string>
+    <string name="wifi_unavailable">Wifi is ON but no connection is currently available.</string>
     <string name="no_room">You have run out of external storage. You cannot accept further transactions until you connect to the Internet, so pending transactions can be uploaded.</string>
     <string name="syserr">SYSTEM ERROR: The rCredits POS app has crashed. Please tell the rCredits Team, so they can fix the problem!</string>
     <string name="old_tx">That transaction is now too old to undo. Do a separate transaction instead (possibly online or with US Dollars).</string>

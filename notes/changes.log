@@ -66,6 +66,12 @@ public void onRestoreInstanceState(Bundle savedInstanceState) {
 . LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
 . LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
 
+2016-08-16 release version 2.17
+. hashed card security code and proof of transaction
+. possibly fixed bug in offline transaction handling that sometimes rolls back setting status to DONE (resulting in spurious transaction reversals)
+. possibly fixed bug in http post handling that resulted in duplicate transaction requests: System.setProperty("http.keepAlive", "false");
+. better fakeScan for debugging
+
 2016-07-08 bug fixes
 . fixed invalid card message
 . improved timeout handling

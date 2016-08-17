@@ -1,5 +1,4 @@
 package org.rcredits.pos;
-
 import android.annotation.TargetApi;
 import android.app.Application;
 import android.content.ContentValues;
@@ -17,6 +16,8 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.hardware.Camera;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.SystemClock;
@@ -37,14 +38,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.text.NumberFormat;
 import java.util.List;
 
-import static android.graphics.BitmapFactory.decodeResource;
-import static java.lang.Thread.sleep;
+import static java.lang.Integer.parseInt;
 
 /**
  * rCredits POS App
@@ -74,7 +75,7 @@ import static java.lang.Thread.sleep;
  *   2. (signed in) (undo and bal buttons show). Undo. Check "balance" button. Sign out (no balance or undo buttons).
  *   3. (signed in) refund customer 13 cents, check balance and undo, undo, check balance.
  *   4. (signed in) give customer 14 cents in rCredits for USD, check balance and undo, undo, check balance.
- * B 0. Install clean. Wifi off. Try scanning agent and customer card, check for good error messages. Wifi on, sign in/out.
+ * B 0. Install clean. Wifi off. Try scanning agent and customer card, check for good error messages. Wifi on, try scanning customer card (check for error message), sign in/out.
  *   1-4. Repeat A1-4 with wifi off, using amounts 21, 22, 23, and 24 cents.
  * C 1. (wifi off, signed out) Scan cust, wifi on, charge 31 cents.
  *   2. (wifi on, signed out) Scan cust, wifi off, charge 32 cents.
@@ -90,14 +91,14 @@ import static java.lang.Thread.sleep;
  *   11, 12, -12, -13, 13, -14, 14, 21, 31-32, 41-46, 51, -51, 52, -52 (or maybe neither 52 nor -52)
  */
 public class A extends Application {
-    public static boolean noCamera = false; // for testing in simulator, without a webcam
-    public static boolean demo = false; // toggle true while testing, to run as a demo without an actual internet connection
+    public static boolean fakeScan = false; // for testing in simulator, without a webcam
     public static Context context;
     public static Resources resources;
     public static String versionCode; // version number of this software
     public static String versionName; // version name of this software
     private static SharedPreferences settings = null;
     private static String salt = null;
+    private static ConnectivityManager cm = null;
 
     public static Long timeFix = 0L; // how much to add to device's time to get server time
 //    public static String update = null; // URL of update to install on restart, if any ("1" means already downloaded)
@@ -113,8 +114,8 @@ public class A extends Application {
     public static SQLiteDatabase db_test;
 
     // variables that get reset when testing (or not testing)
-    public static boolean testing = demo ? true : false;
-    public static boolean wifi = true; // wifi can be disabled
+    public static boolean testing = false;
+    public static boolean wifiOff = false; // force wifi off
     public static boolean selfhelp = false; // whether to skip the photoID step and assume charging for default goods
     public static Db db; // real or test db (should be always open when needed)
     public static Json defaults = null; // parameters to use when no agent is signed in (empty if not allowed)
@@ -191,22 +192,32 @@ public class A extends Application {
             A.versionName = pInfo.versionName + "";
         } catch (PackageManager.NameNotFoundException e) {e.printStackTrace();}
 
+        A.cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         A.deb("before creating dbs");
         db_real = (new DbHelper(false)).getWritableDatabase();
         db_test = (new DbHelper(true)).getWritableDatabase();
         A.deb("done creating dbs");
-        A.demo = getStored("demo").equals("1");
-        A.setMode(A.demo);
+
+        A.setMode(A.testing);
 
         Camera.CameraInfo info = new Camera.CameraInfo();
-        if (!A.noCamera) {
+        if (!A.fakeScan) {
             Camera.getCameraInfo(0, info);
             flip = (Camera.getNumberOfCameras() == 1 && info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
             //flip = true; versionCode = "0" + versionCode; // uncomment for old devices with only an undetectable front-facing camera.
         }
 
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        System.setProperty("http.keepAlive", "false"); // as of 8/16/2016 this prevent background http POSTs from being duplicated
+        // ... and possibly prevents timing bugs between background and foreground http POSTs?
+    }
 
+    /**
+     * Return true if we can connect to the internet.
+     */
+    public static boolean connected() {
+        NetworkInfo ni = A.cm.getActiveNetworkInfo();
+        return (!A.wifiOff && ni != null && ni.isAvailable() && ni.isConnected());
     }
 
     /**
@@ -283,15 +294,16 @@ public class A extends Application {
      */
     public static HttpResponse post(String region, Pairs pairs) {
         final int timeout = 10 * 1000; // milliseconds
+
+        String api = (A.testing ? TEST_API_PATH : REAL_API_PATH).replace("<region>", region);
+
         pairs.add("agent", A.agent);
         pairs.add("device", A.deviceId);
         pairs.add("version", A.versionCode);
         //pairs.add("location", A.location);
-
         pairs.add("region", region);
-        if (A.demo || !A.wifi) return null;
+        if (!A.connected()) return A.log("not connected") ? null : null;
 
-        String api = (A.testing ? TEST_API_PATH : REAL_API_PATH).replace("<region>", region);
         A.log("post: " + api + " " + pairs.show("data")); // don't log data field sent with time op (don't recurse)
 
         HttpPost post = new HttpPost(api);
@@ -321,7 +333,6 @@ public class A extends Application {
      */
     public static Json apiGetJson(String region, Pairs pairs) {
         A.deb("apiGetJson pairs is null: " + (pairs == null ? "yes" : "no"));
-//        A.deb("apiGetJson region=" + region + " ui=" + ui + " pairs: " + pairs.show());
         HttpResponse response = A.post(region, pairs);
         if (response == null) {A.log("got null"); return null;}
         try {
@@ -496,13 +507,15 @@ public class A extends Application {
     }
 
     /**
-     * Return a formatted dollar amount (no dollar sign).
+     * Return a formatted dollar amount (always show cents, no dollar sign).
      * @param n: the amount to format
      * @param commas: <include commas, if appropriate>
      * @return: the formatted amount
      */
     public static String fmtAmt(Double n, boolean commas) {
-        String result = NumberFormat.getInstance().format(n);
+        NumberFormat num = NumberFormat.getInstance();
+        num.setMinimumFractionDigits(2);
+        String result = num.format(n);
         return commas ? result : result.replaceAll(",", "");
     }
     public static String fmtAmt(String v, boolean commas) {return fmtAmt(Double.valueOf(v), commas);}
@@ -528,7 +541,7 @@ public class A extends Application {
      * @param name
      * @param qid
      * @return
-     */
+     *//*
     public static String balanceMessage(String name, String qid) {
         assert A.demo;
         String where = "created>? AND member=? AND status<>?";
@@ -539,9 +552,9 @@ public class A extends Application {
         String rewards = String.valueOf(total * .10);
         return balanceMessage(name, balance, rewards, "");
     }
-
+*/
     /**
-     * Return a suitable message for when the "Show Customer Balance" button is pressed NOT in demo mode.
+     * Return a suitable message for when the "Show Customer Balance" button is pressed.
      * @param name: customer name (including agent and company name, for company agents)
      * @return: a suitable message or null if the balance is secret (or no data)
      */
@@ -558,6 +571,108 @@ public class A extends Application {
         return (company == null || company.equals("")) ? name : (name + ", for " + company);
     }
 
+    public static String hash(String text) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(text.getBytes("UTF-8")); // Change this to "UTF-16" ifeeded
+            return bytesToHex(md.digest());
+//            return new String(md.digest());
+        } catch(Exception e) {Log.e("hash", e.getMessage()); return null;}
+    }
+
+    public static String bytesToHex(byte[] a) {
+        StringBuilder sb = new StringBuilder(a.length * 2);
+        for(byte b: a) sb.append(String.format("%02x", b & 0xff));
+        return sb.toString();
+    }
+/*
+    public static byte[] hexToBytes(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i+1), 16));
+        }
+        return data;
+    }
+*/
+    public static byte[] hexToBytes(String str) {
+        if (str == null || str.length() < 2) return null;
+        int len = str.length() / 2;
+        byte[] buffer = new byte[len];
+        for (int i = 0; i < len; i++) {
+            buffer[i] = (byte) parseInt(str.substring(i * 2, i * 2 + 2), 16);
+        }
+        return buffer;
+    }
+/*
+    public static String encrypt(String text, String key) {
+        key = padRight(key, 32);
+        String iv = padRight(key, 16);
+        if(text == null || text.length() == 0) return null;
+
+        IvParameterSpec ivspec = new IvParameterSpec(iv.getBytes());
+        SecretKeySpec keyspec = new SecretKeySpec(key.getBytes(), "AES");
+
+        try {
+            Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, keyspec, ivspec);
+            return bytesToHex(cipher.doFinal(padRight(text).getBytes()));
+        } catch (Exception e) {Log.e("encrypt", e.getMessage()); return null;}
+    }
+
+
+    public static String decrypt(String text, String key) {
+        key = padRight(key, 32);
+        String iv = padRight(key, 16);
+        if(text == null || text.length() == 0) return null;
+
+        IvParameterSpec ivspec = new IvParameterSpec(iv.getBytes());
+        SecretKeySpec keyspec = new SecretKeySpec(key.getBytes(), "AES");
+
+        try {
+            Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, keyspec, ivspec);
+            return (new String(cipher.doFinal(hexToBytes(text)))).trim();
+        } catch (Exception e) {Log.e("decrypt", e.getMessage()); return null;}
+    }
+
+
+    public static String bytesToHex(byte[] data) {
+        if (data == null) return null;
+        int len = data.length;
+        int c;
+        String str = "";
+
+        for (int i = 0; i < len; i++) {
+            c = data[i] & 0xFF;
+            str += (c < 16 ? "0" : "") + java.lang.Integer.toHexString(c);
+        }
+        return str;
+    }
+
+    public static byte[] hexToBytes(String str) {
+        if (str == null || str.length() < 2) return null;
+        int len = str.length() / 2;
+        byte[] buffer = new byte[len];
+        for (int i = 0; i < len; i++) {
+            buffer[i] = (byte) parseInt(str.substring(i * 2, i * 2 + 2), 16);
+        }
+        return buffer;
+    }
+*/
+
+    /**
+     * Pad the given string to the given length n or multiple of n characters
+     * @param s
+     * @return
+     */
+  /*  private static String padRight(String s) {
+        return String.format("%1$-" + (s.length() + 16 - (s.length() % 16)) + "s", s);
+    } */
+//    private static String padRight(String s, int n) {return String.format("%1$-" + n + "s", s).substring(0, n);}
+
+    /*
     public static String hash(String source) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256"); // -1, -256, -384, or -512
@@ -573,6 +688,7 @@ public class A extends Application {
             return null;
         }
     }
+    */
 
     /**
      * Get salt for encryption.
@@ -622,7 +738,7 @@ public class A extends Application {
      * Log the given message in the log table, possibly for reporting to rCredits admin
      * @param s: the message
      */
-    public static void log(String s) {
+    public static boolean log(String s) {
         StackTraceElement l = new Exception().getStackTrace()[1]; // look at caller
         ContentValues values = new ContentValues();
         values.put("class", l.getClassName().replace("org.rcredits.", ""));
@@ -636,6 +752,7 @@ public class A extends Application {
         try {
             A.db.insert("log", values);
         } catch (Db.NoRoom noRoom) {} // nothing to be done
+        return true;
     }
 
     /**
@@ -647,8 +764,7 @@ public class A extends Application {
         e.printStackTrace();
         StringWriter sw = new StringWriter();
         e.printStackTrace(new PrintWriter(sw));
-        A.log(e.getMessage() + "! stack: " + terseTrace(sw.toString()));
-        return true;
+        return A.log(e.getMessage() + "! stack: " + terseTrace(sw.toString()));
     }
 
     /**

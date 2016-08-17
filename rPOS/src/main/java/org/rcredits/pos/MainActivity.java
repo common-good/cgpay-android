@@ -37,6 +37,7 @@ import org.rcredits.zxing.client.android.PreferencesActivity;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Calendar;
@@ -133,7 +134,7 @@ public final class MainActivity extends Act {
         Button signedAs = (Button) findViewById(R.id.signed_as);
         TextView welcome = (TextView) findViewById(R.id.welcome);
         TextView version = (TextView) findViewById(R.id.version);
-        if (version != null) version.setText("v. " + ((A.testing && !A.demo) ? A.versionCode : A.versionName));
+        if (version != null) version.setText("v. " + A.versionName);
 
         A.useDefaults(); // get agent, etc., if necessary
 
@@ -142,7 +143,7 @@ public final class MainActivity extends Act {
         findViewById(R.id.undo_last).setVisibility(showUndo ? View.VISIBLE : View.INVISIBLE);
         findViewById(R.id.show_balance).setVisibility(showBalance ? View.VISIBLE : View.INVISIBLE);
         findViewById(R.id.test).setVisibility(A.testing ? View.VISIBLE : View.INVISIBLE);
-        if (A.demo) ((TextView) findViewById(R.id.test)).setText("DEMO");
+//        if (A.demo) ((TextView) findViewById(R.id.test)).setText("DEMO");
         findViewById(R.id.settings).setVisibility(A.can(A.CAN_MANAGE) ? View.INVISIBLE : View.INVISIBLE); // not used yet
 
         if (A.agent == null) {
@@ -213,9 +214,24 @@ public final class MainActivity extends Act {
 
 //    public void doScan(View v) {act.start(CaptureActivity.class, CAPTURE);} // user pressed the SCAN button
     public void doScan(View v) { // user pressed the SCAN button
-        if (A.noCamera) { // debugging
-//            act.start(CustomerActivity.class, 0, "qr", "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G");
-            act.start(CustomerActivity.class, 0, "qr", "HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G");
+//        final String BOB = "HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G";
+        final String BOB = "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G";
+        final String SUSAN = "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw";
+        if (A.fakeScan) { // debugging
+            act.askYesNo("Scan BOB? (else Susan)",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                        act.start(CustomerActivity.class, 0, "qr", BOB);
+                    }
+                },
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                        act.start(CustomerActivity.class, 0, "qr", SUSAN);
+                    }
+                }
+            );
         } else act.start(CaptureActivity.class, CAPTURE);
     }
     // NOT YET USED public void doPrefs(View v) {act.start(PrefsActivity.class, 0);} // user pressed the gear button

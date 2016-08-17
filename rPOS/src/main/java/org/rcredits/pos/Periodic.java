@@ -61,6 +61,7 @@ public class Periodic extends AsyncTask<String, Void, Integer> {
         A.log("reconcile txid=" + q.getString("txid") + " status=" + status + " amount=" + q.getString("amount"));
 
         if (status == A.TX_CANCEL || status == A.TX_PENDING) { // change pending to cancel because cashier assumed it failed
+            A.log("discovered pending tx row " + rowid);
             db.cancelTx(rowid, null);
         } else if (status == A.TX_OFFLINE) { // tell server about a completed transaction
             String code = q.getString(DbHelper.TXS_CARDCODE); // card code was stored temporarily

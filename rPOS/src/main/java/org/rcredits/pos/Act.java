@@ -3,9 +3,12 @@ package org.rcredits.pos;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -13,6 +16,8 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Toast;
+
+import java.text.NumberFormat;
 
 /**
  * An Activity class extension that includes some utility methods.
@@ -165,19 +170,24 @@ public class Act extends Activity {
 
     /**
      * Show a standard "in progress" message.
-     * PROBLEM: this doesn't show up until it's canceled (ie never). If the call with false is omitted, it doesn't show up until the post operation is completed.
      * @param go: true to start, false to stop
      */
     public void progress(boolean go) {
-	    try {
-            if (progressDlg != null && progressDlg.isShowing()) progressDlg.dismiss(); // use .cancel() instead?
+	    if (progressing()) try {
+            progressDlg.dismiss(); // use .cancel() instead?
 	    } catch (final IllegalArgumentException e) {
-		    Log.e("dismissing", "activity vanished"); // ignore (workaround Android bug)
+		    Log.e("dismissing", "activity vanished"); // ignore (work around Android bug)
 		}
 		
         if (go) {
             progressDlg = ProgressDialog.show(act, "In Progress", "Contacting server...");
         } else progressDlg = null;
+    }
+    
+    public boolean progressing() {
+        try {
+            return (progressDlg != null && progressDlg.isShowing());
+        } catch (final IllegalArgumentException e) {return false;} // work around Android bug
     }
 
     /**
@@ -239,8 +249,9 @@ public class Act extends Activity {
      * Turn wifi on or off for this app (useful for saving time when out of range for a long time).
      */
     public void setWifi(boolean wifi) {
-        A.wifi = wifi;
-        act.sayOk("Wifi", wifi ? R.string.wifi_on : R.string.wifi_off, null);
+        A.wifiOff = !wifi;
+        int msg = wifi ? (A.connected() ? R.string.wifi_on : R.string.wifi_unavailable) : R.string.wifi_off;
+        act.sayOk("Wifi", msg, null);
     }
 
     public void showTables(View v) {if (A.testing) sayOk("Records", A.db.showCust() + "\n\n" + A.db.showTxs(), null);}
@@ -249,7 +260,7 @@ public class Act extends Activity {
      * Provide wifi toggle shortcuts when testing (clicking +id/test, +id/customer_place, or +id/amount).
      * @param v
      */
-    public void setWifi(View v) {if (A.testing) setWifi(!A.wifi);}
+    public void setWifi(View v) {if (A.testing) setWifi(A.wifiOff);}
 
     /**
      * After requesting a transaction, handle the server's response.
@@ -264,8 +275,10 @@ public class Act extends Activity {
             A.undo = json.get("undo");
             if (A.undo != null && (A.undo.equals("") || A.undo.matches("\\d+"))) A.undo = null;
 
-            A.db.beginTransaction();
+// seems to fail (probably because cashiers don't press OK)    A.db.beginTransaction();
+            A.log("before complete of " + A.lastTxRow);
             A.db.completeTx(A.lastTxRow, json); // mark tx complete in db (unless deleted)
+            A.log("after complete of " + A.lastTxRow);
 /*
             String status = A.db.getField("status", "txs", A.lastTxRow); // make sure it succeeded (remove this?)
             if (status == null) {
@@ -274,15 +287,19 @@ public class Act extends Activity {
 */
             act.sayOk("Success!", message, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
-                    A.db.setTransactionSuccessful();
-                    A.db.endTransaction();
+                    A.log("after OK of " + A.lastTxRow);
+//                    A.db.setTransactionSuccessful();
+//                    A.db.endTransaction();
                     dialog.cancel();
                     goHome();
                 }
             });
         } else {
+            A.log("tx failed; so deleting row " + A.lastTxRow);
             A.db.delete("txs", A.lastTxRow); // remove the rejected transaction
-            act.sayError(message, null);
+            A.lastTxRow = null;
+            A.undo = null;
+            if (act.getLocalClassName().equals("MainActivity")) act.sayFail(message); else act.sayError(message, null);
         }
     }
 
@@ -294,6 +311,7 @@ public class Act extends Activity {
         A.log("offline rpcPairs=" + rpcPairs.show());
         String amount = rpcPairs.get("amount");
         boolean positive = (amount.indexOf("-") < 0);
+        amount = A.fmtAmt(amount.replace("-", ""), true);
         if (amount.length() > MAX_DIGITS_OFFLINE + (positive ? 1 : 2)) { // account for "." and "-"
             act.sayError("That is too large an amount for an offline transaction (Your internet connection failed).", null);
             return;
@@ -301,8 +319,8 @@ public class Act extends Activity {
         boolean charging = rpcPairs.get("force").equals("" + A.TX_PENDING); // as opposed to TX_CANCEL
         String qid = rpcPairs.get("member");
         String customer = A.db.customerName(qid);
-        A.balance = A.demo ? A.balanceMessage(customer, qid) : null;
-        amount = A.fmtAmt(amount.replace("-", ""), true);
+//        A.balance = A.demo ? A.balanceMessage(customer, qid) : null;
+        A.balance = null;
         String tofrom = (charging ^ positive) ? "to" : "from";
         String action = (charging ^ positive) ? "credited" : "charged";
 
@@ -317,7 +335,7 @@ public class Act extends Activity {
             A.undo = null;
         }
 
-        if (!A.wifi) msg = "OFFLINE " + msg + t(R.string.connect_soon); // in demo mode maybe pretending wifi is ON
+        msg = "OFFLINE " + msg + t(R.string.connect_soon);
         act.sayOk("Done!", msg, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
@@ -343,7 +361,7 @@ public class Act extends Activity {
 // (Do this on identifying instead)  if (A.setTime(A.getTime(null))) A.db.fixTxTime(rowid, rpcPairs); // sync creation date with server time
                 //A.db.fixTxTime(rowid, rpcPairs); // sync creation date with server time NO! might cause dups
                 if (photoId != null) rpcPairs.add("photoid", photoId);
-                return A.positiveId ? A.apiGetJson(A.region, rpcPairs) : null;
+                return (A.positiveId) ? A.apiGetJson(A.region, rpcPairs) : null;
             } else {
                 A.log("canceling tx " + rowid);
                 return A.db.cancelTx(rowid, rpcPairs.get("agent"));

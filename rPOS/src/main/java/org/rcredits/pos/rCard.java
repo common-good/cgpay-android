@@ -7,7 +7,7 @@ public class rCard {
     public String region; // the account's region code (usually the first 3 characters of the account ID)
     public String qid; // the account ID (for example, NEW.AAA)
     public String code; // a card security code associated with the account
-    public String co; // the company account ID for an agent qid
+    public String co; // the company account ID for an agent qid (same as qid for an individual account)
     public boolean isAgent; // is this a company agent card as opposed to an individual account card
     public class OddCard extends Exception {
         public int type;
@@ -44,7 +44,7 @@ public class rCard {
             }
             int agentLen = i % 4;
             if (acctLen == 6 || tail.length() < 1 + acctLen + agentLen) throw new OddCard(CARD_INVALID);
-            account = tail.substring(1, 1+ acctLen);
+            account = tail.substring(1, 1 + acctLen);
             String agent = tail.substring(1 + acctLen, 1 + acctLen + agentLen);
             code = tail.substring(1 + acctLen + agentLen);
 
@@ -52,17 +52,19 @@ public class rCard {
             account = n2a(a2n(account));
             agent = agentLen == 0 ? "" : ("-" + n2a(a2n(agent), -1, 26));
 
-            co = region + "." + account;
+//            co = region + "." + account;
+            co = region + account;
             qid = co + agent;
 //            if (!qid.matches("^[A-Z0-9]{3,13}$")) throw new OddCard(CARD_INVALID);
-            if (!qid.matches("^[A-Z]{3,4}(:|\\.)[A-Z]{3,5}(-[A-Z]{1,5})?")) throw new OddCard(CARD_INVALID);
+//            if (!qid.matches("^[A-Z]{3,4}(:|\\.)[A-Z]{3,5}(-[A-Z]{1,5})?")) throw new OddCard(CARD_INVALID);
+            if (!qid.matches("^[A-Z]{3,4}[A-Z]{3,5}(-[A-Z]{1,5})?")) throw new OddCard(CARD_INVALID);
         } else { // old formats
             code = parts[count - 1];
             account = parts[count - 2];
             int markPos = qrUrl.length() - code.length() - (count == 9 ? account.length() + 2 : 1);
             isAgent = qrUrl.substring(markPos, markPos + 1).equals("-");
-            co = qid = region + (isAgent ? ":" : ".") + account;
-            if (!qid.matches("^[A-Z]{3}(:|\\.)[A-Z]{3}")) throw new OddCard(CARD_INVALID);
+            co = qid = region + (isAgent ? ":" : "") + account;
+            if (!qid.matches("^[A-Z]{3}:?[A-Z]{3}")) throw new OddCard(CARD_INVALID);
         }
 
         if (code.length() < CODE_LEN_MIN || !code.matches("^[A-Za-z0-9]+")) throw new OddCard(CARD_INVALID);
@@ -77,7 +79,13 @@ public class rCard {
     }
 
     public static String qidRegion(String qid) {
-        String[] parts = qid.split("[\\.:]");
+        String[] parts = qid.split("[\\.:\\-]");
+        String part0 = parts[0];
+        return part0.length() > 3 ? part0.substring(0, part0.length() / 2) : part0;
+    }
+
+    public static String co(String qid) {
+        String[] parts = qid.split("-");
         return parts[0];
     }
 
@@ -106,7 +114,7 @@ public class rCard {
 
     /**
      * Return the numeric equivalent of the given number expressed in an arbitrary base (2 to 36).
-     * @see n2a
+     * @see n2a()
      */
     private int a2n(String s, int base) {
         final int A = (int) 'A';

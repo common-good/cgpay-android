@@ -58,6 +58,7 @@ public class Db {
             return null;
         }
     }
+    public Q q(String sql) {return q(sql, null);}
 
     public void beginTransaction() {db.beginTransaction();}
     public void setTransactionSuccessful() {db.setTransactionSuccessful();}
@@ -190,14 +191,12 @@ public class Db {
      * @throws NoRoom
      */
     public Long storeTx(Pairs pairs) throws NoRoom {
-        pairs.add("created", String.valueOf(A.now()));
-
         ContentValues values = new ContentValues();
-        for (String k : DbHelper.TXS_FIELDS_TO_SEND.split(" ")) values.put(k, pairs.get(k));
+        for (String k : ("proof " + DbHelper.TXS_FIELDS_TO_SEND).split(" ")) values.put(k, pairs.get(k));
         values.put("status", A.TX_PENDING);
         values.put("agent", A.agent); // gets added to pairs in A.post (not yet)
 //        values.put(DbHelper.TXS_CARDCODE, A.rpcPairs.get("code")); // temporarily store card code (from identify op)
-        values.put(DbHelper.TXS_CARDCODE, pairs.get("code")); // temporarily store card code
+//        values.put(DbHelper.TXS_CARDCODE, pairs.get("code")); // temporarily store card code
         for (Map.Entry<String, Object> k : values.valueSet()) A.deb(String.format("Tx value %s: %s", k.getKey(), k.getValue()));
         A.lastTxRow = A.db.insert("txs", values);
         A.deb("Tx A.lastTxRow just set to " + A.lastTxRow);
@@ -222,14 +221,14 @@ public class Db {
     /**
      * Return named value pairs for the given transaction.
      * @param txRow: row id for the transaction
-     * @return the pairs, including the temporarily-stored card code (if any)
+     * @return the pairs
      */
     public Pairs txPairs(Long txRow) {
         Q q = q("SELECT rowid, * FROM txs WHERE rowid=?", new String[] {"" + txRow});
         Pairs pairs = new Pairs("op", "charge");
         for (String k : DbHelper.TXS_FIELDS_TO_SEND.split(" ")) pairs = pairs.add(k, q.getString(k));
-        String code;
-        if (!Pattern.matches(A.NUMERIC, code = q.getString(DbHelper.TXS_CARDCODE))) pairs.add("code", code);
+//        String code;
+//        if (!Pattern.matches(A.NUMERIC, code = q.getString(DbHelper.TXS_CARDCODE))) pairs.add("code", code);
         pairs.add("force", q.getString("status")); // handle according to status
         q.close();
         return pairs;
@@ -277,13 +276,15 @@ public class Db {
         ContentValues values2 = new ContentValues();
         for (String k : DbHelper.TXS_FIELDS_TO_SEND.split(" ")) values2.put(k, q.getString(k));
         q.close();
+        String amountPlain = A.fmtAmt(-values2.getAsDouble("amount"), false);
 
         values2.put("txid", txid2); // remember record ID of reversing transaction on server
         values2.put("status", A.TX_DONE); // mark offsetting transaction done
         values2.put("created", created2); // reversal date
-        values2.put("amount", A.fmtAmt(-values2.getAsDouble("amount"), false)); // negate
-        values2.put("description", "undo");
+        values2.put("amount", amountPlain); // negate
         if (agent != null) values2.put("agent", agent); // otherwise use agent of original tx
+        values2.put("proof", ""); // no proof needed (since we have proof of the original) and proof is hard to get
+        values2.put("description", "undo");
 
         beginTransaction();
         insert("txs", values2); // record offsetting transaction from server
@@ -338,7 +339,7 @@ public class Db {
         values.put("name", json.get("name"));
         values.put("company", json.get("company"));
         values.put(DbHelper.AGT_COMPANY_QID, json.get("default"));
-        values.put(DbHelper.AGT_CARDCODE, A.hash(cardCode));
+        values.put("code", A.hash(cardCode));
         values.put(DbHelper.AGT_CAN, json.get("can"));
         values.put("photo", image);
 
@@ -352,7 +353,7 @@ public class Db {
     }
 
     public boolean badAgent(String qid, String cardCode) {
-        String savedCardCode = custField(qid, DbHelper.AGT_CARDCODE);
+        String savedCardCode = custField(qid, "code");
         return (savedCardCode == null || !savedCardCode.equals(A.hash(cardCode)));
     }
 
