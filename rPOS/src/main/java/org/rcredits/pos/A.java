@@ -34,8 +34,10 @@ import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
@@ -43,6 +45,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.lang.Integer.parseInt;
@@ -106,15 +109,16 @@ public class A extends Application {
     public static String serverMessage = null; // message from server to display when convenient
     public static String deviceId = null; // set once ever in storage upon first scan-in, read upon startup
     public static String debugString = null; // for debug messages
-    public static Periodic periodic = null; // periodic reconciliation process running in background
+    public static Thread periodic = null; // periodic reconciliation process running in background
     public static Integer period = null; // how often to tickle (reconcile offline with server, etc.)
     public static boolean flip; // whether to flip the scanned image (for front-facing cameras)
     public static boolean positiveId; // did online customer identification succeed
+    public static String packageName; // resource package
     public static SQLiteDatabase db_real;
     public static SQLiteDatabase db_test;
 
     // variables that get reset when testing (or not testing)
-    public static boolean testing = false;
+    public static boolean testing = false; // assume testing if scan is faked
     public static boolean wifiOff = false; // force wifi off
     public static boolean selfhelp = false; // whether to skip the photoID step and assume charging for default goods
     public static Db db; // real or test db (should be always open when needed)
@@ -131,6 +135,7 @@ public class A extends Application {
     public static String undo = null; // message about reversing last transaction
     public static Long lastTxRow = null; // row number of last transaction in local db
     public static String httpError = null; // last HTTP failure message
+    public static boolean doReport = false; // tells Periodic to send report to server
 
     public static List<String> descriptions; // set upon scan-in
     public final static String DESC_REFUND = "refund";
@@ -169,17 +174,20 @@ public class A extends Application {
     public final static int MAX_REWARDS_LEN = 20; // anything longer than this is a photoId in the rewards (db) field
 
     private final static String PREFS_NAME = "rCreditsPOS";
-//    private final static String REAL_API_PATH = "https://<region>.rcredits.org/pos"; // the real server (rc2.me fails)
-    private final static String REAL_API_PATH = "https://new.rcredits.org/pos"; // the only real server for now
-    private final static String TEST_API_PATH = "https://ws.rcredits.org/pos"; // the test server
-    //private final static String TEST_API_PATH = "http://192.168.2.101/devcore/pos"; // testing on emulator
+    private final static String REAL_API_PATH = "https://<region>.rcredits.org/pos"; // the real server (rc2.me fails)
+//    private final static String REAL_API_PATH = "https://new.rcredits.org/pos"; // the only real server for now
+    private final static String TEST_API_PATH = "https://stage-<region>.rcredits.org/pos"; // the test server
+    //private final static String TEST_API_PATH = "http://192.168.2.101/rMembers/pos"; // testing locally
+    private final static int TIMEOUT = 10; // how many seconds before HTTP POST times out
 
     @Override
     public void onCreate() {
+        A.log(0);
         super.onCreate();
 
         A.context = this;
         A.resources = getResources();
+        A.packageName = getApplicationContext().getPackageName();
         A.deviceId = getStored("deviceId");
         A.salt = getStored("salt");
         try {
@@ -193,10 +201,8 @@ public class A extends Application {
         } catch (PackageManager.NameNotFoundException e) {e.printStackTrace();}
 
         A.cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        A.deb("before creating dbs");
         db_real = (new DbHelper(false)).getWritableDatabase();
         db_test = (new DbHelper(true)).getWritableDatabase();
-        A.deb("done creating dbs");
 
         A.setMode(A.testing);
 
@@ -210,6 +216,7 @@ public class A extends Application {
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
         System.setProperty("http.keepAlive", "false"); // as of 8/16/2016 this prevent background http POSTs from being duplicated
         // ... and possibly prevents timing bugs between background and foreground http POSTs?
+        A.log(9);
     }
 
     /**
@@ -225,45 +232,49 @@ public class A extends Application {
      * @param testing: <new mode is test mode (otherwise real)>
      */
     public static void setMode(boolean testing) {
+        A.log(0);
         A.testing = testing;
         A.defaults = Json.make(A.getStored(testing ? "defaults_test" : "defaults")); // null if none
         A.signOut();
 
         A.db = new Db(testing);
-
-        A.period = testing ? TEST_PERIOD : REAL_PERIOD;
-        if (A.periodic != null) A.periodic.cancel(true); // cancel the old tickler, if any (allowing it to finish with its db)
-//        (A.periodic = new Periodic()).execute(new String[1]); // launch a tickler for the new db
-        A.executeAsyncTask(A.periodic = new Periodic(), new String[1]); // launch a tickler for the new db
+        new Thread(new Periodic(A.db, testing ? A.TEST_PERIOD : A.REAL_PERIOD)).start();
+        A.log(9);
     }
 
     public static void setDefaults(Json json, String ks) {
+        A.log(0);
         if (json == null) return;
 
         if (ks != null) {
             for (String k : ks.split(" ")) A.defaults.put(k, json.get(k));
         } else A.defaults = json.copy();
         A.setStored(A.testing ? "defaults_test" : "defaults", A.defaults.toString());
+        A.log(9);
     }
     public static void setDefaults(Json json) {setDefaults(json, null);}
 
     public static void useDefaults() {
+        A.log(0);
         if (A.agent != null || A.defaults == null) return;
         A.agent = A.xagent = A.defaults.get("default");
         A.region = rCard.qidRegion(A.agent);
         A.agentName = A.defaults.get("company");
         A.descriptions = A.defaults.getArray("descriptions");
         A.can = Integer.valueOf(A.defaults.get("can"));
+        A.log(9);
     }
 
     /**
      * Reset all global variables to the "signed out" state.
      */
     public static void signOut() {
+        A.log(0);
         A.agent = A.xagent = A.agentName = A.region = A.balance = A.undo = null;
         A.customerName = A.httpError = null;
         A.lastTxRow = null;
         A.useDefaults();
+        A.log(9);
     }
 
     public static boolean signedIn() {return (A.defaults != null && !A.agent.equals(A.defaults.get("default")));}
@@ -293,7 +304,8 @@ public class A extends Application {
      * @return: the server's response. null if failure (with message in A.httpError)
      */
     public static HttpResponse post(String region, Pairs pairs) {
-        final int timeout = 10 * 1000; // milliseconds
+        A.log(0);
+        final int timeout = TIMEOUT * 1000; // milliseconds
 
         String api = (A.testing ? TEST_API_PATH : REAL_API_PATH).replace("<region>", region);
 
@@ -304,6 +316,7 @@ public class A extends Application {
         pairs.add("region", region);
         if (!A.connected()) return A.log("not connected") ? null : null;
 
+        String data = pairs.get("data"); if (data != null) A.log("datalen = " + data.length());
         A.log("post: " + api + " " + pairs.show("data")); // don't log data field sent with time op (don't recurse)
 
         HttpPost post = new HttpPost(api);
@@ -316,10 +329,11 @@ public class A extends Application {
 
         try {
             post.setEntity(new UrlEncodedFormEntity(pairs.toPost()));
+            A.log(9);
             return client.execute(post);
         } catch (Exception e) {
             String msg = e.getMessage();
-            pairs.add("httpError", msg.equals("No peer certificate") ? t(R.string.clock_off) //: t(R.string.http_err);
+            pairs.add("httpError", (msg != null && msg.equals("No peer certificate")) ? t(R.string.clock_off)
                 : (t(R.string.http_err) + " (" + msg + ")"));
             return A.log(e) ? null : null;
         }
@@ -332,12 +346,13 @@ public class A extends Application {
      * @return the response
      */
     public static Json apiGetJson(String region, Pairs pairs) {
-        A.deb("apiGetJson pairs is null: " + (pairs == null ? "yes" : "no"));
+        A.log(0);
         HttpResponse response = A.post(region, pairs);
         if (response == null) {A.log("got null"); return null;}
         try {
             String res = EntityUtils.toString(response.getEntity());
             A.log("got:" + res);
+            A.log(9);
             return Json.make(res);
         } catch (IOException e) {return A.log(e) ? null : null;}
     }
@@ -349,6 +364,7 @@ public class A extends Application {
      * @return: the customer's photo, as a byte array
      */
     public static byte[] apiGetPhoto(String qid, String code) {
+        A.log(0);
         Pairs pairs = new Pairs("op", "photo");
         pairs.add("member", qid);
         pairs.add("code", code);
@@ -356,6 +372,7 @@ public class A extends Application {
         try {
             byte[] res = response == null ? null : EntityUtils.toByteArray(response.getEntity());
             A.log("photo len=" + (res == null ? 0 : res.length));
+            A.log(9);
             return res;
         } catch (IOException e) {return A.log(e) ? null : null;}
     }
@@ -366,43 +383,97 @@ public class A extends Application {
      * @return the server's unixtime, as a string (null if not available)
      */
     public static String getTime(String data) {
+        A.log(0);
         if (A.region == null) return null; // time is tied to region
         Pairs pairs = new Pairs("op", "time");
         if (data != null) pairs.add("data", data);
         HttpResponse response = A.post(region, pairs);
+        if (response == null) return null;
 
         try {
-            if (response == null) return null;
             Json json = Json.make(EntityUtils.toString(response.getEntity()));
             if (json == null) return null;
-
             String msg = json.get("message");
-            if (msg == null || msg.equals("")) { // no message, do nothing
-            } else if (msg.equals("!log") || msg.equals("!members") || msg.equals("!txs")) { // send db data to server
-                return getTime(A.db.dump(msg.substring(1)));
-            } else if (msg.equals("!device")) { // send device data to server
-                return getTime(A.getDeviceData());
-            } else if (msg.substring(0, 8).equals("!delete:")) {
-                String[] parts = msg.split("[:,]");
-                int count = A.db.delete(parts[1], Long.valueOf(parts[2]));
-                return getTime("deleted:" + count);
-            } else { // all other messages require the UI, so are handled in MainActivity
-                if (A.serverMessage == null) A.serverMessage = msg; // don't overwrite
-            }
+            if (msg == null || msg.equals("")) return json.get("time");
 
-/*            String can = json.get("can");
-            if (can != null) {
-                A.can = Integer.parseInt(can); // stay up-to-date on the signed-out permissions
-                A.descriptions = json.getArray("descriptions");
-                if (A.defaults != null) A.setDefaults(json, "can descriptions");
-            } */
-
+//            if (data != null) { // don't risk tight looping (handle data only if called with no data)
+                if (msg.equals("!log") || msg.equals("!members") || msg.equals("!txs")) { // send db data to server
+                    return getTime(A.db.dump(msg.substring(1)));
+                } else if (msg.equals("!device")) { // send device data to server
+                    return getTime(A.getDeviceData());
+                } else if (msg.length() > 8 && msg.substring(0, 8).equals("!delete:")) {
+                    String[] parts = msg.split("[:,]");
+                    int count = A.db.delete(parts[1], Long.valueOf(parts[2]));
+                    return getTime("deleted:" + count);
+                } else if (msg.equals("!report")) {
+                    return A.report("report:");
+//                }
+            } // all other messages require the UI, so are handled in MainActivity
+            if (A.serverMessage == null && !msg.substring(0, 1).equals("!")) A.serverMessage = msg; // don't overwrite
+            A.log(9);
             return json.get("time");
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
     }
+
+    /**
+     * Report something to the server on our own initiative
+     * @param data
+     */
+    public static String report(String data) {
+        /*
+        final String data = data0;
+
+        new Thread(new Runnable() { // run in background of course
+            @Override
+            public void run() {
+                A.log(data, 2);
+                A.doReport = true;
+//                A.getTime(A.sysLog());
+            }
+        }).start();
+        */
+        A.log(data, 2);
+        A.doReport = true;
+        return null;
+    }
+
+    /**
+     * Read the system log file.
+     */
+    public static String sysLog() {
+        String res = "";
+        String line;
+        final int limit = 500; // number of lines to return
+        ArrayList<String> commandLine = new ArrayList<String>();
+        commandLine.add("logcat");
+        commandLine.add("-t");
+        commandLine.add("-" + limit);
+
+        try {
+            Process process = Runtime.getRuntime().exec(commandLine.toArray(new String[0]));
+//            Process process = Runtime.getRuntime().exec("logcat -t -" + limit); // better, if it works
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            while ((line = bufferedReader.readLine()) != null) res += line + "|";
+        } catch (java.io.IOException e) {
+            return res;
+        }
+
+        return res.length() < 100 ? A.db.dump("log", limit) : res; // read logcat seems to not work. log table is similar
+    }
+
+/*
+
+        try {
+            Process process = Runtime.getRuntime().exec("logcat -t -500");
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            while ((line = bufferedReader.readLine()) != null) res += line + "|";
+        } catch (java.io.IOException e) {}
+        return res;
+    }
+     */
 
     /**
      * Return a json-encoded string of information about the device.
@@ -438,11 +509,13 @@ public class A extends Application {
      * @return <time was set successfully>
      */
     public static boolean setTime(String time) {
+        A.log(0);
         if (time == null || time.equals("")) return false;
 
         //AlarmManager am = (AlarmManager) A.context.getSystemService(Context.ALARM_SERVICE);
         //am.setTime(time * 1000L);
         A.timeFix = Long.parseLong(time) - now0();
+        A.log(9);
         return true;
     }
 
@@ -474,14 +547,18 @@ public class A extends Application {
      * @param asyncTask
      * @param params
      * @param <T>
-     */
+     *//*
     @TargetApi(Build.VERSION_CODES.HONEYCOMB) // API 11
     public static <T> void executeAsyncTask(AsyncTask<T, ?, ?> asyncTask, T... params) {
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            A.log(">=honey");
             asyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, params);
-        else
+        } else {
+            A.log("<honey");
             asyncTask.execute(params);
+        }
     }
+*/
 
     /**
      * Say whether the agent can do something
@@ -490,7 +567,7 @@ public class A extends Application {
      */
     public static boolean can(int permission) {
         int can = A.can >> (A.signedIn() ? CAN_AGENT : CAN_CASHIER);
-//        A.deb("permission=" + permission + " can=" + can + " A.can=" + A.can + " signed in:" + A.signedIn() + " 1<<perm=" + (1<<permission));
+//        A.log("permission=" + permission + " can=" + can + " A.can=" + A.can + " signed in:" + A.signedIn() + " 1<<perm=" + (1<<permission));
         return ((can & (1 << permission)) != 0);
     }
 
@@ -532,7 +609,7 @@ public class A extends Application {
         if (A.isSecret(balance)) return null;
         return "Customer: " + name + "\n\n" +
                 "Balance: $" + A.fmtAmt(balance, true) + "\n" +
-                "Rewards: $" + A.fmtAmt(rewards, true) +
+                "Credit Reserve: $" + A.fmtAmt(rewards, true) +
                 A.nn(did); // if not empty, did includes leading blank lines
     }
 
@@ -572,12 +649,17 @@ public class A extends Application {
     }
 
     public static String hash(String text) {
+        A.log(0);
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(text.getBytes("UTF-8")); // Change this to "UTF-16" ifeeded
+            A.log(9);
             return bytesToHex(md.digest());
 //            return new String(md.digest());
-        } catch(Exception e) {Log.e("hash", e.getMessage()); return null;}
+        } catch(Exception e) {
+            A.report(e.getMessage());
+            return null;
+        }
     }
 
     public static String bytesToHex(byte[] a) {
@@ -708,9 +790,10 @@ public class A extends Application {
      * @return: the shrunken image
      */
     public static byte[] shrink(byte[] image) {
+        A.log(0);
         Bitmap bm = A.bray2bm(image);
         bm = scale(bm, PIC_H_OFFLINE);
-        A.deb("shrink img len=" + image.length + " bm size=" + (bm.getRowBytes() * bm.getHeight()));
+        A.log("shrink img len=" + image.length + " bm size=" + (bm.getRowBytes() * bm.getHeight()));
 
         Bitmap bmGray = Bitmap.createBitmap((int) (PIC_ASPECT * PIC_H_OFFLINE), PIC_H_OFFLINE, Bitmap.Config.RGB_565);
         Canvas c = new Canvas(bmGray);
@@ -721,6 +804,7 @@ public class A extends Application {
         paint.setColorFilter(f);
         c.drawBitmap(bm, 0, 0, paint);
 
+        A.log(9);
         return A.bm2bray(bmGray);
     }
 
@@ -728,23 +812,28 @@ public class A extends Application {
         return Bitmap.createScaledBitmap(bm, (int) (A.PIC_ASPECT * height), height, true);
     }
 
-    public static void deb(String s) {
-//        A.debugString = nn(A.debugString) + "\n" + nn(s);
-//        Log.d("debug", A.debugString);
-        Log.d("debug", s);
+    public static boolean log(String s, int traceIndex) {
+        if (A.db != null) logDb(s, traceIndex > 0 ? traceIndex + 1 : 2); // redundant logging
+        if (traceIndex != 0) {
+            StackTraceElement l = new Exception().getStackTrace()[traceIndex]; // look at caller
+            s += String.format(" - %s.%s %s", l.getClassName().replace("org.rcredits.pos.", ""), l.getMethodName(), l.getLineNumber());
+        }
+        Log.i("DEBUG", s);
+        return true;
     }
+    public static boolean log(String s) {return log(s, 2);}
+    public static boolean log(int n) {return log("p" + n, 2);}
 
     /**
      * Log the given message in the log table, possibly for reporting to rCredits admin
      * @param s: the message
      */
-    public static boolean log(String s) {
-        StackTraceElement l = new Exception().getStackTrace()[1]; // look at caller
+    public static boolean logDb(String s, int traceIndex) {
+        StackTraceElement l = new Exception().getStackTrace()[traceIndex]; // look at caller
         ContentValues values = new ContentValues();
         values.put("class", l.getClassName().replace("org.rcredits.", ""));
         values.put("method", l.getMethodName());
         values.put("line", l.getLineNumber());
-        Log.d(s, values.toString());
         values.put("time", A.now());
         values.put("what", s);
 
@@ -761,10 +850,8 @@ public class A extends Application {
      * @return true for the convenience of callers, for example: return Log(e) ? null : null;
      */
     public static boolean log(Exception e) {
-        e.printStackTrace();
-        StringWriter sw = new StringWriter();
-        e.printStackTrace(new PrintWriter(sw));
-        return A.log(e.getMessage() + "! stack: " + terseTrace(sw.toString()));
+        String trace = Log.getStackTraceString(e).replace("org.rcredits.pos.", "").replace("android.", ".");
+        return A.log(e.getMessage() + "! " + terseTrace(trace), 0);
     }
 
     /**
@@ -789,8 +876,10 @@ public class A extends Application {
     }
 
     public static byte[] bm2bray(Bitmap bm) {
+        A.log(0);
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bm.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        A.log(9);
         return stream.toByteArray();
     }
 

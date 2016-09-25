@@ -21,11 +21,10 @@ import java.io.ByteArrayOutputStream;
 public class CustomerActivity extends Act {
     private rCard rcard; // the info from the rCard, parsed
     private String qr; // the scanned QR code
-    private byte[] image; // photo of customer
-    private Json json; // json-encoded response from server
-    private Integer scanResult = null; // no scan result yet
-    private String photoId = null; // no photoId yet
+    private String photoId; // no photoId yet
     private final static String UNKNOWN_CUST = "Unidentified Member";
+    public Json json; // json-encoded response from server
+    public byte[] image; // photo of customer
 
     // return values for API (see onScan())
     private final static int SCAN_FAIL = 0;
@@ -33,6 +32,7 @@ public class CustomerActivity extends Act {
     private final static int SCAN_AGENT = 2;
     private final static int SCAN_NO_WIFI = 3;
     private final static int GET_PHOTO_ID = 4; // scan customer's license/photo ID before permitting transaction
+    private Identify identifyTask = null;
 
     /**
      * Show just the scanned account code, while we get more info in the background
@@ -40,28 +40,37 @@ public class CustomerActivity extends Act {
      */
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
+        A.log("cust create");
         super.onCreate(savedInstanceState);
+    }
+
+    /**
+     * Restart the activity, if we went away and came back.
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
         qr = A.getIntentString(this.getIntent(), "qr");
         try {
             rcard = new rCard(qr); // parse the coded info and save it for use throughout this activity
-            A.deb("Identify rcard qid=" + rcard.qid);
-        } catch (rCard.OddCard e) {
-            if (e.type == rCard.CHANGE_MODE) {
-                String msg = t(A.testing ? R.string.switch_to_test : R.string.switch_to_real);
-                act.sayOk("Changed Mode",  msg, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.cancel();
-                        onCreate(savedInstanceState); // try again
-                        //A.executeAsyncTask(new Identify(), qr); // re-query the (other) server in the background
-                        return;
-                    }
-                });
-            } else act.sayFail(R.string.invalid_rcard);
+        } catch (rCard.BadCard e) {
+            act.sayFail(R.string.invalid_rcard);
             return;
         }
 
+        A.log("rcard qid=" + rcard.qid);
         if (rcard.qid.equals(A.agent)) {act.sayFail(R.string.already_in); return;}
-        setLayout();
+        image = new byte[0];
+        photoId = null;
+        if (rcard.isOdd) {
+            String msg = t(A.testing ? R.string.switch_to_test : R.string.switch_to_real);
+            act.sayOk("Changed Mode",  msg, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                    dialog.cancel();
+                    setLayout();
+                }
+            });
+        } else setLayout();
     }
 
     /**
@@ -71,13 +80,14 @@ public class CustomerActivity extends Act {
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        setLayout();
+// no config changes currently        setLayout();
     }
 
     /**
      * Populate the screen according to what was scanned.
      */
     private void setLayout() {
+        A.log(0);
         setContentView(R.layout.activity_customer);
 
         int[] buttons = {R.id.refund, R.id.usdin, R.id.usdout, R.id.charge, R.id.back};
@@ -90,9 +100,9 @@ public class CustomerActivity extends Act {
         customerPlace.setText("Identifying...");
 
         act.progress(true); // this progress meter gets turned off in handleScan()
-        if (scanResult == null) {
-            A.executeAsyncTask(new Identify(), qr); // query the server in the background
-        } else handleScan(scanResult);
+        new Thread(new Identify(rcard, new handleIdResult())).start();
+        A.log(9);
+//        A.executeAsyncTask(identifyTask = new Identify(), qr); // query the server in the background
     }
 
     /**
@@ -113,6 +123,7 @@ public class CustomerActivity extends Act {
         Intent intent = new Intent(this, TxActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
         final int id = v.getId();
+        A.log(id);
         final String description = (id == R.id.charge && !A.descriptions.isEmpty()) ? A.descriptions.get(0) : (String) v.getContentDescription();
         A.putIntentString(intent, "description", description);
         A.putIntentString(intent, "customer", rcard.qid);
@@ -122,62 +133,36 @@ public class CustomerActivity extends Act {
         startActivity(intent);
     }
 
-    /**
-     * Process the result from QR scan:
-     * Get agent, agentName, customer (etc), device, success, message from server, and handle it.
-     * @return result code (SCAN_ID, SCAN_CUSTOMER, SCAN_AGENT, SCAN_NO_WIFI, or SCAN_FAIL)
-     */
-    public int onScan() throws Db.NoRoom {
-        int result;
-        A.log("scanned: " + rcard.qid);
-        image = null; // no image yet
-        String codeEncrypted = A.hash(rcard.code);
-//        String was = A.decrypt(codeEncrypted, rcard.qid + rcard.code);
-//        String other = A.decrypt("e045adaf90f1ab73aa84401f917d70d8", rcard.qid + rcard.code);
+    public class handleIdResult implements Identify.ResultHandler {
 
-        act.rpcPairs = new Pairs("op", "identify");
-        act.rpcPairs.add("member", rcard.qid);
-        act.rpcPairs.add("code", codeEncrypted);
+        public handleIdResult() {}
 
-//        if (A.demo) SystemClock.sleep(1000); // pretend to contact server
-        json = A.apiGetJson(rcard.region, act.rpcPairs); // get json-encoded info
-        if (json == null) return SCAN_NO_WIFI; // assume it's a customer (since we can't tell)
+        @Override
+        public boolean handle(int result0, String msg0, Json json0, byte[] image0) {
+            final int result = result0;
+            final String msg = msg0;
+            json = json0;
+            image = image0;
 
-        A.deb("onScan json message: " + A.nn(json.get("message")));
+            act.runOnUiThread(new Runnable() {
+                public void run() {
+                    A.log(0);
+                    act.progress(false);
+                    A.positiveId = (result != SCAN_NO_WIFI);
 
-        if (!json.get("ok").equals("1")) {
-            act.sayFail(json.get("message"));
-            return SCAN_FAIL;
+                    if (result == SCAN_AGENT) gotAgent(json.get("name"));
+                    if (result == SCAN_CUSTOMER) gotCustomer();
+                    if (result == SCAN_NO_WIFI) noWifi();
+                    if (result == GET_PHOTO_ID) askPhotoId();
+                }
+            });
+            return true;
         }
-
-        A.can = Integer.parseInt(json.get("can")); // stay up-to-date on the signed-out permissions
-        A.descriptions = json.getArray("descriptions");
-        if (A.descriptions.isEmpty()) {act.sayFail(R.string.no_descriptions); return 0;}
-        A.setTime(json.get("time")); // region/server changed so clock might be different (or not set yet)
-        String logon = json.get("logon");
-
-        if (logon.equals("1")) { // company agent card
-            if (A.deviceId.equals("")) A.setStored("deviceId", A.deviceId = json.get("device"));
-            A.setDefaults(json);
-            A.db.saveAgent(rcard.qid, rcard.code, image, json); // save or update manager info
-            result = SCAN_AGENT;
-        } else { // customer card
-            A.setDefaults(json, "can descriptions");
-            if (A.defaults.get("descriptions").isEmpty()) {act.die("setDefaults description error"); return 0;}
-            image = A.apiGetPhoto(rcard.qid, codeEncrypted);
-            if (image == null || image.length == 0) {
-                image = photoFile("no_photo");
-                result = GET_PHOTO_ID;
-            } else {
-                A.db.saveCustomer(rcard.qid, image, json);
-                result = (logon.equals("0") || A.selfhelping()) ? SCAN_CUSTOMER : GET_PHOTO_ID;
-            }
-        }
-
-        return result;
     }
 
+    /*
     private void handleScan(int result) {
+        A.log("handleScan");
         A.positiveId = (result != SCAN_NO_WIFI);
 
         if (result == SCAN_AGENT) gotAgent(json.get("name"));
@@ -188,11 +173,13 @@ public class CustomerActivity extends Act {
 
         act.progress(false);
     }
+*/
 
     /**
      * Get cashier to ask customer for a photo ID.
      */
     private void askPhotoId() {
+        A.log(0);
         act.askYesNo(t(R.string.ask_for_id), new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
@@ -234,7 +221,7 @@ public class CustomerActivity extends Act {
      * Handle the case where connection to the internet failed or is turned off (A.wifiOff).
      */
     private void noWifi() {
-        A.log("nowifi");
+        A.log(0);
 
         if (A.defaults == null) {act.sayFail(R.string.wifi_for_setup); return;}
 
@@ -256,6 +243,7 @@ public class CustomerActivity extends Act {
             if (rcard.co.equals(A.defaults.get("default"))) {act.sayFail(R.string.wifi_for_setup); return;} // same company, must be an agent
             askPhotoId(); // if this business is often offline, nudge cashier to ask for ID
         }
+        A.log(9);
 
 /*
         act.askOk(A.nn(A.httpError) + " " + A.t(R.string.try_offline), null, new DialogInterface.OnClickListener() {
@@ -310,9 +298,10 @@ public class CustomerActivity extends Act {
         setField(R.id.customer_place, place);
 
         ImageView photo = (ImageView) findViewById(R.id.photo);
-        if (image == null) image = photoFile("no_photo"); // has happened (possibly when got customer, but not photo)
+//        if (image == null) image = photoFile("no_photo"); // has happened (possibly when got customer, but not photo)
         photo.setImageBitmap(A.scale(A.bray2bm(image), A.PIC_H));
         if (A.selfhelping()) onRClick(findViewById(R.id.charge));
+        A.log(9);
     }
 
     private void gotCustomer() {
@@ -320,31 +309,18 @@ public class CustomerActivity extends Act {
     }
 
     /**
-     * Return the named image.
-     * @param photoName: the image filename (no extension)
-     * @return: a byte array image
-     */
-    private byte[] photoFile(String photoName) {
-        int photoResource = A.resources.getIdentifier(photoName, "drawable", getPackageName());
-        Bitmap bm = BitmapFactory.decodeResource(A.resources, photoResource);
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        bm.compress(Bitmap.CompressFormat.PNG, 100, stream);
-        return stream.toByteArray();
-    }
-
-    /**
      * Get the customer's info from the server and display it, with options for what to do next.
-     */
+     *//*
     private class Identify extends AsyncTask<String, Void, Integer> {
         /**
          * Do the background part
          * @param qrs: one-element array of the scanned QR
          * @return true if it's a customer
-         */
+         *//*
         @Override
         protected Integer doInBackground(String... qrs) { // param list must be "Type... varname"
             String qr = qrs[0];
-            //A.deb("Identify qr=" + A.nn(qr));
+            A.log("in Identify background qr=" + A.nn(qr));
 
             try {
                 return onScan();
@@ -357,11 +333,19 @@ public class CustomerActivity extends Act {
         }
 
         @Override
+        protected void onCancelled(Integer result) {
+            A.log("idCanceled");
+            identifyTask = null;
+        }
+
+        @Override
         protected void onPostExecute(Integer result) {
             handleScan(scanResult = result);
+            identifyTask = null;
+            A.log("idPostExec");
         }
     }
-
+*/
     /**
      * Set a text field to the appropriate text.
      * @param id: field identifier

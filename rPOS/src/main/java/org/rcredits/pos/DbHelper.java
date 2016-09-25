@@ -33,7 +33,7 @@ public class DbHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS members (" + // record of customers and managers
-            "qid TEXT," + // customer account code (like XXX.YYY) or manager account code (like XXX.YYY-W)
+            "qid TEXT," + // customer account code (like XXXYYY) or manager account code (like XXXYYY-W)
             "code TEXT," + // hash of cardCode (rCard security code)
             "name TEXT," + // full name (of customer or manager)
             "company TEXT," + // company name, if any (for customer or manager)
@@ -70,7 +70,7 @@ public class DbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldv, int newv) {
-        A.deb("upgrading db " + db.getPath());
+        A.log("upgrading db " + db.getPath());
         if (oldv < 212) onCreate(db); // add new tables, if any (so far just log table 2/1/2015)
         if (oldv < 217) {
             db.execSQL("ALTER TABLE members ADD COLUMN code TEXT");

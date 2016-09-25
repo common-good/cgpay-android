@@ -63,15 +63,6 @@ public final class PrefsActivity extends Act {
         A.setCan(i, v.isChecked());
     }*/
 
-    /**
-     * Go all the way back to Main screen on Back Button press.
-     */
-    @Override
-    public void onBackPressed() {act.goHome();}
-
-    @Override
-    public void goBack(View v) {onBackPressed();}
-
     public void emptyTestDb(View v) {
         for (String table : "members txs log".split(" ")) A.db.q("DELETE FROM " + table);
         A.db.q("VACUUM");

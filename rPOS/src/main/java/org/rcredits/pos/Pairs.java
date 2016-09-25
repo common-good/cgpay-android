@@ -49,7 +49,7 @@ public class Pairs {
      * @return
      */
     public String show(String omit) {
-//        A.deb("showPairs pairs is null: " + (pairs == null ? "yes" : "no"));
+//        A.log("showPairs pairs is null: " + (pairs == null ? "yes" : "no"));
         if (omit.equals("")) return list.toString();
         Pairs pairs = new Pairs(this);
         pairs.list.remove(omit);

@@ -66,10 +66,10 @@ public class Db {
 //    public void close() {db.close(); db = null;}
 
     public Q getRow(String table, String where, String[] params) {
-        return q("SELECT rowid, * FROM " + table + " WHERE " + where, params);
+        return q("SELECT rowid, * FROM " + table + " WHERE " + where + " LIMIT 1", params);
     }
 
-    public Q getRow(String table, Long rowid) {return getRow(table, "rowid=?", new String[] {"" + rowid});}
+    public Q getRow(String table, Long rowid) {return getRow(table, "rowid=?", new String[]{"" + rowid});}
 
     public String getField(String field, String table, String where, String[] params) {
         Q q = getRow(table, where, params);
@@ -81,6 +81,10 @@ public class Db {
 
     public String getField(String field, String table, Long rowid) {
         return getField(field, table, "rowid=?", new String[] {"" + rowid});
+    }
+
+    public long changes(String table) {
+        return A.n(getField("CHANGES()", table, "1", new String[] {""}));
     }
 
     public Long rowid(String table, String where, String[] params) {
@@ -107,10 +111,10 @@ public class Db {
      * @param txid : transaction ID on the server (null if no change)
      */
     public void changeStatus(Long rowid, int status, Long txid) {
+        A.log(String.format("changing status rowid=%s status=%s txid=%s", rowid, status, txid));
         ContentValues values = new ContentValues();
         values.put("status", status);
         if (txid != null) values.put("txid", txid);
-        A.log(String.format("changing status rowid=%s status=%s txid=%s", rowid, status, txid));
         this.update("txs", values, rowid);
     }
 
@@ -160,7 +164,7 @@ public class Db {
             values.put("qid", qid);
             values.put("photo", A.shrink(image));
             insert("members", values);
-//            Q r = A.db.oldCustomer(qid); if (r != null) {A.deb("saveCustomer r.qid=" + r.getString("qid") + " r.name=" + r.getString("name")); r.close();}
+//            Q r = A.db.oldCustomer(qid); if (r != null) {A.log("saveCustomer r.qid=" + r.getString("qid") + " r.name=" + r.getString("name")); r.close();}
         } else q.close();
     }
 
@@ -170,7 +174,7 @@ public class Db {
      * @return: the database record for that customer (null if not found)
      */
     public Q oldCustomer(String qid) {
-        A.deb("oldCustomer qid=" + qid);
+        A.log("oldCustomer qid=" + qid);
         return q("SELECT rowid, * FROM members WHERE qid=?", new String[] {A.nn(qid)});
     }
 
@@ -191,18 +195,19 @@ public class Db {
      * @throws NoRoom
      */
     public Long storeTx(Pairs pairs) throws NoRoom {
+        A.log(0);
         ContentValues values = new ContentValues();
         for (String k : ("proof " + DbHelper.TXS_FIELDS_TO_SEND).split(" ")) values.put(k, pairs.get(k));
         values.put("status", A.TX_PENDING);
         values.put("agent", A.agent); // gets added to pairs in A.post (not yet)
 //        values.put(DbHelper.TXS_CARDCODE, A.rpcPairs.get("code")); // temporarily store card code (from identify op)
 //        values.put(DbHelper.TXS_CARDCODE, pairs.get("code")); // temporarily store card code
-        for (Map.Entry<String, Object> k : values.valueSet()) A.deb(String.format("Tx value %s: %s", k.getKey(), k.getValue()));
+        for (Map.Entry<String, Object> k : values.valueSet()) A.log(String.format("Tx value %s: %s", k.getKey(), k.getValue()));
         A.lastTxRow = A.db.insert("txs", values);
-        A.deb("Tx A.lastTxRow just set to " + A.lastTxRow);
+        A.log("inserted tx row " + A.lastTxRow);
 /*                Q r = A.db.q("SELECT rowid, * FROM txs", new String[] {});
-                if (r != null) {A.deb("Tx txid=" + r.getString("txid") + " customer=" + r.getString("member")); r.close();}
-                else A.deb("r is null"); */
+                if (r != null) {A.log("Tx txid=" + r.getString("txid") + " customer=" + r.getString("member")); r.close();}
+                else A.log("r is null"); */
         return A.lastTxRow;
     }
 
@@ -334,7 +339,7 @@ public class Db {
     }
 
     public void saveAgent(String qid, String cardCode, byte[] image, Json json) throws NoRoom {
-        A.log("saving agent: " + qid + " cardCode=? json=" + json.toString());
+        A.log(String.format("saving agent=%s cardCode=%s json=%s", qid, "?", json.toString()));
         ContentValues values = new ContentValues();
         values.put("name", json.get("name"));
         values.put("company", json.get("company"));
@@ -350,6 +355,7 @@ public class Db {
             values.put(DbHelper.AGT_FLAG, A.TX_AGENT);
             insert("members", values);
         } else update("members", values, rowid);
+        A.log(9);
     }
 
     public boolean badAgent(String qid, String cardCode) {
@@ -373,7 +379,7 @@ public class Db {
      * @return <enough room is available>
      */
     public boolean enoughRoom() {
-        Long rowid;
+        Long rowid = null;
         while (kLeft() < MIN_K) {
             rowid = rowid("log", "time<? ORDER BY time LIMIT 1", new String[]{"" + A.daysAgo(1)});
             if (rowid != null) {delete("log", rowid); continue;}
@@ -381,8 +387,10 @@ public class Db {
             if (rowid != null) {delete("txs", rowid); continue;}
             rowid = rowid("members", DbHelper.AGT_FLAG + "<>" + A.TX_AGENT + " ORDER BY lastTx LIMIT 1", null);
             if (rowid != null) {delete("members", rowid); continue;}
+            A.report("no room");
             return false;
         }
+        if (rowid != null) A.report("low room");
         return true;
     }
 
@@ -400,7 +408,7 @@ public class Db {
      * @param table: table name
      * @return: json-encoded associative array, beginning with 0=>array of field names
      */
-    public String dump(String table) {
+    public String dump(String table, int limit) {
         Json j = new Json("{}"); // the overall result
         JSONArray rec; // each record
         String v; // each value
@@ -416,7 +424,9 @@ public class Db {
         //j.put("0", rec.toString());
         res += "\"0\":" + rec.toString();
 
-        Cursor q = db.rawQuery("SELECT rowid, * FROM " + table + " ORDER BY rowid DESC", new String[] {});
+        String sql = "SELECT rowid, * FROM " + table + " ORDER BY rowid DESC";
+        if (limit > 0) sql += " LIMIT " + limit;
+        Cursor q = db.rawQuery(sql, new String[] {}); // last first
         if (q == null || !q.moveToFirst()) return res + "}"; // was j.toString();
 
         try {
@@ -441,4 +451,5 @@ public class Db {
 //        return j.toString();
         return res + "}"; // no memory error
     }
+    public String dump(String table) {return dump(table, 0);}
 }

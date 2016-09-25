@@ -41,6 +41,11 @@ public class TxActivity extends Act {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
 
         customer = A.getIntentString(this.getIntent(), "customer");
         code = A.getIntentString(this.getIntent(), "code");
@@ -55,6 +60,7 @@ public class TxActivity extends Act {
      * Do what needs doing on creation and orientation change.
      */
     private void setLayout() {
+        A.log(0);
         setContentView(layout.activity_tx);
         Button desc = (Button) findViewById(id.description);
         ImageButton changeDesc = (ImageButton) findViewById(id.change_description);
@@ -75,6 +81,7 @@ public class TxActivity extends Act {
         }
 
         ((TextView) findViewById(id.amount)).setText("$" + amount);
+        A.log(9);
     }
 
     /**
@@ -83,6 +90,7 @@ public class TxActivity extends Act {
      */
     @Override
     public void onConfigurationChanged(Configuration newConfig) { // cgf (this whole method)
+        A.log(0);
         super.onConfigurationChanged(newConfig);
         setLayout();
     }
@@ -104,6 +112,7 @@ public class TxActivity extends Act {
             amount += c;
         } else {
             act.mention("You can have only up to " + MAX_DIGITS + " digits. Press clear (c) or backspace (\u25C0).");
+            if (amount.equals("800000") && c.equals("8")) A.report("user-initiated report");
         }
 
         int len = amount.length();
@@ -134,8 +143,10 @@ public class TxActivity extends Act {
      * @param data: the new description
      */
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        A.log(0);
         if (requestCode == CHANGE_DESC) {
             if(resultCode == RESULT_OK) {
+                A.log("changing description");
                 description = data.getStringExtra("description");
                 Button desc = (Button) findViewById(id.description);
                 //desc.setText(A.ucFirst(description.toLowerCase()));
@@ -144,6 +155,7 @@ public class TxActivity extends Act {
         } else if (requestCode == GET_USD_TYPE) {
             if(resultCode == RESULT_OK) {
                 final int usdType = Integer.valueOf(data.getStringExtra("type"));
+                A.log("got usdType=" + usdType);
                 if (usdType != id.cash) {
                     String fee = usdType == id.check ? (USD_CHECK_FEE + " check fee.") : (USD_CARD_FEE + " card fee.");
                     act.askOk("The customer will be charged a " + fee, new DialogInterface.OnClickListener() {
@@ -155,6 +167,7 @@ public class TxActivity extends Act {
                 } else finishTx(usdType);
             } else if (resultCode == RESULT_CANCELED) {} // do nothing if no result
         }
+        A.log(9);
     }
 
     /**
@@ -162,7 +175,8 @@ public class TxActivity extends Act {
      * @param v
      */
     public void onGoClick(View v) {
-//        String amount = A.nn(((TextView) findViewById(R.id.amount)).getText()).substring(1); // no "$"
+        A.log(0);
+        //        String amount = A.nn(((TextView) findViewById(R.id.amount)).getText()).substring(1); // no "$"
         if (progressing()) return; // ignore if already processing a (foreground) transaction
         if (amount.equals("0.00")) {sayError("You must enter an amount.", null); return;}
         if (description.equals(A.DESC_USD_IN)) getUsdType(); else finishTx(null);
@@ -173,6 +187,7 @@ public class TxActivity extends Act {
      * @param usdType: type cash-in payment type (null if not applicable)
      */
     public void finishTx(Integer usdType) {
+        A.log(0);
         String created = String.valueOf(A.now());
         String amountPlain = A.fmtAmt(amount, false);
         if (description.equals(A.DESC_REFUND) || description.equals(A.DESC_USD_IN)) amountPlain = "-" + amountPlain; // a negative tx
@@ -182,7 +197,7 @@ public class TxActivity extends Act {
 
         Pairs pairs = new Pairs("op", "charge");
         pairs.add("member", customer);
-//        pairs.add("code", A.hash(code));
+        pairs.add(DbHelper.TXS_CARDCODE, A.hash(code)); // store hashed code temporarily for delayed identification
         pairs.add("created", created);
         pairs.add("amount", amountPlain);
         pairs.add("proof", A.hash(rCard.co(A.agent) + amountPlain + customer + code + created));
@@ -193,7 +208,10 @@ public class TxActivity extends Act {
         act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
 
         try {
-            A.executeAsyncTask(new Act.Tx(), A.db.storeTx(pairs));
+            A.log("about to tx");
+            new Thread(new Tx(A.db.storeTx(pairs), photoId != null, new handleTxResult())).start();
+//            A.executeAsyncTask(new Act.Tx(), A.db.storeTx(pairs));
         } catch (Db.NoRoom e) {act.sayFail(string.no_room); return;}
+        A.log(9);
     }
 }

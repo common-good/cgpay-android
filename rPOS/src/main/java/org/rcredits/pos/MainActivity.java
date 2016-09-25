@@ -79,10 +79,7 @@ public final class MainActivity extends Act {
             act.askOk("Okay to update now? (it takes a few seconds)", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     dialog.cancel();
-                    if (A.periodic != null) {
-                        A.periodic.cancel(true);
-                        SystemClock.sleep(3000); // give periodic a chance to finish
-                    }
+                    A.db = null; // tell periodic thread to stop
                     Intent getApp = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=org.rcredits.pos"));
                     act.finish();
                     startActivity(getApp);
@@ -131,6 +128,7 @@ public final class MainActivity extends Act {
      * Do what needs doing upon startup or after signing out.
      */
     private void setLayout() {
+        A.log(0);
         Button signedAs = (Button) findViewById(R.id.signed_as);
         TextView welcome = (TextView) findViewById(R.id.welcome);
         TextView version = (TextView) findViewById(R.id.version);
@@ -157,6 +155,7 @@ public final class MainActivity extends Act {
             }
             signedAs.setText(A.agentName);
         }
+        A.log(9);
     }
 
     public boolean onKeyUp(int keyCode, KeyEvent event) {
@@ -214,6 +213,7 @@ public final class MainActivity extends Act {
 
 //    public void doScan(View v) {act.start(CaptureActivity.class, CAPTURE);} // user pressed the SCAN button
     public void doScan(View v) { // user pressed the SCAN button
+        A.log(0);
 //        final String BOB = "HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G";
         final String BOB = "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G";
         final String SUSAN = "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw";
@@ -233,6 +233,7 @@ public final class MainActivity extends Act {
                 }
             );
         } else act.start(CaptureActivity.class, CAPTURE);
+        A.log(9);
     }
     // NOT YET USED public void doPrefs(View v) {act.start(PrefsActivity.class, 0);} // user pressed the gear button
 
@@ -243,11 +244,13 @@ public final class MainActivity extends Act {
      * @param data: data returned from the activity
      */
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        A.log(0);
         if (requestCode == CAPTURE) {
             if(resultCode == RESULT_OK) {
 //                act.sayOk("Scan succeeded.", data.getStringExtra("qr"), null);
                 act.start(CustomerActivity.class, 0, "qr", data.getStringExtra("qr"));
             } else if (resultCode == RESULT_CANCELED) { // dunno how this happens, if ever
+                A.log("scan canceled. Weird.");
 //                 // do nothing
             } // else act.sayOk("Scan failed.", "", null); // sayFail seems to fail here (?)
         }
@@ -281,12 +284,15 @@ public final class MainActivity extends Act {
      */
     public void doUndo(View v) {
 //        if (!oldTx())
+        A.log(0);
         act.askOk(A.undo, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
                 A.db.changeStatus(A.lastTxRow, A.TX_CANCEL, null);
-                A.executeAsyncTask(new Act.Tx(), A.lastTxRow);
+                A.log("about to undo");
+//                A.executeAsyncTask(new Act.Tx(), A.lastTxRow);
+                new Thread(new Tx(A.lastTxRow, false, new handleTxResult())).start();
             }
         });
     }
@@ -295,12 +301,13 @@ public final class MainActivity extends Act {
      * Sign the cashier out after confirmation.
      */
     public void doSignOut(View v) {
+        A.log(0);
         if (A.signedIn()) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 A.signOut();
                 setLayout();
             }
-        }); else doScan(v);
+        }); // (too unexpected) else doScan(v);
     }
 }

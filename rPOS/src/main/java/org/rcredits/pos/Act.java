@@ -30,27 +30,30 @@ public class Act extends Activity {
     private AlertDialog alertDialog;
     protected String photoId; // got customer's photo ID number (null or "1", used in TxActivity and Act.Tx)
     private final String YES_OR_NO = "Yes or No";
-    private final static int MAX_DIGITS_OFFLINE = 5; // maximum $999.99 transaction offline
     private final static int TIMEOUT = 10; // number of minutes before activity times out
-    public Pairs rpcPairs = null; // data to post
     private CountDownTimer timer = null; // timeout timer
     private boolean onTop = false; // activity is visible
+    public static String name;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        act.name = act.getLocalClassName();
+        A.log(act.name + " onCreate");
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        A.log(act.name + " onPause");
         onTop = false;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        A.log(act.name + " onResume");
         onTop = true;
 
         if (timer == null) timer = new CountDownTimer(TIMEOUT * 60 * 1000, 1000) {
@@ -73,11 +76,17 @@ public class Act extends Activity {
         timer.start();
     }
 
+    /**
+     * Terminate activity on Back Button press.
+     */
+    @Override
+    public void onBackPressed() {act.finish();}
+
     public void goBack(View v) {onBackPressed();}
 
     public String t(int resource) {return A.t(resource);}
 
-    private boolean isMain() {return act.getLocalClassName().equals("MainActivity");}
+    private boolean isMain() {return act.name.equals("MainActivity");}
 
     /**
      * Show a short message briefly (2 secs) -- or longer (3.5 secs) for longer messages
@@ -176,7 +185,7 @@ public class Act extends Activity {
 	    if (progressing()) try {
             progressDlg.dismiss(); // use .cancel() instead?
 	    } catch (final IllegalArgumentException e) {
-		    Log.e("dismissing", "activity vanished"); // ignore (work around Android bug)
+		    A.log("dismissing - activity vanished"); // ignore (work around Android bug)
 		}
 		
         if (go) {
@@ -195,9 +204,11 @@ public class Act extends Activity {
      * (note that getApplicationContext() and startActivity() are activity methods)
      */
     public void goHome(String msg) {
+        A.log(0);
         if (msg != null) A.serverMessage = msg;
         progress(false);
         if (timer != null) timer.cancel();
+//        A.doPeriodic(); // restart background uploads, just in case
 
         if (isMain()) {
             onResume();
@@ -209,12 +220,6 @@ public class Act extends Activity {
         }
     }
     public void goHome() {goHome(null);}
-
-    public void die(String s) {
-        A.log(new Exception(s));
-        A.deb(s);
-        act.sayFail(R.string.syserr);
-    }
 
     /**
      * Launch a new activity.
@@ -262,10 +267,38 @@ public class Act extends Activity {
      */
     public void setWifi(View v) {if (A.testing) setWifi(A.wifiOff);}
 
+    public class handleTxResult implements Tx.ResultHandler {
+        public handleTxResult() {}
+
+        @Override
+        public boolean handle(int action0, String msg0) {
+            final int action = action0;
+            final String msg = msg0;
+
+            act.runOnUiThread(new Runnable() {
+                public void run() {
+                    A.log(0);
+                    act.progress(false);
+                    if (action == Tx.OK) {
+                        act.sayOk("Success!", msg, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                //                    dialog.cancel();
+                                act.goHome();
+                            }
+                        });
+                    } else if (action == Tx.FAIL || act.isMain()) {
+                        act.sayFail(msg);
+                    } else act.sayError(msg, null);
+                }
+            });
+            return true;
+        }
+    }
+
     /**
      * After requesting a transaction, handle the server's response.
      * @param json: json-format parameter string returned from server
-     */
+     *//*
     public void afterTx(Json json) {
         String message = json.get("message");
         A.balance = A.balanceMessage(A.customerName, json); // null if secret or no balance was returned
@@ -279,12 +312,12 @@ public class Act extends Activity {
             A.log("before complete of " + A.lastTxRow);
             A.db.completeTx(A.lastTxRow, json); // mark tx complete in db (unless deleted)
             A.log("after complete of " + A.lastTxRow);
-/*
+
             String status = A.db.getField("status", "txs", A.lastTxRow); // make sure it succeeded (remove this?)
             if (status == null) {
                 A.log("null status -- tx was deleted from db?");
             } else if (!status.equals(A.TX_DONE + "")) act.die("status not set");
-*/
+
             act.sayOk("Success!", message, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     A.log("after OK of " + A.lastTxRow);
@@ -305,7 +338,7 @@ public class Act extends Activity {
 
     /**
      * Store the transaction for later.
-     */
+     *//*
     public void offlineTx() {
         String msg;
         A.log("offline rpcPairs=" + rpcPairs.show());
@@ -313,7 +346,7 @@ public class Act extends Activity {
         boolean positive = (amount.indexOf("-") < 0);
         amount = A.fmtAmt(amount.replace("-", ""), true);
         if (amount.length() > MAX_DIGITS_OFFLINE + (positive ? 1 : 2)) { // account for "." and "-"
-            act.sayError("That is too large an amount for an offline transaction (Your internet connection failed).", null);
+            act.sayError("That is too large an amount for an offline transaction (your internet connection is not available).", null);
             return;
         }
         boolean charging = rpcPairs.get("force").equals("" + A.TX_PENDING); // as opposed to TX_CANCEL
@@ -348,8 +381,8 @@ public class Act extends Activity {
      * Submit and handle a transaction request, in the background (but called from the UI).
      * If the status of the transaction is pending, complete it.
      * If the status is TX_DONE, reverse it.
-     */
-    public class Tx extends AsyncTask<Long, Void, Json> {
+     *//*
+    public class Tx0 extends AsyncTask<Long, Void, Json> {
         @Override
         protected Json doInBackground(Long... txRows) {
             Long rowid = txRows[0];
@@ -387,5 +420,5 @@ public class Act extends Activity {
             } else act.offlineTx();
             return;
         }; */
-    }
+//    }
 }

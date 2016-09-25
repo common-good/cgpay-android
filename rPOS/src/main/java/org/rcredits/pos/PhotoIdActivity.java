@@ -132,16 +132,6 @@ public class PhotoIdActivity extends Act {
         if (spinnerPosition >= 0) stateSpinner.setSelection(spinnerPosition);
     }
 
-
-    /**
-     * Go all the way back to Main screen on Back Button press.
-     */
-    @Override
-    public void onBackPressed() {act.goHome();}
-
-    @Override
-    public void goBack(View v) {onBackPressed();}
-
     /**
      * Handle the ID number returned from IdNumberActivity
      * @param requestCode

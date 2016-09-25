@@ -3,6 +3,7 @@ package org.rcredits.pos;
 import android.content.ContentValues;
 import android.os.AsyncTask;
 import android.os.SystemClock;
+import android.util.Log;
 
 import org.apache.http.NameValuePair;
 
@@ -15,39 +16,54 @@ import java.util.List;
  *  - Check for available updates (included in clock sync)
  * cancel by calling A.periodic.cancel(true); A.periodic = null;
  */
-public class Periodic extends AsyncTask<String, Void, Integer> {
-    Db db;
+//public class Periodic extends AsyncTask<String, Void, Integer> {
+public class Periodic implements Runnable {
+    private Db db;
+    private int period;
+    private final static int OLD_TX_SECS = 60; // ok to upload or cancel any transaction older than this
+
+    Periodic(Db db, int period) {
+        this.db = db;
+        this.period = period;
+    }
 
     @Override
-    protected Integer doInBackground(String... zot) {
+    public void run() {
+        A.log(0);
         Q q;
+        String[] params;
         final String sql = "SELECT rowid, * FROM txs WHERE status<>? AND created<?";
-        db = A.db; // use a private db pointer, in case user switches mode
 
         A.setTime(A.getTime(null)); // check for updates first thing
 
-        while (!isCancelled()) {
-            String[] params = new String[] {String.valueOf(A.TX_DONE), String.valueOf(A.now() - A.period)};
+        while (A.db == db) {
+            if (A.doReport) {A.doReport = false; A.getTime(A.sysLog());}
+
+            params = new String[] {String.valueOf(A.TX_DONE), String.valueOf(A.now() - OLD_TX_SECS)};
             q = db.q(sql, params);
             if (q != null) {
                 do { // for each non-current transaction in limbo [NOTE: do not use "continue" in do...while]
                     reconcile(q);
                     sleep(1); // breathe between db operations, to make sure UI runs fast
                     if (q.invalid()) q = db.q(sql, params); // refresh, if invalidated
-                } while (q != null && q.moveToNext() && !isCancelled());
+                } while (q != null && q.moveToNext() && A.db == db);
+//            } while (q != null && q.moveToNext() && !isCancelled());
 
                 q.close();
             }
-            sleep(A.period);
+            sleep(period);
         }
 
-        return 0;
+//    return 0;
     }
 
+
+        /*
     @Override
     protected void onPostExecute(Integer arg) {
         //if (db != null) db.close();
     }
+*/
 
     /**
      * Reconcile the given transaction with the server.
@@ -71,7 +87,7 @@ public class Periodic extends AsyncTask<String, Void, Integer> {
             if (json != null && json.get("ok").equals("1")) {
                 completeOldTx(rowid, qid, code, json);
             }
-        } else A.log("bad status:" + status);
+        } else A.report("bad status:" + status);
     }
 
     /**
