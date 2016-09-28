@@ -162,7 +162,7 @@
     <string name="wifi_on">Wifi is now ON.</string>
     <string name="wifi_off">Wifi is now OFF. Remember to connect soon, to upload saved transactions.</string>
     <string name="wifi_unavailable">Wifi is ON but no connection is currently available.</string>
-    <string name="no_room">You have run out of external storage. You cannot accept further transactions until you connect to the Internet, so pending transactions can be uploaded.</string>
+    <string name="no_room">You have run out of storage space. You cannot accept further transactions until you delete something or connect to the Internet, so pending transactions can be uploaded.</string>
     <string name="syserr">SYSTEM ERROR: The rCredits POS app has crashed. Please tell the rCredits Team, so they can fix the problem!</string>
     <string name="old_tx">That transaction is now too old to undo. Do a separate transaction instead (possibly online or with US Dollars).</string>
     <string name="offline">OFFLINE (no internet)</string>

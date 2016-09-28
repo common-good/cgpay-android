@@ -3,6 +3,7 @@ package org.rcredits.pos;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
 import android.os.StatFs;
 
 import org.json.JSONArray;
@@ -84,7 +85,7 @@ public class Db {
     }
 
     public long changes(String table) {
-        return A.n(getField("CHANGES()", table, "1", new String[] {""}));
+        return A.n(getField("CHANGES()", table, "1", new String[]{""}));
     }
 
     public Long rowid(String table, String where, String[] params) {
@@ -94,7 +95,7 @@ public class Db {
 
     public String txQid(Long rowid) {return getField("member", "txs", rowid);}
     public String custField(String qid, String field) {return getField(field, "members", custRowid(qid));}
-    public Long custRowid(String qid) {return A.n(getField("rowid", "members", "qid=?", new String[] {qid}));}
+    public Long custRowid(String qid) {return A.n(getField("rowid", "members", "qid=?", new String[]{qid}));}
 
     public Double sum(String field, String table, String where, String[] params) {
         Q q = q("SELECT SUM(" + field + ") FROM " + table + " WHERE " + where, params);
@@ -153,19 +154,32 @@ public class Db {
                 txJson.get("rewards"), txJson.get("created")); // * in balance means secret
     }
 
-    public void saveCustomer(String qid, byte[] image, Json idJson) throws NoRoom {
+    /**
+     * Save or update the customer record.
+     * @param qid
+     * @param image
+     * @param code: hashed card security code
+     * @param idJson: information returned from the server
+     * @throws NoRoom
+     */
+    public void saveCustomer(String qid, byte[] image, String code, Json idJson) throws NoRoom {
 //        if (!rcard.region.equals(A.region)) return; // don't record customers outside the region?
         A.log("saving customer " + qid + " idJson=" + idJson.toString());
+        if (A.empty(idJson.get("name"))) A.report("customer with no name");
+        ContentValues values = new ContentValues();
+        for (String k : DbHelper.CUSTOMERS_FIELDS_TO_GET.split(" ")) values.put(k, idJson.get(k));
+        values.put("qid", qid);
+        values.put("photo", A.shrink(image));
+        values.put("code", code);
 
         Q q = oldCustomer(qid);
         if (q == null) { // new customer!
-            ContentValues values = new ContentValues();
-            for (String k : DbHelper.CUSTOMERS_FIELDS_TO_GET.split(" ")) values.put(k, idJson.get(k));
-            values.put("qid", qid);
-            values.put("photo", A.shrink(image));
             insert("members", values);
 //            Q r = A.db.oldCustomer(qid); if (r != null) {A.log("saveCustomer r.qid=" + r.getString("qid") + " r.name=" + r.getString("name")); r.close();}
-        } else q.close();
+        } else {
+            update("members", values, q.getLong("rowid"));
+            q.close();
+        }
     }
 
     /**
@@ -186,6 +200,14 @@ public class Db {
         q.close();
 
         return A.customerName(name, company);
+    }
+
+    /**
+     * Return the customer's photo.
+     */
+    public byte[] custPhoto(String qid) {
+        byte[] image = A.db.custField(qid, "photo").getBytes();
+        return A.empty(image) ? A.photoFile("no_photo") : image;
     }
 
     /**

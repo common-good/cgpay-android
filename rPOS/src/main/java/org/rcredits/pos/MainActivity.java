@@ -27,7 +27,12 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -38,6 +43,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Calendar;
@@ -51,10 +57,25 @@ import java.util.Calendar;
 public final class MainActivity extends Act {
     private final int CAPTURE = 1; // the capture activity
     private final static int TX_OLD_INTERVAL = 15 * 60; // number of seconds Undo and Balance buttons last
+    final String QRS = "," +
+            "OLD Bob/NEW/AAB-/WeHlioM5JZv1O9G," +
+            "Bob/6VM/H010/WeHlioM5JZv1O9G," +
+            "OLD Susan/NEW/ABB./ZzhWMCq0zcBowqw," +
+            "Susan/6VM/G0R/ZzhWMCq0zcBowqw," +
+//            "OLD Curt/NEW/AAK./NyCBBlUF1qWNZ2k," +
+//            "Curt/6VM/G0A/NyCBBlUF1qWNZ2k," +
+            "OLD Helga's/NEW/AAD-/utbYceW3KLLCcaw," +
+            "Helga's/6VM/H0G0/utbYceW3KLLCcaw," +
+//            "OLD Cathy Cashier/NEW/ABJ-/ME04nW44DHzxVDg," +
+            "Cathy Cashier/6VM/H011/ME04nW44DHzxVDg," +
+//            "OLD P Honey/NEW/ABB./WrongCode4Susan," +
+            "P Honey/6VM/G0R/WrongCode4Susan";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
+//        getWindow().requestFeature(Window.FEATURE_RIGHT_ICON);
         setContentView(R.layout.activity_main);
 
         KeyguardManager keyguardManager = (KeyguardManager)getSystemService(Activity.KEYGUARD_SERVICE);
@@ -63,8 +84,66 @@ public final class MainActivity extends Act {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        act.menu = menu;
+/*        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main, menu);
+*/
+        if (A.fakeScan && false) {
+//            SubMenu scanMenu = menu.addSubMenu(Menu.NONE, R.id.action_scan, Menu.NONE, "Scan");
+//        SubMenu scanMenu = menu.findItem(R.id.action_scan).getSubMenu();
+//            SubMenu.clear();
+
+            String[] qrs = QRS.split(",");
+            String[] parts;
+            for (int i = 1; i < qrs.length; i++) {
+                parts = qrs[i].split("/");
+                menu.add(0, R.id.action_settings + i, Menu.NONE, parts[0]);
+            }
+        }
+        return true;
+    }
+/*
+    @Override
+    public boolean onMenuOpened(int featureId, Menu menu) {
+        if (featureId == Window.FEATURE_ACTION_BAR && menu != null) {
+            if (menu.getClass().getSimpleName().equals("MenuBuilder")) {
+                try {
+                    Method m = menu.getClass().getDeclaredMethod("setOptionalIconsVisible", Boolean.TYPE);
+                    m.setAccessible(true);
+                    m.invoke(menu, true);
+                } catch(NoSuchMethodException e) {
+                    A.log(e);
+                } catch(Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return super.onMenuOpened(featureId, menu);
+    }
+*/
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        super.onOptionsItemSelected(item);
+        switch (item.getItemId()) {
+            case R.id.action_settings:
+                act.start(PrefsActivity.class, 0);
+                return true;
+            default:
+                String[] qrs = QRS.split(",");
+                String[] part = qrs[item.getItemId() - R.id.action_settings].split("/");
+                String qr = String.format("HTTP://%s.RC4.ME/%s%s", part[1], part[2], part[3]);
+                act.start(CustomerActivity.class, 0, "qr", qr);
+                return true;
+        }
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+
+//        if (menu != null) menu.setGroupVisible(1, A.signedIn() || A.fakeScan);
+//        if (menu != null) menu.findItem(R.id.action_settings).setVisible(A.signedIn() || A.fakeScan);
 
         setLayout();
 
@@ -133,8 +212,6 @@ public final class MainActivity extends Act {
         TextView welcome = (TextView) findViewById(R.id.welcome);
         TextView version = (TextView) findViewById(R.id.version);
         if (version != null) version.setText("v. " + A.versionName);
-
-        A.useDefaults(); // get agent, etc., if necessary
 
         boolean showUndo = (A.can(A.CAN_UNDO) && A.undo != null && !A.selfhelping());
         boolean showBalance = (A.balance != null && !A.selfhelping());
@@ -214,9 +291,14 @@ public final class MainActivity extends Act {
 //    public void doScan(View v) {act.start(CaptureActivity.class, CAPTURE);} // user pressed the SCAN button
     public void doScan(View v) { // user pressed the SCAN button
         A.log(0);
-//        final String BOB = "HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G";
-        final String BOB = "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G";
-        final String SUSAN = "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw";
+        final boolean old = false;
+        final String BOB = old ? "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G" : "HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G";
+        final String SUSAN = old ? "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw" : "HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw";
+        final String CURT = old ? "HTTP://NEW.RC4.ME/AAK.NyCBBlUF1qWNZ2k" : "HTTP://6VM.RC4.ME/G0ANyCBBlUF1qWNZ2k";
+        final String HELGAS = old ? "HTTP://NEW.RC4.ME/AAQ-utbYceW3KLLCcaw" : "HTTP://6VM.RC4.ME/H0G0utbYceW3KLLCcaw";
+        final String CATHY = old ? "HTTP://NEW.RC4.ME/ABJ-ME04nW44DHzxVDg" : "HTTP://6VM.RC4.ME/H011ME04nW44DHzxVDg";
+        final String BAD = old ? "HTTP://NEW.RC4.ME/ABB.WrongCode4Susan" : "HTTP://6VM.RC4.ME/G0RWrongCode4Susan";
+
         if (A.fakeScan) { // debugging
             act.askYesNo("Scan BOB? (else Susan)",
                 new DialogInterface.OnClickListener() {

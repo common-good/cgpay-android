@@ -24,15 +24,7 @@ public class CustomerActivity extends Act {
     private String photoId; // no photoId yet
     private final static String UNKNOWN_CUST = "Unidentified Member";
     public Json json; // json-encoded response from server
-    public byte[] image; // photo of customer
-
-    // return values for API (see onScan())
-    private final static int SCAN_FAIL = 0;
-    private final static int SCAN_CUSTOMER = 1;
-    private final static int SCAN_AGENT = 2;
-    private final static int SCAN_NO_WIFI = 3;
-    private final static int GET_PHOTO_ID = 4; // scan customer's license/photo ID before permitting transaction
-    private Identify identifyTask = null;
+    public Bitmap image; // photo of customer
 
     /**
      * Show just the scanned account code, while we get more info in the background
@@ -60,7 +52,7 @@ public class CustomerActivity extends Act {
 
         A.log("rcard qid=" + rcard.qid);
         if (rcard.qid.equals(A.agent)) {act.sayFail(R.string.already_in); return;}
-        image = new byte[0];
+        image = null;
         photoId = null;
         if (rcard.isOdd) {
             String msg = t(A.testing ? R.string.switch_to_test : R.string.switch_to_real);
@@ -138,7 +130,7 @@ public class CustomerActivity extends Act {
         public handleIdResult() {}
 
         @Override
-        public boolean handle(int result0, String msg0, Json json0, byte[] image0) {
+        public boolean done(int result0, String msg0, Json json0, Bitmap image0) {
             final int result = result0;
             final String msg = msg0;
             json = json0;
@@ -148,12 +140,17 @@ public class CustomerActivity extends Act {
                 public void run() {
                     A.log(0);
                     act.progress(false);
-                    A.positiveId = (result != SCAN_NO_WIFI);
+                    A.positiveId = (result != Identify.NO_WIFI);
 
-                    if (result == SCAN_AGENT) gotAgent(json.get("name"));
-                    if (result == SCAN_CUSTOMER) gotCustomer();
-                    if (result == SCAN_NO_WIFI) noWifi();
-                    if (result == GET_PHOTO_ID) askPhotoId();
+                    if (result == Identify.CUSTOMER) gotCustomer();
+                    else if (result == Identify.NO_WIFI) noWifi();
+                    else if (result == Identify.GET_PHOTO_ID) askPhotoId();
+                    else if (result == Identify.AGENT) gotAgent();
+                    else if (result == Identify.FAIL) act.sayFail(msg);
+                    else {
+                        A.report(String.format("id fail res=%d %s json=%s", result, msg, json.toString()));
+                        act.sayFail("System Error: " + msg);
+                    }
                 }
             });
             return true;
@@ -222,27 +219,13 @@ public class CustomerActivity extends Act {
      */
     private void noWifi() {
         A.log(0);
-
-        if (A.defaults == null) {act.sayFail(R.string.wifi_for_setup); return;}
-
         Q q = A.db.oldCustomer(rcard.qid);
-        if (q != null && q.isAgent()) { // got agent for current company
-            if (A.db.badAgent(rcard.qid, rcard.code)) {act.sayFail("That Company Agent rCard is not valid."); return;}
-            A.can = q.getInt(DbHelper.AGT_CAN);
-            gotAgent(q.getString("name"));
+        if (q != null) {
+            if (q.getString("code") == null) {sayFail("There is no stored card security code for that customer."); return;}
+            if (!A.nn(q.getString("code")).equals(A.hash(rcard.code))) {sayFail(R.string.invalid_rcard); return;}
+            gotCustomer(q.getString("name"), A.nnc(q.getString("company")) + q.getString("place"), t(R.string.offline));
             q.close();
-        } else if (q != null) {
-//            image = (A.demo && A.wifi) ? photoFile(rcard.qid.substring(4).toLowerCase()) : q.getBlob("photo");
-            image = q.getBlob("photo");
-            if (json == null) {
-                String company = q.getString("company");
-                gotCustomer(q.getString("name"), company + (company.equals("") ? "" : ", ") + q.getString("place"), t(R.string.offline));
-            } else gotCustomer();
-            q.close();
-        } else {
-            if (rcard.co.equals(A.defaults.get("default"))) {act.sayFail(R.string.wifi_for_setup); return;} // same company, must be an agent
-            askPhotoId(); // if this business is often offline, nudge cashier to ask for ID
-        }
+        } else askPhotoId(); // if this business is often offline, nudge cashier to ask for ID
         A.log(9);
 
 /*
@@ -256,14 +239,9 @@ public class CustomerActivity extends Act {
     }
 
     /**
-     * Handle successful scan of company agent's rCard: remember who, check for update, report success, wait to scan.
+     * Handle successful scan of company agent's rCard.
      */
-    private void gotAgent(String name) {
-        A.log("got agent: " + name);
-        A.xagent = A.agent; // remember previous agent, for comparison
-        A.agent = rcard.qid;
-        A.region = rcard.region;
-        A.agentName = "Agent: " + name;
+    private void gotAgent() {
         act.goHome();
     }
 
@@ -298,8 +276,8 @@ public class CustomerActivity extends Act {
         setField(R.id.customer_place, place);
 
         ImageView photo = (ImageView) findViewById(R.id.photo);
-//        if (image == null) image = photoFile("no_photo"); // has happened (possibly when got customer, but not photo)
-        photo.setImageBitmap(A.scale(A.bray2bm(image), A.PIC_H));
+        if (image == null) image = Identify.scaledPhoto(A.photoFile("no_photo")); // happens when we get an unknown customer offline
+        photo.setImageBitmap(image);
         if (A.selfhelping()) onRClick(findViewById(R.id.charge));
         A.log(9);
     }

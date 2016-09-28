@@ -9,19 +9,19 @@ import android.os.Looper;
 public class Tx implements Runnable {
     private Long rowid;
     private boolean photoId;
-    private final ResultHandler onDone;
+    private final ResultHandler handle;
     private Pairs rpcPairs = null; // data to post
     private final static int MAX_DIGITS_OFFLINE = 5; // maximum $999.99 transaction offline
     public final static int OK = 0;
     public final static int ERROR = 1;
     public final static int FAIL = 2;
 
-    public static interface ResultHandler {boolean handle(int action, String msg);}
+    public interface ResultHandler {boolean done(int action, String msg);}
 
-    public Tx(Long rowid, boolean photoId, ResultHandler onDone){
+    public Tx(Long rowid, boolean photoId, ResultHandler handle){
         this.rowid = rowid;
         this.photoId = photoId;
-        this.onDone = onDone;
+        this.handle = handle;
     }
 
     @Override
@@ -60,13 +60,13 @@ public class Tx implements Runnable {
             if (A.undo != null && (A.undo.equals("") || A.undo.matches("\\d+"))) A.undo = null;
 
             A.db.completeTx(A.lastTxRow, json); // mark tx complete in db (unless deleted)
-            return onDone.handle(OK, message);
+            return handle.done(OK, message);
         } else {
             A.log("tx failed; so deleting row " + A.lastTxRow);
             A.db.delete("txs", A.lastTxRow); // remove the rejected transaction
             A.lastTxRow = null;
             A.undo = null;
-            return onDone.handle(FAIL, message);
+            return handle.done(FAIL, message);
         }
     }
 
@@ -80,12 +80,12 @@ public class Tx implements Runnable {
         boolean positive = (amount.indexOf("-") < 0);
         amount = A.fmtAmt(amount.replace("-", ""), true);
         if (amount.length() > MAX_DIGITS_OFFLINE + (positive ? 1 : 2)) { // account for "." and "-"
-            return onDone.handle(ERROR, "That is too large an amount for an offline transaction (your internet connection is not available).");
+            return handle.done(ERROR, "That is too large an amount for an offline transaction (your internet connection is not available).");
         }
         boolean charging = rpcPairs.get("force").equals("" + A.TX_PENDING); // as opposed to TX_CANCEL
         String qid = rpcPairs.get("member");
         String customer = A.db.customerName(qid);
-//        A.balance = A.demo ? A.balanceMessage(customer, qid) : null;
+//        if (A.empty(customer)) customer = "member " + qid;
         A.balance = null;
         String tofrom = (charging ^ positive) ? "to" : "from";
         String action = (charging ^ positive) ? "credited" : "charged";
@@ -102,7 +102,7 @@ public class Tx implements Runnable {
         }
 
         A.log(9);
-        return onDone.handle(OK, "OFFLINE " + msg + A.t(R.string.connect_soon));
+        return handle.done(OK, "OFFLINE " + msg + A.t(R.string.connect_soon));
     }
 
 }

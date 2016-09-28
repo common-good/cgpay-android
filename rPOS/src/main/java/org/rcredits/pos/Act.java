@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.Menu;
 import android.view.View;
 import android.widget.Toast;
 
@@ -29,11 +30,12 @@ public class Act extends Activity {
     protected ProgressDialog progressDlg; // for standard progress spinner
     private AlertDialog alertDialog;
     protected String photoId; // got customer's photo ID number (null or "1", used in TxActivity and Act.Tx)
-    private final String YES_OR_NO = "Yes or No";
-    private final static int TIMEOUT = 10; // number of minutes before activity times out
+    private String name;
     private CountDownTimer timer = null; // timeout timer
     private boolean onTop = false; // activity is visible
-    public static String name;
+    public Menu menu = null;
+    private final String YES_OR_NO = "Yes or No";
+    private final static int TIMEOUT = 10; // number of minutes before activity times out
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +56,12 @@ public class Act extends Activity {
     protected void onResume() {
         super.onResume();
         A.log(act.name + " onResume");
+        if (A.goingHome) {
+            if (isMain()) {
+                A.goingHome = false;
+            } else {goHome(A.serverMessage); return;}
+        }
+
         onTop = true;
 
         if (timer == null) timer = new CountDownTimer(TIMEOUT * 60 * 1000, 1000) {
@@ -75,6 +83,30 @@ public class Act extends Activity {
         };
         timer.start();
     }
+
+    /**
+     * End all processes in this thread and go back to scanning cards.
+     * (note that getApplicationContext() and startActivity() are activity methods)
+     */
+    public void goHome(String msg) {
+        A.log(0);
+        if (msg != null) A.serverMessage = msg;
+        progress(false);
+        if (timer != null) timer.cancel();
+
+        if (A.goingHome = !isMain()) act.finish(); else onResume();
+
+/*        if (A.goingHome = !isMain()) {
+            act.finish();
+           if (act.name != "CustomerActivity") {
+                Intent intent = new Intent(A.context, MainActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP); // end all other activities
+                act.startActivity(intent); // restart
+            }
+        } else onResume();
+        */
+    }
+    public void goHome() {goHome(null);}
 
     /**
      * Terminate activity on Back Button press.
@@ -200,28 +232,6 @@ public class Act extends Activity {
     }
 
     /**
-     * End all processes in this thread and go back to scanning cards.
-     * (note that getApplicationContext() and startActivity() are activity methods)
-     */
-    public void goHome(String msg) {
-        A.log(0);
-        if (msg != null) A.serverMessage = msg;
-        progress(false);
-        if (timer != null) timer.cancel();
-//        A.doPeriodic(); // restart background uploads, just in case
-
-        if (isMain()) {
-            onResume();
-        } else {
-            act.finish();
-            Intent intent = new Intent(A.context, MainActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP); // end all other activities
-            act.startActivity(intent); // restart
-        }
-    }
-    public void goHome() {goHome(null);}
-
-    /**
      * Launch a new activity.
      * @param cls: the activity to launch
      * @param id: identifier for the activity when it returns a result (0 if no value returned)
@@ -271,7 +281,7 @@ public class Act extends Activity {
         public handleTxResult() {}
 
         @Override
-        public boolean handle(int action0, String msg0) {
+        public boolean done(int action0, String msg0) {
             final int action = action0;
             final String msg = msg0;
 

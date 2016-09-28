@@ -64,10 +64,11 @@ public class rCard {
             account = tail.substring(1, 1 + acctLen);
             String agent = tail.substring(1 + acctLen, 1 + acctLen + agentLen);
             code = tail.substring(1 + acctLen + agentLen);
+            isAgent = (agentLen > 0);
 
             region = n2a(a2n(region));
             account = n2a(a2n(account));
-            agent = agentLen == 0 ? "" : ("-" + n2a(a2n(agent), -1, 26));
+            agent = isAgent ? ("-" + n2a(a2n(agent), -1, 26)) : "";
 
 //            co = region + "." + account;
             co = region + account;

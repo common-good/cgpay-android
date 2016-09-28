@@ -110,7 +110,7 @@ public class Periodic implements Runnable {
             byte[] image = A.apiGetPhoto(qid, code);
             if (idJson == null || image == null || image.length == 0) return; // try again later
             try {
-                A.db.saveCustomer(qid, image, idJson);
+                A.db.saveCustomer(qid, image, code, idJson);
             } catch (Db.NoRoom e) {return;} // no room to store customer record; try later
         } else  q.close(); // we already have customer info
 

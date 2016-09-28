@@ -13,6 +13,7 @@ public class Q {
     public long rowid() {return q.getLong(0);}
     public int col(String name) {return q.getColumnIndex(name);}
     public int getInt(String name) {return q.getInt(col(name));}
+    public long getLong(String name) {return q.getLong(col(name));}
     public byte[] getBlob(String name) {return q.getBlob(col(name));}
     public String getString(String name) {return q.getString(col(name));}
     public String getString(int col) {return q.getString(col);}

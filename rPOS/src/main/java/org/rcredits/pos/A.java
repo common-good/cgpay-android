@@ -94,7 +94,7 @@ import static java.lang.Integer.parseInt;
  *   11, 12, -12, -13, 13, -14, 14, 21, 31-32, 41-46, 51, -51, 52, -52 (or maybe neither 52 nor -52)
  */
 public class A extends Application {
-    public static boolean fakeScan = false; // for testing in simulator, without a webcam
+    public static boolean fakeScan = true; // for testing in simulator, without a webcam
     public static Context context;
     public static Resources resources;
     public static String versionCode; // version number of this software
@@ -127,6 +127,7 @@ public class A extends Application {
     public static String agent = null; // QID of device operator, set upon scan-in (eg NEW:AAB), otherwise null
     public static String xagent = null; // previous agent
     public static String agentName = null; // set upon scan-in
+    public static boolean goingHome = false; // flag set to return to main activity
 
     // global variables that Periodic process must not screw up (refactor these to be local and passed)
 //    public static Pairs rpcPairs = null; // parameters from last RPC request
@@ -256,7 +257,7 @@ public class A extends Application {
 
     public static void useDefaults() {
         A.log(0);
-        if (A.agent != null || A.defaults == null) return;
+        if (A.defaults == null) return;
         A.agent = A.xagent = A.defaults.get("default");
         A.region = rCard.qidRegion(A.agent);
         A.agentName = A.defaults.get("company");
@@ -361,7 +362,7 @@ public class A extends Application {
      * Get the customer's photo from his/her server.
      * @param qid: the customer's account ID
      * @param code: the customer's rCard security code
-     * @return: the customer's photo, as a byte array
+     * @return: the customer's photo, as a byte array (length < 100 if invalid, null if no wifi)
      */
     public static byte[] apiGetPhoto(String qid, String code) {
         A.log(0);
@@ -885,7 +886,24 @@ public class A extends Application {
 
     public static Bitmap bray2bm(byte[] bray) {return BitmapFactory.decodeByteArray(bray, 0, bray.length);}
 
+    /**
+     * Return the named image.
+     * @param photoName: the image filename (no extension)
+     * @return: a byte array image
+     */
+    public static byte[] photoFile(String photoName) {
+        A.log(0);
+        int photoResource = A.resources.getIdentifier(photoName, "drawable", A.packageName);
+        Bitmap bm = BitmapFactory.decodeResource(A.resources, photoResource);
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        return stream.toByteArray();
+    }
+
     public static String nn(String s) {return s == null ? "" : s;}
+    public static boolean empty(String s) {return nn(s).length() == 0;}
+    public static boolean empty(byte[] b) {return (b == null || b.length == 0);}
+    public static String nnc(String s) {return empty(s) ? "" : (s + ", ");}
 //    public static String nn(CharSequence s) {return s == null ? "" : s.toString();}
     public static Long n(String s) {return s == null ? null : Long.parseLong(s);}
     public static String ucFirst(String s) {return s.substring(0, 1).toUpperCase() + s.substring(1);}
