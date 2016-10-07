@@ -13,14 +13,14 @@ import java.util.ArrayList;
 public class Json {
     private JSONObject j;
 
-    Json(String s) { // externally use Json.make(s) instead
+    Json (String s) { // externally use Json.make(s) instead
         try {
             this.j = new JSONObject(s);
          } catch (JSONException e) {this.j = null;}
     }
-    Json() {new Json("{}");}
+    Json () {new Json("{}");}
 
-    Json(JSONObject j) {this.j = j;}
+    Json (JSONObject j) {this.j = j;}
 
     public static Json make(String s) {
         if (s == null || s.equals("")) return null;
@@ -53,7 +53,7 @@ public class Json {
             JSONArray jsonArray = this.j.getJSONArray(key);
             for (int i = 0; i < jsonArray.length(); i++) list.add(i, jsonArray.get(i).toString());
         } catch (JSONException e) {
-            A.report(String.format("json getArray failed, key=%s, json=%s", key, this.toString()));
+            A.log(String.format("json getArray failed, key=%s, json=%s", key, this.toString()));
             return A.log(e) ? list : list; // do the best we can
         }
         return list;
@@ -64,7 +64,7 @@ public class Json {
             this.j.put(key, value);
             return this;
         } catch (JSONException e) {
-            A.report(key + ":" + value);
+            A.log(key + ":" + value);
             return A.log(e) ? null : null;
         }
     }

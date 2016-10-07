@@ -1,10 +1,7 @@
 package org.rcredits.pos;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Looper;
-
-import java.io.ByteArrayOutputStream;
 
 /**
  * Created by William on 9/23/2016.
@@ -20,12 +17,12 @@ public class Identify implements Runnable {
     public final static int CUSTOMER = 1;
     public final static int AGENT = 2;
     public final static int NO_WIFI = 3;
-    public final static int GET_PHOTO_ID = 4; // scan customer's license/photo ID before permitting transaction
+    public final static int PHOTOID = 4; // scan customer's license/photo ID before permitting transaction
     public final static int DIE = 5;
 
     public interface ResultHandler {boolean done(int action, String msg, Json json, Bitmap image);}
 
-    public Identify(rCard rcard, ResultHandler handle){
+    public Identify (rCard rcard, ResultHandler handle){
         this.rcard = rcard;
         this.handle = handle;
     }
@@ -58,8 +55,8 @@ public class Identify implements Runnable {
         pairs.add("member", rcard.qid);
         pairs.add("code", A.hash(rcard.code));
 
-        String co = rCard.co(A.defaults.get("default"));
-        boolean isAgent = (rcard.isAgent && (co == null || rcard.co.equals(co)));
+        String co = A.b.defaults == null ? null : A.b.defaults.get("default");
+        boolean isAgent = (co == null || (rcard.isAgent && rCard.co(co).equals(rcard.co)));
         pairs.add("signin", isAgent ? "1" : "0");
 
         return isAgent ? doAgent(pairs) : doCustomer(pairs);
@@ -72,21 +69,22 @@ public class Identify implements Runnable {
         json = A.apiGetJson(rcard.region, pairs); // get json-encoded info from server
         if (json == null) {
             Q q = A.db.oldCustomer(rcard.qid);
-            if (q != null) image = q.getBlob("photo");
-            return handle.done(NO_WIFI, "", null, image == null ? null : scaledPhoto(image));
+            if (q != null) {image = q.getBlob("photo"); q.close();}
+            return handle.done(NO_WIFI, "", null, A.empty(image) ? null : scaledPhoto(image));
         }
         if (!json.get("ok").equals("1")) return handle.done(FAIL, json.get("message"), json, null);
         A.descriptions = json.getArray("descriptions");
         if (A.descriptions.isEmpty()) return handle.done(FAIL, A.t(R.string.no_descriptions), json, null);
         A.can = Integer.parseInt(json.get("can")); // stay up-to-date on the signed-out permissions
-        A.setDefaults(json, "can descriptions");
-        if (A.defaults.get("descriptions").isEmpty()) return handle.done(DIE, "setDefaults description error", json, null);
+        A.b.setDefaults(json, "can descriptions");
+        if (A.b.defaults.get("descriptions").isEmpty()) return handle.done(DIE, "setDefaults description error", json, null);
+        if (doBads()) return handle.done(FAIL, A.t(R.string.fraudulent_rcard), null, null);
 
         image = A.apiGetPhoto(rcard.qid, pairs.get("code"));
-        if (image == null || image.length == 0 || image.length < 100) image = A.db.custPhoto(rcard.qid);
+        if (image == null || image.length < 100) image = A.db.custPhoto(rcard.qid);
 //            if (image.length < 100) return handle.done(FAIL, "That rCard is not valid.", null, null);
         A.db.saveCustomer(rcard.qid, image, pairs.get("code"), json); // might be saving non-photo, which needs updating next time
-        int result = (json.get("first").equals("0") || A.selfhelping()) ? CUSTOMER : GET_PHOTO_ID;
+        int result = (json.get("first").equals("0") || A.selfhelping()) ? CUSTOMER : PHOTOID;
         return handle.done(result, "", json, scaledPhoto(image));
     }
 
@@ -103,17 +101,21 @@ public class Identify implements Runnable {
         if (json == null) { //return handle.done(NO_WIFI, "", null, null); // assume it's a customer (since we can't tell)
             Q q = A.db.oldCustomer(rcard.qid);
             if (q == null) return handle.done(FAIL, A.t(R.string.wifi_for_setup), null, null);
-            if (!q.isAgent()) A.report("non-agent");
+            if (!q.isAgent()) A.b.report("non-agent");
             if (A.db.badAgent(rcard.qid, rcard.code)) {q.close(); return handle.done(FAIL, "That Company Agent rCard is not valid.", null, null);}
-            gotAgent(q.getString("name"), q.getInt(DbHelper.AGT_CAN));
+            gotAgent(q.getString("name"), q.getInt(DbSetup.AGT_CAN));
             q.close();
         } else {
             A.log("id msg: " + json.get("message"));
             if (!json.get("ok").equals("1")) return handle.done(FAIL, json.get("message"), json, null);
-            A.setDefaults(json);
-            if (A.deviceId.equals("")) A.setStored("deviceId", A.deviceId = json.get("device"));
+            if (A.empty(A.deviceId)) A.setStored("deviceId", A.deviceId = json.get("device"));
+            image = A.apiGetPhoto(rcard.qid, pairs.get("code"));
+            if (image == null || image.length < 100) return handle.done(FAIL, "Card validation failed. Try again?", null, null);
+            if (doBads()) return handle.done(FAIL, A.t(R.string.invalid_rcard), null, null);
+
+            A.b.setDefaults(json);
             gotAgent(json.get("name"), A.n(json.get("can")).intValue());
-            A.db.saveAgent(rcard.qid, rcard.code, image, json); // save or update manager info
+            A.db.saveAgent(rcard.qid, rcard.abbrev, rcard.code, image, json); // save or update manager info
         }
         return handle.done(AGENT, "", null, null);
     }
@@ -125,8 +127,37 @@ public class Identify implements Runnable {
         A.log("got agent: " + name);
         A.xagent = A.agent; // remember previous agent, for comparison
         A.agent = rcard.qid;
-        A.agentName = "Signed in as: " + name;
+        A.agentName = name;
         A.can = can;
+        A.signedIn = true;
+    }
+
+    /**
+     * Remember and handle any new bad customers.
+     * @return <the card is invalid>
+     */
+    private boolean doBads() throws Db.NoRoom {
+        String[] newBads = new String[0];
+        newBads = json.getArray("bad").toArray(newBads);
+//        ContentValues values;
+        String[] ray, params;
+        String qid, code, hashCode;
+        boolean bad = false;
+
+        for (String k : newBads) {
+//            values = A.list("qid code", ray = k.split(","));
+            ray = k.split(",");
+            code = ray.length < 2 ? "" : ray[1];
+            params = new String[] {qid = ray[0], code, hashCode = A.hash(code)};
+            A.db.q("DELETE FROM members WHERE qid=? AND code IN (?,?)", params);
+            if (rcard.qid.equals(qid) && (rcard.code.equals(code) || rcard.code.equals(hashCode))) bad = true;
+//            try {
+            if (!A.db.enoughRoom()) throw new Db.NoRoom();
+            A.db.q("INSERT INTO bad (qid, code) VALUES (?, ?)", new String[]{qid, code}); // A.db.insert fails with no e. (Android bug)
+//                A.db.insert("bad", values);
+//            } catch (Db.NoRoom e) {A.b.report("can't save bads (no room)");}
+        }
+        return bad;
     }
 }
 

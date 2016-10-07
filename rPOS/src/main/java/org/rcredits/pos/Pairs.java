@@ -18,12 +18,12 @@ import java.util.Map;
 public class Pairs {
     public ContentValues list;
 
-    Pairs() {list = new ContentValues();}
-    Pairs(String name, String value) {
+    Pairs () {list = new ContentValues();}
+    public Pairs (String name, String value) {
         list = new ContentValues();
         add(name, value);
     }
-    Pairs(Pairs old) {list = new ContentValues(old.list);}
+    Pairs (Pairs old) {list = new ContentValues(old.list);}
 
     public Pairs copy() {return new Pairs(this);}
 

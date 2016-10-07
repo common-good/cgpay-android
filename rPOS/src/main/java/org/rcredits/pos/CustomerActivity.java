@@ -4,15 +4,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
-
-import java.io.ByteArrayOutputStream;
 
 /**
  * Show the name, location, and photo of the customer.
@@ -42,11 +37,12 @@ public class CustomerActivity extends Act {
     @Override
     protected void onResume() {
         super.onResume();
+        if (A.goingHome) return;
         qr = A.getIntentString(this.getIntent(), "qr");
         try {
             rcard = new rCard(qr); // parse the coded info and save it for use throughout this activity
         } catch (rCard.BadCard e) {
-            act.sayFail(R.string.invalid_rcard);
+            act.sayFail(e.type == rCard.CARD_FRAUD ? R.string.fraudulent_rcard : R.string.invalid_rcard);
             return;
         }
 
@@ -55,7 +51,7 @@ public class CustomerActivity extends Act {
         image = null;
         photoId = null;
         if (rcard.isOdd) {
-            String msg = t(A.testing ? R.string.switch_to_test : R.string.switch_to_real);
+            String msg = t(A.b.test ? R.string.switch_to_test : R.string.switch_to_real);
             act.sayOk("Changed Mode",  msg, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     dialog.cancel();
@@ -81,20 +77,21 @@ public class CustomerActivity extends Act {
     private void setLayout() {
         A.log(0);
         setContentView(R.layout.activity_customer);
+        if (A.selfhelping()) {
+            findViewById(R.id.customer_all).setVisibility(View.GONE);
+        } else {
+            int[] buttons = {R.id.refund, R.id.usdin, R.id.usdout, R.id.charge, R.id.back};
+            for (int b : buttons) findViewById(b).setVisibility(View.INVISIBLE); // hide here so we can see them on layout
+            findViewById(R.id.customer_company).setVisibility(View.GONE); // show only as needed
 
-        int[] buttons = {R.id.refund, R.id.usdin, R.id.usdout, R.id.charge, R.id.back};
-        for (int b : buttons) findViewById(b).setVisibility(View.INVISIBLE); // hide here so we can see them on layout
-        findViewById(R.id.customer_company).setVisibility(View.GONE); // show only as needed
-
-        TextView customerName = (TextView) findViewById(R.id.customer_name);
-        customerName.setText("Card scan successful."); // temporarily, while we contact the server for more info
-        TextView customerPlace = (TextView) findViewById(R.id.customer_place);
-        customerPlace.setText("Identifying...");
-
+            TextView customerName = (TextView) findViewById(R.id.customer_name);
+            customerName.setText("Card scan successful."); // temporarily, while we contact the server for more info
+            TextView customerPlace = (TextView) findViewById(R.id.customer_place);
+            customerPlace.setText("Identifying...");
+        }
         act.progress(true); // this progress meter gets turned off in handleScan()
         new Thread(new Identify(rcard, new handleIdResult())).start();
         A.log(9);
-//        A.executeAsyncTask(identifyTask = new Identify(), qr); // query the server in the background
     }
 
     /**
@@ -121,6 +118,7 @@ public class CustomerActivity extends Act {
         A.putIntentString(intent, "customer", rcard.qid);
         A.putIntentString(intent, "code", rcard.code);
         A.putIntentString(intent, "goods", (id == R.id.charge || id == R.id.refund) ? "1" : "0");
+        A.putIntentString(intent, "counter", rcard.counter);
         A.putIntentString(intent, "photoId", photoId == null ? null : "1");
         startActivity(intent);
     }
@@ -144,11 +142,11 @@ public class CustomerActivity extends Act {
 
                     if (result == Identify.CUSTOMER) gotCustomer();
                     else if (result == Identify.NO_WIFI) noWifi();
-                    else if (result == Identify.GET_PHOTO_ID) askPhotoId();
+                    else if (result == Identify.PHOTOID) askPhotoId();
                     else if (result == Identify.AGENT) gotAgent();
                     else if (result == Identify.FAIL) act.sayFail(msg);
                     else {
-                        A.report(String.format("id fail res=%d %s json=%s", result, msg, json.toString()));
+                        A.b.report(String.format("id fail res=%d %s json=%s", result, msg, json.toString()));
                         act.sayFail("System Error: " + msg);
                     }
                 }
@@ -165,8 +163,8 @@ public class CustomerActivity extends Act {
         if (result == SCAN_AGENT) gotAgent(json.get("name"));
         if (result == SCAN_CUSTOMER) gotCustomer(); // this has to happen on the UI thread (here, not in background)
         if (result == SCAN_NO_WIFI) noWifi();
-//        if (result == GET_PHOTO_ID) getPhotoId(); // MAYBE
-        if (result == GET_PHOTO_ID) askPhotoId();
+//        if (result == PHOTOID) getPhotoId(); // MAYBE
+        if (result == PHOTOID) askPhotoId();
 
         act.progress(false);
     }
@@ -195,7 +193,7 @@ public class CustomerActivity extends Act {
     /**
      * Get cashier to ask customer for a photo ID. Save the ID number for upload with transaction info.
      */
-//    private void getPhotoId() {act.start(PhotoIdActivity.class, GET_PHOTO_ID, "place", json.get("place"));}
+//    private void getPhotoId() {act.start(PhotoIdActivity.class, PHOTOID, "place", json.get("place"));}
 
     /**
      * Receive the photo ID state and number.
@@ -204,7 +202,7 @@ public class CustomerActivity extends Act {
      * @param data: state and idNumber
      */ /*
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == GET_PHOTO_ID) {
+        if (requestCode == PHOTOID) {
             if(resultCode == RESULT_OK) {
                 photoId = data.getStringExtra("photoId");
                 scanResult = SCAN_CUSTOMER;
@@ -257,23 +255,33 @@ public class CustomerActivity extends Act {
         if (!A.can(A.CAN_CHARGE) && !A.can(A.CAN_REFUND) && !A.can(A.CAN_R4USD) && !A.can(A.CAN_USD4R)) {
             act.sayFail(R.string.no_permission); return;
         }
-        A.undo = null; // previous customer info is no longer valid
+        if (!rcard.qid.equals(A.nn(A.lastQid))) A.noUndo(); // previous customer info is no longer valid
+        A.lastQid = rcard.qid;
+
         A.customerName = A.customerName(name, company);
         A.balance = json == null ? null : A.balanceMessage(A.customerName, json); // in case tx fails or is canceled
 //        if (A.demo) A.balance = A.balanceMessage(A.customerName, rcard.qid);
 
-        if (A.can(A.CAN_REFUND)) findViewById(R.id.refund).setVisibility(View.VISIBLE);
-        if (!company.equals(UNKNOWN_CUST)) { // no cash transactions without pre-identification (FinCEN requirement)
-            if (A.can(A.CAN_R4USD)) findViewById(R.id.usdin).setVisibility(View.VISIBLE);
-            if (A.can(A.CAN_USD4R)) findViewById(R.id.usdout).setVisibility(View.VISIBLE);
+        if (A.proSe()) {
+            View refund = findViewById(R.id.refund);
+            refund.setVisibility(View.VISIBLE);
+            refund.setBackgroundResource(R.drawable.pay); // make refund a pay button instead
+            refund.setContentDescription(A.DESC_PAY);
+            findViewById(R.id.charge).setVisibility(View.VISIBLE);
+        } else {
+            if (A.can(A.CAN_REFUND)) findViewById(R.id.refund).setVisibility(View.VISIBLE);
+            if (!company.equals(UNKNOWN_CUST)) { // no cash transactions without pre-identification (FinCEN requirement)
+                if (A.can(A.CAN_R4USD)) findViewById(R.id.usdin).setVisibility(View.VISIBLE);
+                if (A.can(A.CAN_USD4R)) findViewById(R.id.usdout).setVisibility(View.VISIBLE);
+            }
+            if (A.can(A.CAN_CHARGE)) findViewById(R.id.charge).setVisibility(View.VISIBLE);
         }
-        if (A.can(A.CAN_CHARGE)) findViewById(R.id.charge).setVisibility(View.VISIBLE);
 
         findViewById(R.id.back).setVisibility(View.VISIBLE);
 
-        setField(R.id.customer_name, name);
-        setField(R.id.customer_company, company).setVisibility(company == null ? View.GONE : View.VISIBLE);
-        setField(R.id.customer_place, place);
+        act.setView(R.id.customer_name, name);
+        act.setView(R.id.customer_company, company).setVisibility(company == null ? View.GONE : View.VISIBLE);
+        act.setView(R.id.customer_place, place);
 
         ImageView photo = (ImageView) findViewById(R.id.photo);
         if (image == null) image = Identify.scaledPhoto(A.photoFile("no_photo")); // happens when we get an unknown customer offline
@@ -324,16 +332,4 @@ public class CustomerActivity extends Act {
         }
     }
 */
-    /**
-     * Set a text field to the appropriate text.
-     * @param id: field identifier
-     * @param v: the value to set
-     * @return: the field
-     */
-    private TextView setField(int id, String v) {
-        TextView view = (TextView) findViewById(id);
-        view.setText(v);
-        return view;
-    }
-
 }

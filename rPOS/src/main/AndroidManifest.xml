@@ -71,6 +71,11 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".ShowQrActivity"
+            android:label="@string/title_activity_showqr"
+            android:configChanges="orientation">
+        </activity>
+        <activity
             android:name=".PrefsActivity"
             android:label="@string/title_activity_prefs"
             android:configChanges="orientation">
@@ -88,6 +93,11 @@
         <activity
             android:name=".DescriptionActivity"
             android:label="@string/title_activity_change_description"
+            android:clearTaskOnLaunch="true">
+        </activity>
+        <activity
+            android:name=".ForActivity"
+            android:label="@string/title_activity_for"
             android:clearTaskOnLaunch="true">
         </activity>
         <activity

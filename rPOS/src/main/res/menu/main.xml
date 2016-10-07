@@ -1,9 +1,30 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
       xmlns:app="http://schemas.android.com/apk/res-auto">
+    <group android:id="@+id/group_all">
         <item android:id="@+id/action_settings"
-            android:title="Settings"
-            android:icon="@drawable/ic_action_settings"
-            android:orderInCategory="100"
-            android:visible="true"
-            app:showAsAction="always" />
+              android:title="Settings"
+              android:icon="@drawable/ic_settings_black_24dp"
+              android:orderInCategory="1"
+              app:showAsAction="always" />
+        <item android:id="@+id/action_qr"
+              android:title="Show My rCard"
+              android:icon="@drawable/ic_face_black_24dp"
+              android:orderInCategory="2"
+              app:showAsAction="always" />
+        <item android:id="@+id/action_account"
+              android:title="My Account"
+              android:orderInCategory="3"
+              android:icon="@drawable/ic_open_in_browser_black_24dp"
+              app:showAsAction="always" />
+        <item android:id="@+id/action_promo"
+              android:title="rCredits Website"
+              android:orderInCategory="4"
+              android:icon="@drawable/ic_language_black_24dp"
+              app:showAsAction="always" />
+        <item android:id="@+id/action_signout"
+              android:title="Sign Out"
+              android:orderInCategory="5"
+              android:icon="@drawable/ic_play_for_work_black_24dp"
+              app:showAsAction="always" />
+    </group>
 </menu>

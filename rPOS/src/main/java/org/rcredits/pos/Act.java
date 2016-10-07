@@ -3,22 +3,19 @@ package org.rcredits.pos;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import java.text.NumberFormat;
+import java.util.Map;
 
 /**
  * An Activity class extension that includes some utility methods.
@@ -59,7 +56,7 @@ public class Act extends Activity {
         if (A.goingHome) {
             if (isMain()) {
                 A.goingHome = false;
-            } else {goHome(A.serverMessage); return;}
+            } else {goHome(A.sysMessage); return;}
         }
 
         onTop = true;
@@ -71,7 +68,8 @@ public class Act extends Activity {
             public void onFinish() {
                 timer.cancel();
                 if (onTop) {
-                    A.balance = A.undo = null; // don't show these too long
+                    A.balance = null; // don't show these too long
+                    A.noUndo();
                     if (isMain()) {
                         onResume();
                     } else {
@@ -90,7 +88,7 @@ public class Act extends Activity {
      */
     public void goHome(String msg) {
         A.log(0);
-        if (msg != null) A.serverMessage = msg;
+        if (msg != null) A.sysMessage = msg;
         progress(false);
         if (timer != null) timer.cancel();
 
@@ -250,12 +248,18 @@ public class Act extends Activity {
 
     /**
      * Return a string to the parent activity.
-     * @param resultName: name of the returned value
-     * @param result: the value to return
+     * @param pairs: key/value pairs to return
      */
-    public void returnIntentString(String resultName, String result) {
+    public void returnIntentString(Pairs pairs) {
         Intent returnIntent = new Intent();
-        returnIntent.putExtra(resultName, result);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+            for (Map.Entry<String, Object> item : pairs.list.valueSet()) {
+                String k = item.getKey(); // getting key
+                returnIntent.putExtra(k, pairs.get(k));
+            }
+        } else for (String k : pairs.list.keySet()) {
+            returnIntent.putExtra(k, pairs.get(k));
+        }
         act.setResult(Activity.RESULT_OK, returnIntent);
         act.finish();
     }
@@ -269,13 +273,13 @@ public class Act extends Activity {
         act.sayOk("Wifi", msg, null);
     }
 
-    public void showTables(View v) {if (A.testing) sayOk("Records", A.db.showCust() + "\n\n" + A.db.showTxs(), null);}
+    public void showTables(View v) {if (A.b.test) sayOk("Records", A.db.showCust() + "\n\n" + A.db.showTxs(), null);}
 
     /**
      * Provide wifi toggle shortcuts when testing (clicking +id/test, +id/customer_place, or +id/amount).
      * @param v
      */
-    public void setWifi(View v) {if (A.testing) setWifi(A.wifiOff);}
+    public void setWifi(View v) {if (A.b.test) setWifi(A.wifiOff);}
 
     public class handleTxResult implements Tx.ResultHandler {
         public handleTxResult() {}
@@ -306,6 +310,18 @@ public class Act extends Activity {
     }
 
     /**
+     * Set a text field to the appropriate text.
+     * @param id: field identifier
+     * @param v: the value to set
+     * @return: the field
+     */
+    public TextView setView(int id, String v) {
+        TextView view = (TextView) findViewById(id);
+        view.setText(v);
+        return view;
+    }
+
+    /**
      * After requesting a transaction, handle the server's response.
      * @param json: json-format parameter string returned from server
      *//*
@@ -319,18 +335,18 @@ public class Act extends Activity {
             if (A.undo != null && (A.undo.equals("") || A.undo.matches("\\d+"))) A.undo = null;
 
 // seems to fail (probably because cashiers don't press OK)    A.db.beginTransaction();
-            A.log("before complete of " + A.lastTxRow);
-            A.db.completeTx(A.lastTxRow, json); // mark tx complete in db (unless deleted)
-            A.log("after complete of " + A.lastTxRow);
+            A.log("before complete of " + A.undoRow);
+            A.db.completeTx(A.undoRow, json); // mark tx complete in db (unless deleted)
+            A.log("after complete of " + A.undoRow);
 
-            String status = A.db.getField("status", "txs", A.lastTxRow); // make sure it succeeded (remove this?)
+            String status = A.db.getField("status", "txs", A.undoRow); // make sure it succeeded (remove this?)
             if (status == null) {
                 A.log("null status -- tx was deleted from db?");
             } else if (!status.equals(A.TX_DONE + "")) act.die("status not set");
 
             act.sayOk("Success!", message, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
-                    A.log("after OK of " + A.lastTxRow);
+                    A.log("after OK of " + A.undoRow);
 //                    A.db.setTransactionSuccessful();
 //                    A.db.endTransaction();
                     dialog.cancel();
@@ -338,9 +354,9 @@ public class Act extends Activity {
                 }
             });
         } else {
-            A.log("tx failed; so deleting row " + A.lastTxRow);
-            A.db.delete("txs", A.lastTxRow); // remove the rejected transaction
-            A.lastTxRow = null;
+            A.log("tx failed; so deleting row " + A.undoRow);
+            A.db.delete("txs", A.undoRow); // remove the rejected transaction
+            A.undoRow = null;
             A.undo = null;
             if (act.getLocalClassName().equals("MainActivity")) act.sayFail(message); else act.sayError(message, null);
         }
@@ -370,8 +386,8 @@ public class Act extends Activity {
         if (charging) { // set up undo text, if charging
             msg = String.format("You %s %s $%s.", action, customer, amount);
             A.undo = String.format("Undo transfer of $%s %s %s?", amount, tofrom, customer);
-            A.db.changeStatus(A.lastTxRow, A.TX_OFFLINE, null);
-            if (!A.db.getField("status", "txs", A.lastTxRow).equals(A.TX_OFFLINE + "")) act.die("status not set");
+            A.db.changeStatus(A.undoRow, A.TX_OFFLINE, null);
+            if (!A.db.getField("status", "txs", A.undoRow).equals(A.TX_OFFLINE + "")) act.die("status not set");
         } else {
             msg = String.format("The transaction has been canceled. You transferred $%s back %s %s.",
                     amount, tofrom, customer);

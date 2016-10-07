@@ -16,6 +16,6 @@ public class UsdActivity extends Act {
     }
 
     public void setUsdType(View v) {
-        act.returnIntentString("type", String.valueOf(v.getId()));
+        act.returnIntentString(new Pairs("type", String.valueOf(v.getId())));
     }
 }

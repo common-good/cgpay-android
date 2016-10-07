@@ -3,16 +3,12 @@ package org.rcredits.pos;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.graphics.Bitmap;
 import android.os.StatFs;
 
 import org.json.JSONArray;
-import org.json.JSONObject;
 
-import java.sql.Blob;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * Handle database operations.
@@ -22,11 +18,12 @@ import java.util.regex.Pattern;
 public class Db {
     private SQLiteDatabase db;
     private final static int MIN_K = 100; // keep at least this much room available
-    public class NoRoom extends Exception { }
+    public static class NoRoom extends Exception { }
     private static final int TX_DUP_INTERVAL = 10 * 60; // how many seconds before a duplicate tx can be done
 
-    Db(boolean testing) {
-        db = testing ? A.db_test : A.db_real;
+    Db (boolean testing) {
+//        db = testing ? A.db_test : A.db_real;
+        db = (new DbSetup(testing)).getWritableDatabase();
     }
 
     public long insert(String table, ContentValues values) throws NoRoom {
@@ -72,6 +69,11 @@ public class Db {
 
     public Q getRow(String table, Long rowid) {return getRow(table, "rowid=?", new String[]{"" + rowid});}
 
+    public boolean exists(String table, String where, String[] params) {
+        Q q = getRow(table, where, params);
+        return (q != null);
+    }
+
     public String getField(String field, String table, String where, String[] params) {
         Q q = getRow(table, where, params);
         if (q == null) return null;
@@ -84,8 +86,15 @@ public class Db {
         return getField(field, table, "rowid=?", new String[] {"" + rowid});
     }
 
+    /**
+     * Return the number of affected rows in the most recent INSERT, DELETE, or UPDATE operation on the table.
+     * @param table
+     * @return
+     */
     public long changes(String table) {
-        return A.n(getField("CHANGES()", table, "1", new String[]{""}));
+        Q q = q("SELECT CHANGES() AS changes FROM " + table);
+        return q.getLong("changes");
+// fails        return A.n(getField("CHANGES()", table, "1", new String[]{""}));
     }
 
     public Long rowid(String table, String where, String[] params) {
@@ -165,9 +174,9 @@ public class Db {
     public void saveCustomer(String qid, byte[] image, String code, Json idJson) throws NoRoom {
 //        if (!rcard.region.equals(A.region)) return; // don't record customers outside the region?
         A.log("saving customer " + qid + " idJson=" + idJson.toString());
-        if (A.empty(idJson.get("name"))) A.report("customer with no name");
+        if (A.empty(idJson.get("name"))) A.b.report("customer with no name");
         ContentValues values = new ContentValues();
-        for (String k : DbHelper.CUSTOMERS_FIELDS_TO_GET.split(" ")) values.put(k, idJson.get(k));
+        for (String k : DbSetup.CUSTOMERS_FIELDS_TO_GET.split(" ")) values.put(k, idJson.get(k));
         values.put("qid", qid);
         values.put("photo", A.shrink(image));
         values.put("code", code);
@@ -219,18 +228,13 @@ public class Db {
     public Long storeTx(Pairs pairs) throws NoRoom {
         A.log(0);
         ContentValues values = new ContentValues();
-        for (String k : ("proof " + DbHelper.TXS_FIELDS_TO_SEND).split(" ")) values.put(k, pairs.get(k));
+        final String FIELDS_TO_STORE = DbSetup.TXS_CARDCODE + " " + DbSetup.TXS_FIELDS_TO_SEND; // temporarily store card code (from identify op)
+        for (String k : FIELDS_TO_STORE.split(" ")) values.put(k, pairs.get(k));
         values.put("status", A.TX_PENDING);
         values.put("agent", A.agent); // gets added to pairs in A.post (not yet)
-//        values.put(DbHelper.TXS_CARDCODE, A.rpcPairs.get("code")); // temporarily store card code (from identify op)
-//        values.put(DbHelper.TXS_CARDCODE, pairs.get("code")); // temporarily store card code
         for (Map.Entry<String, Object> k : values.valueSet()) A.log(String.format("Tx value %s: %s", k.getKey(), k.getValue()));
-        A.lastTxRow = A.db.insert("txs", values);
-        A.log("inserted tx row " + A.lastTxRow);
-/*                Q r = A.db.q("SELECT rowid, * FROM txs", new String[] {});
-                if (r != null) {A.log("Tx txid=" + r.getString("txid") + " customer=" + r.getString("member")); r.close();}
-                else A.log("r is null"); */
-        return A.lastTxRow;
+        A.log("inserting tx row ");
+        return A.db.insert("txs", values);
     }
 
     /**
@@ -239,8 +243,9 @@ public class Db {
      * @return <a similar completed transaction already exists>
      */
     public boolean similarTx(Pairs pairs) {
-        String where = "member=? AND amount=? AND goods=? AND created>? AND status IN (?,?)";
-        String[] params = {pairs.get("member"), pairs.get("amount"), pairs.get("goods")
+        if (A.undoRow == null) return false;
+        String where = "rowid=? AND member=? AND amount=? AND goods=? AND created>? AND status IN (?,?)";
+        String[] params = {A.undoRow + "", pairs.get("member"), pairs.get("amount"), pairs.get("goods")
                 , (A.now() - TX_DUP_INTERVAL) + "", "" + A.TX_OFFLINE, "" + A.TX_DONE};
         return (A.db.getField("rowid", "txs", where, params) != null);
     }
@@ -253,9 +258,9 @@ public class Db {
     public Pairs txPairs(Long txRow) {
         Q q = q("SELECT rowid, * FROM txs WHERE rowid=?", new String[] {"" + txRow});
         Pairs pairs = new Pairs("op", "charge");
-        for (String k : DbHelper.TXS_FIELDS_TO_SEND.split(" ")) pairs = pairs.add(k, q.getString(k));
+        for (String k : DbSetup.TXS_FIELDS_TO_SEND.split(" ")) pairs = pairs.add(k, q.getString(k));
 //        String code;
-//        if (!Pattern.matches(A.NUMERIC, code = q.getString(DbHelper.TXS_CARDCODE))) pairs.add("code", code);
+//        if (!Pattern.matches(A.NUMERIC, code = q.getString(DbSetup.TXS_CARDCODE))) pairs.add("code", code);
         pairs.add("force", q.getString("status")); // handle according to status
         q.close();
         return pairs;
@@ -272,7 +277,7 @@ public class Db {
     public Json cancelTx(long rowid, String agent) {
         A.log("canceling tx: " + rowid + " agent:" + agent);
         Pairs pairs = txPairs(rowid).add("force", "" + A.TX_CANCEL);
-        Json json = A.apiGetJson(A.region, pairs);
+        Json json = A.apiGetJson(A.b.region(), pairs);
         if (json != null && json.get("ok").equals("1")) {
             if (json.get("txid").equals("0")) {
                 A.log("deleting tx: " + rowid);
@@ -301,7 +306,7 @@ public class Db {
         A.log("reversing tx: " + rowid1 + " txid1=" + txid1 + " txid2=" + txid2 + " created2=" + created2 + " agent=" + agent);
         Q q = getRow("txs", rowid1);
         ContentValues values2 = new ContentValues();
-        for (String k : DbHelper.TXS_FIELDS_TO_SEND.split(" ")) values2.put(k, q.getString(k));
+        for (String k : DbSetup.TXS_FIELDS_TO_SEND.split(" ")) values2.put(k, q.getString(k));
         q.close();
         String amountPlain = A.fmtAmt(-values2.getAsDouble("amount"), false);
 
@@ -340,8 +345,8 @@ public class Db {
 
         String show = "";
         do {
-            show += String.format("row#%s qid=%s nm=%s co=%s" +
-                    (q.isAgent() ? "agt=%s code=%s can=%s flg=%s" : "place=%s bal=%s rew=%s last=%s"),
+            show += String.format("row#%s qid=%s nm=%s co=%s " +
+                    (q.isAgent() ? "agt=%s code=%s can=%s flg=%s" : "place=%s bal=%s rew=%s last=%s "),
                     q.rowid(), q.getString("qid"), q.getString("name"), q.getString("company"), q.getString("place"),
                     q.getString("balance"), q.getString("rewards"), q.getInt("lastTx"));
         } while (q.moveToNext());
@@ -360,21 +365,31 @@ public class Db {
         update("txs", values, rowid);
     }
 
-    public void saveAgent(String qid, String cardCode, byte[] image, Json json) throws NoRoom {
+    /**
+     * Store information about an authorized agent for the owner of this device (or the owner).
+     * @param qid
+     * @param abbrev
+     * @param cardCode
+     * @param image
+     * @param json
+     * @throws NoRoom
+     */
+    public void saveAgent(String qid, String abbrev, String cardCode, byte[] image, Json json) throws NoRoom {
         A.log(String.format("saving agent=%s cardCode=%s json=%s", qid, "?", json.toString()));
         ContentValues values = new ContentValues();
         values.put("name", json.get("name"));
         values.put("company", json.get("company"));
-        values.put(DbHelper.AGT_COMPANY_QID, json.get("default"));
-        values.put("code", A.hash(cardCode));
-        values.put(DbHelper.AGT_CAN, json.get("can"));
+        values.put(DbSetup.AGT_COMPANY_QID, json.get("default"));
+        values.put("code", cardCode); // store UNHASHED for displaying QR
+        values.put(DbSetup.AGT_CAN, json.get("can"));
         values.put("photo", image);
+        values.put(DbSetup.AGT_ABBREV, abbrev);
 
         Long rowid = custRowid(qid);
 
         if (rowid == null) {
             values.put("qid", qid);
-            values.put(DbHelper.AGT_FLAG, A.TX_AGENT);
+            values.put(DbSetup.AGT_FLAG, A.TX_AGENT);
             insert("members", values);
         } else update("members", values, rowid);
         A.log(9);
@@ -382,14 +397,14 @@ public class Db {
 
     public boolean badAgent(String qid, String cardCode) {
         String savedCardCode = custField(qid, "code");
-        return (savedCardCode == null || !savedCardCode.equals(A.hash(cardCode)));
+        return (savedCardCode == null || !savedCardCode.equals(cardCode));
     }
 
     /**
      * Return the amount of external storage space remaining (including empty db space), in kilobytes.
      */
     public float kLeft() {
-        StatFs stat = new StatFs(A.context.getDatabasePath(DbHelper.DB_REAL_NAME).getPath());
+        StatFs stat = new StatFs(A.context.getDatabasePath(DbSetup.DB_REAL_NAME).getPath());
         long bytesAvailable = (long)stat.getBlockSize() * (long)stat.getAvailableBlocks(); // fix requires API 18
         bytesAvailable += pragma("page_size") * pragma("freelist_count"); // free space in database
         return bytesAvailable / 1024.f;
@@ -407,12 +422,12 @@ public class Db {
             if (rowid != null) {delete("log", rowid); continue;}
             rowid = rowid("txs", "status=? ORDER BY created LIMIT 1", new String[]{"" + A.TX_DONE});
             if (rowid != null) {delete("txs", rowid); continue;}
-            rowid = rowid("members", DbHelper.AGT_FLAG + "<>" + A.TX_AGENT + " ORDER BY lastTx LIMIT 1", null);
+            rowid = rowid("members", DbSetup.AGT_FLAG + "<>" + A.TX_AGENT + " ORDER BY lastTx LIMIT 1", null);
             if (rowid != null) {delete("members", rowid); continue;}
-            A.report("no room");
+            A.b.report("no room");
             return false;
         }
-        if (rowid != null) A.report("low room");
+        if (rowid != null) A.b.report("low room");
         return true;
     }
 
@@ -434,8 +449,8 @@ public class Db {
         Json j = new Json("{}"); // the overall result
         JSONArray rec; // each record
         String v; // each value
-        int tableIndex = Arrays.asList(DbHelper.TABLES).indexOf(table);
-        String[] fields = DbHelper.TABLE_FIELDS[tableIndex].split(" ");
+        int tableIndex = Arrays.asList(DbSetup.TABLES.split(" ")).indexOf(table);
+        String[] fields = DbSetup.TABLE_FIELDS[tableIndex].split(" ");
         int fieldCount = fields.length;
         String res = "{"; // the result (build final JSON by hand, to avoid Out of Memory on final j.toString()
         final String MEM_ERR = ",\"MEM\":\"ERR\"}"; // add this instead of closing brace, for memory error
@@ -456,7 +471,9 @@ public class Db {
                 rec = new JSONArray();
                 for (int i = 0; i < fieldCount; i++) {
                     if (fields[i].equals("photo")) {
-                        v = (q.getBlob(i + 1) == null) ? "0" : (q.getBlob(i + 1).length + ""); // just say how long photo is
+                        try {
+                            v = (q.getBlob(i + 1) == null) ? "0" : (q.getBlob(i + 1).length + ""); // just say how long photo is
+                        } catch (Exception e) {v = "0";} // dunno why this happens
                     } else v = q.getString(i + 1); // i+1 because rowid is not included in fields variable
                     rec.put(v);
                 }

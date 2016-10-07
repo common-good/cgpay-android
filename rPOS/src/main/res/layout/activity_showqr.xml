@@ -1,0 +1,101 @@
+<LinearLayout  xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:baselineAligned="false"
+    >
+
+    <FrameLayout
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".Customer"
+        android:layout_weight="1"
+        android:clickable="false">
+
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/back"
+            android:background="@drawable/button_back"
+            android:onClick="goBack"
+            android:layout_margin="4dp"/>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/imageView"
+            android:background="@drawable/rlogo"
+            android:layout_weight="0"
+            android:layout_gravity="right|top"
+            android:layout_marginTop="5dp"
+            android:layout_marginRight="5dp"/>
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/photo"
+                android:layout_gravity="center_horizontal|top"
+                android:layout_weight="4"
+                android:layout_marginLeft="1dp"
+                />
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/qr"
+                android:layout_gravity="center_horizontal|bottom"
+                android:layout_weight="6"/>
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|bottom"
+        android:background="#ffffff"
+        android:baselineAligned="false"
+        android:layout_marginBottom="10dp"
+        android:layout_weight="0">
+
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Customer Name"
+            android:id="@+id/customer_name"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:textColor="#000066"
+            />
+
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Customer Company"
+            android:id="@+id/customer_company"
+            android:gravity="center"
+            android:textColor="#004400"
+            />
+
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Customer Account Code"
+            android:id="@+id/customer_qid"
+            android:gravity="center"
+            android:textColor="#ac021c"
+            android:clickable="false"
+            />
+    </LinearLayout>
+
+</LinearLayout>

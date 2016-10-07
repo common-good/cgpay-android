@@ -6,10 +6,13 @@ import android.content.ContentValues;
  * Hold the information gleaned from scanning an rCard.
  */
 public class rCard {
+    private Db db;
     public String region; // the account's region code (usually the first 3 characters of the account ID)
     public String qid; // the account ID (for example, NEW.AAA)
     public String code; // a card security code associated with the account
     public String co; // the company account ID for an agent qid (same as qid for an individual account)
+    public String counter; // optional transaction counter for abbreviated new-format codes
+    public String abbrev; // abbreviated QR for agents
     public boolean isAgent; // is this a company agent card as opposed to an individual account card
     public boolean isOdd; // card is a test card when expecting real, or vice-versa
     public class BadCard extends Exception {
@@ -17,6 +20,7 @@ public class rCard {
         BadCard(int type) {this.type = type;}
     }
     public static int CARD_INVALID = 0;
+    public static int CARD_FRAUD = 1; // card has been invalidated (lost, stolen, or attempted fake)
     private static int CODE_LEN_MIN = 11; // some old cards have codes this short
     private static String oldAgentQids = "INAAAA/INAAAF-A,MIWAAC/MIWAAK-A,MIWAAD/MIWAAY-A,MIWAAE/MIWAAY-B," +
             "MIWAAF/MIWAAY-C,MIWAAH/MIWACA-A,MIWAAJ/MIWACE-A,MIWAAL/MIWADZ-A,MIWAAM/MIWAAY-D," +
@@ -30,52 +34,43 @@ public class rCard {
             "NEWACM/NEWAIX-A,NEWACN/NEWABC-E,NEWACT/NEWAHY-A,NEWACV/NEWAJQ-A,NEWACX/NEWAJX-A," +
             "NEWADC/!NEWAAC-A,NEWADD/NEWAKC-A,NEWADE/NEWAAS-A,NEWADH/NEWAAS-B,NEWADM/NEWAEG-A";
     // eventually we will want to replace these old cards (once they have all signed in once)
+    private final static String regionLens = "112233344"; // field lengths implied by format character divided by 4
+    private final static String acctLens = "232323445";
 
     /**
      * Extract the member's QID and security code from a scanned URL
      * @param qrUrl eg HTTP://NEW.RC2.ME/I/NEW.AAA-4Dpu1m54k3T (deprecated, but some early cards use it)
      *              or HTTP://NEW.RC2.ME/AAA.4Dpu1m54k3T
-     *              or HTTP://NEW.RC2.ME/CAAAW4Dpu1m54k3T
+     *              or HTTP://6VM.RC2.ME/CAAAW4Dpu1m54k3T
+     *              or C6VMAAAW4Dpu1m54k3T-whatever (. instead of -, for test QRs)
      *              (RC2.ME for real cards, RC4.ME for test cards)
      */
-    public rCard(String qrUrl) throws BadCard {
+    rCard (String qrUrl) throws BadCard {
         A.log(0);
         String account;
         String[] parts = qrUrl.split("[/\\.-]");
         int count = parts.length;
-        int i;
+        boolean isTestCard;
         //A.log("count=" + count);
-        if (count != 9 && count != 7 && count != 6) throw new BadCard(CARD_INVALID);
+        if (count != 9 && count != 7 && count != 6 && count != 2) throw new BadCard(CARD_INVALID);
 
-        region = parts[2];
-        boolean isTestCard = parts[3].toUpperCase().equals("RC4");
-        if (count == 6) { // new format
-            A.log("new fmt");
-            String tail = parts[5];
-            char fmt = tail.charAt(0);
-            String[] fmts = {"", "", "012389ABGHIJ", "4567CDEFKLMN", "OPQRSTUV", "WXYZ"};
-            int acctLen; i = 0;
-            for (acctLen = 2; acctLen < 6; acctLen++) {
-                i = fmts[acctLen].indexOf(fmt);
-                if (i != -1) break;
-            }
-            int agentLen = i % 4;
-            if (acctLen == 6 || tail.length() < 1 + acctLen + agentLen) throw new BadCard(CARD_INVALID);
-            account = tail.substring(1, 1 + acctLen);
-            String agent = tail.substring(1 + acctLen, 1 + acctLen + agentLen);
-            code = tail.substring(1 + acctLen + agentLen);
-            isAgent = (agentLen > 0);
+        if (count > 2) {
+            region = parts[2];
+            isTestCard = parts[3].toUpperCase().equals("RC4");
+        } else isTestCard = (qrUrl.indexOf("-") < 0);
+        db = new Db(isTestCard); // might be different from A.db
 
-            region = n2a(a2n(region));
-            account = n2a(a2n(account));
-            agent = isAgent ? ("-" + n2a(a2n(agent), -1, 26)) : "";
+        if (count == 2) { // abbreviated new format
+            char fmt = qrUrl.charAt(0); // one radix 36 digit representing format (field lengths)
 
-//            co = region + "." + account;
-            co = region + account;
-            qid = co + agent;
-//            if (!qid.matches("^[A-Z0-9]{3,13}$")) throw new OddCard(CARD_INVALID);
-//            if (!qid.matches("^[A-Z]{3,4}(:|\\.)[A-Z]{3,5}(-[A-Z]{1,5})?")) throw new OddCard(CARD_INVALID);
-            if (!qid.matches("^[A-Z]{3,4}[A-Z]{3,5}(-[A-Z]{1,5})?")) throw new BadCard(CARD_INVALID);
+            int i = Integer.parseInt(fmt + "", 36);
+            int regionLen = Integer.parseInt(regionLens.charAt(i) + "");
+
+            region = qrUrl.substring(1, 1 + regionLen);
+            counter = parts[1];
+            newFormat(fmt + parts[0].substring(1 + regionLen), isTestCard); // pretend it was the long new format to get the rest
+        } else if (count == 6) { // new format
+            newFormat(parts[5], isTestCard);
         } else { // old formats
             A.log("old fmt");
             code = parts[count - 1];
@@ -83,19 +78,49 @@ public class rCard {
             int markPos = qrUrl.length() - code.length() - (count == 9 ? account.length() + 2 : 1);
             qid = region + account;
             if (isAgent = qrUrl.substring(markPos, markPos + 1).equals("-")) {
-                i = oldAgentQids.indexOf(qid + "/");
+                int i = oldAgentQids.indexOf(qid + "/");
                 if (i < 0) throw new BadCard(CARD_INVALID);
-                oldAgent(region + ":" + account, oldAgentQids.substring(i + 7, i + 7 + 8));
+                oldAgent(region + ":" + account, oldAgentQids.substring(i + 7, i + 7 + 8), isTestCard);
             } else co = qid;
             if (!qid.matches("^[A-Z]{6}(-[A-Z])?")) throw new BadCard(CARD_INVALID);
+            abbrev = region + "/" + account + (isAgent ? "-" : ".");
         }
 
         if (code.length() < CODE_LEN_MIN || !code.matches("^[A-Za-z0-9]+")) throw new BadCard(CARD_INVALID);
+        if (db.exists("bad", "qid=? AND code IN (?,?)", new String[]{qid, code, A.hash(code)})) throw new BadCard(CARD_FRAUD);
 
         //boolean proSe = (A.nn(A.agent).indexOf('.') > 0);
         //A.log("isTestCard=" + String.valueOf(isTestCard));
 
-        if (isOdd = (A.testing ^ isTestCard)) A.setMode(isTestCard);
+        if (isOdd = (A.b.test ^ isTestCard)) A.setMode(isTestCard);
+    }
+
+    private void newFormat(String tail, boolean isTestCard) throws BadCard {
+        A.log("new fmt");
+        String account;
+        char fmt = tail.charAt(0); // one radix 36 digit representing format (field lengths)
+
+        int i = Integer.parseInt(fmt + "", 36);
+        int agentLen = i % 4;
+        int acctLen = Integer.parseInt(acctLens.charAt(i / 4) + "");
+
+        if (acctLen == 6 || tail.length() < 1 + acctLen + agentLen) throw new BadCard(CARD_INVALID);
+        account = tail.substring(1, 1 + acctLen);
+        String agent = tail.substring(1 + acctLen, 1 + acctLen + agentLen);
+        code = tail.substring(1 + acctLen + agentLen);
+        abbrev = fmt + region + account + agent;
+        isAgent = (agentLen > 0);
+
+        region = base36to26AZ_3(region);
+        account = base36to26AZ_3(account);
+        agent = isAgent ? ("-" + base36to26AZ(agent)) : "";
+
+//            co = region + "." + account;
+        co = region + account;
+        qid = co + agent;
+//            if (!qid.matches("^[A-Z0-9]{3,13}$")) throw new OddCard(CARD_INVALID);
+//            if (!qid.matches("^[A-Z]{3,4}(:|\\.)[A-Z]{3,5}(-[A-Z]{1,5})?")) throw new OddCard(CARD_INVALID);
+        if (!qid.matches("^[A-Z]{3,4}[A-Z]{3,5}(-[A-Z]{1,5})?")) throw new BadCard(CARD_INVALID);
     }
 
     /**
@@ -103,24 +128,28 @@ public class rCard {
      * @param oldQid: something like XXX:YYY
      * @param newQid: something like XXXYYY-W
      */
-    private void oldAgent(String oldQid, String newQid) {
+    private void oldAgent(String oldQid, String newQid, boolean isTestCard) {
         A.log(String.format("convert old agent %s to %s", oldQid, newQid));
         qid = newQid;
         co = qid.substring(0, 6);
-        String where = String.format("%s=%s AND qid=?", DbHelper.AGT_FLAG, A.TX_AGENT);
-        Long rowid = A.db.rowid("members", where, new String[]{oldQid});
+        String where = String.format("%s=%s AND qid=?", DbSetup.AGT_FLAG, A.TX_AGENT);
+        Long rowid = db.rowid("members", where, new String[]{oldQid});
         if (rowid != null) { // this agent needs updating
             ContentValues fix = new ContentValues();
             fix.put("qid", qid);
-            A.db.update("members", fix, rowid);
-            A.setDefaults(new Json().put("default", co), "default"); // fix default agent (company) also
+            db.update("members", fix, rowid);
+            Json defaults = Json.make(A.getStored(B.defaultsName(isTestCard)));
+            if (defaults != null && defaults.get("default").replace(".", "").equals(co)) {
+                defaults.put("default", co); // fix default agent (company) also
+                A.setStored(B.defaultsName(isTestCard), A.b.defaults.toString());
+            }
             A.log("converted");
         }
     }
     /*
-    String sql = String.format("UPDATE members SET qid=? WHERE %s=%s AND qid=? LIMIT 1", DbHelper.AGT_FLAG, A.TX_AGENT);
-    A.db.q(sql, new String[]{qid, oldQid}); // fix agent in db, so zir rCard still works for signing in
-    if (A.db.changes("members") > 0) { // agent changed, so fix default agent (company) also
+    String sql = String.format("UPDATE members SET qid=? WHERE %s=%s AND qid=? LIMIT 1", DbSetup.AGT_FLAG, A.TX_AGENT);
+    db.q(sql, new String[]{qid, oldQid}); // fix agent in db, so zir rCard still works for signing in
+    if (db.changes("members") > 0) { // agent changed, so fix default agent (company) also
         A.setDefaults(new Json().put("default", co), "default");
     }
     */
@@ -131,51 +160,37 @@ public class rCard {
         return part0.length() > 3 ? part0.substring(0, part0.length() / 2) : part0;
     }
 
-    public static String co(String qid) {
-        String[] parts = qid.split("-");
-        return parts[0];
-    }
-
     /**
-    * Return an alphabetic representation of the given non-negative integer.
-    * A is the zero digit, B is 1, etc.
-    * @param n: the integer to represent
-    * @param len: the length of the string to return
-    *   <=0 means length >=-len
-    * @param base: the radix (2 to 26)
-    */
-    private String n2a(int n, int len, int base) {
-        final int A = (int) 'A';
-        String result = "";
-        int digit;
-        for (int i = 0; (len > 0 ? (i < len) : (n > 0 || i < -len)); i++) {
-            digit = n % base;
-//            result = Character.toString((char) (digit < 10 ? digit : (A + digit - 10))) + result;
-            result = ((char) (A + digit)) + result;
-//            result = Character.toString((char) (A + digit)) + result;
-            n /= base;
-        }
-        return result;
-    }
-    private String n2a(int n) {return n2a(n, -3, 26);}
-
-    /**
-     * Return the numeric equivalent of the given number expressed in an arbitrary base (2 to 36).
-     * see n2a()
+     * Return the given qid's company (same as qid if the qid is for an individual account)
+     * @param qid
+     * @return
      */
-    private int a2n(String s, int base) {
-        final int A = (int) 'A';
-        final int zero = (int) '0';
-        int result = 0;
-        int n;
-        for (int i = 0; i < s.length(); i++) {
-            n = s.charAt(i);
-            result = result * base + n - (n >= A ? A - 10 : zero);
-        }
-        return result;
+    public static String co(String qid) {return qid == null ? null : qid.split("-")[0];}
+
+    public static boolean isAgent(String qid) {return qid == null ? false : (qid.indexOf("-") != -1);}
+
+    /**
+     * Convert the integer to base 26 using just capital letters
+     * @param n
+     * @return n in base 26 A-Z
+     */
+    public static String base26AZ(int n) {
+        String s = Integer.toString(n, 26);
+        String s2 = "";
+        for (int i = 0; i < s.length(); i++) s2 += (char) ('A' + Integer.parseInt(s.charAt(i) + "", 26));
+        return s2;
     }
-    private int a2n(String s) {return a2n(s, 36);}
+    
+    private static String base36to26AZ(String n) {return base26AZ(Integer.parseInt(n, 36));}
 
-
+    /**
+     * Convert base 36 to base 26, as above, but with at least three letters (A-Z)
+     * @param n
+     * @return n in base 26 A-Z, left-filled with "A"s
+     */
+    private static String base36to26AZ_3(String n) {
+        String s = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" + base36to26AZ(n); // pad with "zero"s on the left
+        return s.substring(s.length() - 3);
+    }
 }
 

@@ -1,0 +1,96 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent"
+             android:background="@color/background"
+             android:padding="5dp">
+
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+                  android:gravity="center_vertical|center_horizontal"
+                  android:layout_margin="10dp">
+
+    </LinearLayout>
+
+    <RadioGroup
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/goods"
+        android:layout_marginTop="30dp"
+        android:layout_gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Transaction Type"
+            android:id="@+id/title"
+            android:layout_gravity="center_horizontal"/>
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Goods and services"
+            android:id="@+id/goods_real"
+            android:onClick="onGoodsClick"/>
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Exchange of US Dollars or other currency"
+            android:id="@+id/goods_usd"
+            android:onClick="onGoodsClick"/>
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Loan/reimbursement/etc."
+            android:id="@+id/goods_nongoods"
+            android:onClick="onGoodsClick"/>
+
+        <EditText
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/for_what"
+            android:autoText="false"
+            android:editable="true"
+            android:enabled="true"
+            android:hint="description or purpose"
+            android:maxLines="1"
+            android:inputType="text"
+            android:maxLength="255"
+            android:singleLine="true"
+            android:imeOptions="actionDone"/>
+
+        <Button
+            style="@style/ButtonGoods"
+            android:layout_width="wrap_content"
+            android:layout_height="fill_parent"
+            android:layout_span="3"
+            android:id="@+id/for_go"
+            android:layout_gravity="center_horizontal"
+            android:textSize="30dp"
+            android:onClick="onGoClick"
+            android:clickable="true"
+            android:textColor="#ffffff"
+            android:text="  Go  "
+            android:ellipsize="end"
+            android:paddingTop="5dp"
+            android:paddingBottom="10dp"
+            android:layout_margin="5dp"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:visibility="invisible"/>
+    </RadioGroup>
+
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/back"
+        android:background="@drawable/button_back"
+        android:onClick="goBack"
+        android:layout_weight="0"
+        android:layout_gravity="left"/>
+
+</FrameLayout>

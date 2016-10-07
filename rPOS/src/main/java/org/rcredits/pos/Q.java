@@ -8,7 +8,7 @@ import android.database.Cursor;
 public class Q {
     private Cursor q;
 
-    Q(Cursor cursor) {q = cursor;}
+    Q (Cursor cursor) {q = cursor;}
 
     public long rowid() {return q.getLong(0);}
     public int col(String name) {return q.getColumnIndex(name);}
@@ -23,5 +23,5 @@ public class Q {
     public boolean moveToNext() {return q.moveToNext();}
     public void close() {if (q != null) q.close();}
     public boolean invalid() {return (q == null);}
-    public boolean isAgent() {return (getInt(DbHelper.AGT_FLAG) == A.TX_AGENT);}
+    public boolean isAgent() {return (getInt(DbSetup.AGT_FLAG) == A.TX_AGENT);}
 }

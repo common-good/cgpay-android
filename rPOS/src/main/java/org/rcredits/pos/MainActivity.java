@@ -22,30 +22,19 @@ import android.app.KeyguardManager;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.SystemClock;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.SubMenu;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
 import org.rcredits.zxing.client.android.CaptureActivity;
-import org.rcredits.zxing.client.android.PreferencesActivity;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Calendar;
 
 /**
@@ -58,24 +47,24 @@ public final class MainActivity extends Act {
     private final int CAPTURE = 1; // the capture activity
     private final static int TX_OLD_INTERVAL = 15 * 60; // number of seconds Undo and Balance buttons last
     final String QRS = "," +
-            "OLD Bob/NEW/AAB-/WeHlioM5JZv1O9G," +
-            "Bob/6VM/H010/WeHlioM5JZv1O9G," +
-            "OLD Susan/NEW/ABB./ZzhWMCq0zcBowqw," +
-            "Susan/6VM/G0R/ZzhWMCq0zcBowqw," +
 //            "OLD Curt/NEW/AAK./NyCBBlUF1qWNZ2k," +
-//            "Curt/6VM/G0A/NyCBBlUF1qWNZ2k," +
-            "OLD Helga's/NEW/AAD-/utbYceW3KLLCcaw," +
+            "Curt/6VM/G0A/NyCBBlUF1qWNZ2k," +
+            "Bob short/?," +
+//            "OLD Helga's/NEW/AAD-/utbYceW3KLLCcaw," +
             "Helga's/6VM/H0G0/utbYceW3KLLCcaw," +
 //            "OLD Cathy Cashier/NEW/ABJ-/ME04nW44DHzxVDg," +
             "Cathy Cashier/6VM/H011/ME04nW44DHzxVDg," +
 //            "OLD P Honey/NEW/ABB./WrongCode4Susan," +
-            "P Honey/6VM/G0R/WrongCode4Susan";
+            "P Honey/6VM/G0R/WrongCode4Susan," +
+            "OLD Bob/NEW/AAB-/WeHlioM5JZv1O9G," +
+            "Bob/6VM/H010/WeHlioM5JZv1O9G," +
+            "OLD Susan/NEW/ABB./ZzhWMCq0zcBowqw," +
+            "Susan/6VM/G0R/ZzhWMCq0zcBowqw";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
-//        getWindow().requestFeature(Window.FEATURE_RIGHT_ICON);
         setContentView(R.layout.activity_main);
 
         KeyguardManager keyguardManager = (KeyguardManager)getSystemService(Activity.KEYGUARD_SERVICE);
@@ -86,10 +75,10 @@ public final class MainActivity extends Act {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         act.menu = menu;
-/*        MenuInflater inflater = getMenuInflater();
+        MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main, menu);
-*/
-        if (A.fakeScan && false) {
+
+        if (A.fakeScan) {
 //            SubMenu scanMenu = menu.addSubMenu(Menu.NONE, R.id.action_scan, Menu.NONE, "Scan");
 //        SubMenu scanMenu = menu.findItem(R.id.action_scan).getSubMenu();
 //            SubMenu.clear();
@@ -98,12 +87,13 @@ public final class MainActivity extends Act {
             String[] parts;
             for (int i = 1; i < qrs.length; i++) {
                 parts = qrs[i].split("/");
-                menu.add(0, R.id.action_settings + i, Menu.NONE, parts[0]);
+                menu.add(0, R.id.action_signout+ i, 200, parts[0]);
             }
         }
+        menu.setGroupVisible(R.id.group_all, false);
         return true;
     }
-/*
+
     @Override
     public boolean onMenuOpened(int featureId, Menu menu) {
         if (featureId == Window.FEATURE_ACTION_BAR && menu != null) {
@@ -121,18 +111,46 @@ public final class MainActivity extends Act {
         }
         return super.onMenuOpened(featureId, menu);
     }
-*/
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         super.onOptionsItemSelected(item);
-        switch (item.getItemId()) {
+
+        Intent browserIntent;
+        int id = item.getItemId();
+        A.log("menu id=" + id);
+
+        switch (id) {
             case R.id.action_settings:
                 act.start(PrefsActivity.class, 0);
                 return true;
+            case R.id.action_qr:
+                act.start(ShowQrActivity.class, 0);
+                return true;
+            case R.id.action_account:
+                String path = (A.b.test ? A.TEST_PATH : A.REAL_PATH).replace("<region>", A.b.region());
+                browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(path));
+                startActivity(browserIntent);
+                return true;
+            case R.id.action_promo:
+                browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://rCredits.org"));
+                startActivity(browserIntent);
+                return true;
+            case R.id.action_signout:
+                if (A.signedIn) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                        A.signOut();
+                        setLayout();
+                    }
+                });
+                return true;
             default:
                 String[] qrs = QRS.split(",");
-                String[] part = qrs[item.getItemId() - R.id.action_settings].split("/");
-                String qr = String.format("HTTP://%s.RC4.ME/%s%s", part[1], part[2], part[3]);
+                String[] part = qrs[item.getItemId() - R.id.action_signout].split("/");
+                String qr = part[0].equals("Bob short")
+                ? "H6VM010WeHlioM5JZv1O9G.B"
+                : String.format("HTTP://%s.RC4.ME/%s%s", part[1], part[2], part[3]);
                 act.start(CustomerActivity.class, 0, "qr", qr);
                 return true;
         }
@@ -142,7 +160,10 @@ public final class MainActivity extends Act {
     protected void onResume() {
         super.onResume();
 
-//        if (menu != null) menu.setGroupVisible(1, A.signedIn() || A.fakeScan);
+        if (menu != null) {
+            menu.setGroupVisible(R.id.group_all, A.signedIn);
+            menu.findItem(R.id.action_signout).setVisible(A.signedIn && !A.proSe());
+        }
 //        if (menu != null) menu.findItem(R.id.action_settings).setVisible(A.signedIn() || A.fakeScan);
 
         setLayout();
@@ -154,7 +175,7 @@ public final class MainActivity extends Act {
             act.sayError(A.failMessage, null); // show failure message from previous (failed) activity
             A.failMessage = null;
         }
-        if (A.serverMessage != null && A.serverMessage.equals("!update")) {
+        if (A.nn(A.sysMessage).equals("!update")) {
             act.askOk("Okay to update now? (it takes a few seconds)", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     dialog.cancel();
@@ -167,15 +188,15 @@ public final class MainActivity extends Act {
 //                    new UpdateApp().execute(A.update); // download the update in the background
                 }
             });
-            A.serverMessage = null;
-        } else if (A.serverMessage != null) {
-            act.sayOk("Note", A.serverMessage, null); // show a message the server wants the cashier to see
-            A.serverMessage = null;
+            A.sysMessage = null;
+        } else if (A.sysMessage != null) {
+            act.sayOk("Note", A.sysMessage, null); // show a message the system wants the cashier to see
+            A.sysMessage = null;
         }
 
         A.db.q("DELETE from log WHERE time<?", new String[]{"" + A.daysAgo(7)});
         A.db.q("DELETE from txs WHERE created<?", new String[]{"" + A.daysAgo(180)});
-        String where = String.format("%s<>%s AND lastTx<?", DbHelper.AGT_FLAG, A.TX_AGENT); // don't delete agents
+        String where = String.format("%s<>%s AND lastTx<?", DbSetup.AGT_FLAG, A.TX_AGENT); // don't delete agents
         A.db.q("DELETE from members WHERE " + where, new String[]{"" + A.daysAgo(180)});
 
         // } else if ... mention(R.string.connect_soon); // if this business is often offline, ask for ID
@@ -216,8 +237,9 @@ public final class MainActivity extends Act {
         boolean showUndo = (A.can(A.CAN_UNDO) && A.undo != null && !A.selfhelping());
         boolean showBalance = (A.balance != null && !A.selfhelping());
         findViewById(R.id.undo_last).setVisibility(showUndo ? View.VISIBLE : View.INVISIBLE);
+        if (A.proSe()) findViewById(R.id.show_balance).setBackgroundResource(R.drawable.show_my_balance);
         findViewById(R.id.show_balance).setVisibility(showBalance ? View.VISIBLE : View.INVISIBLE);
-        findViewById(R.id.test).setVisibility(A.testing ? View.VISIBLE : View.INVISIBLE);
+        findViewById(R.id.test).setVisibility(A.b.test ? View.VISIBLE : View.INVISIBLE);
 //        if (A.demo) ((TextView) findViewById(R.id.test)).setText("DEMO");
         findViewById(R.id.settings).setVisibility(A.can(A.CAN_MANAGE) ? View.INVISIBLE : View.INVISIBLE); // not used yet
 
@@ -227,17 +249,19 @@ public final class MainActivity extends Act {
         } else {
             welcome.setText((showUndo || showBalance) ? "" : "Ready for customers...");
             if (!A.agent.equals(A.xagent) && A.failMessage == null) {
-                act.mention("Success! You are now signed in. (To sign out, tap your name.)");
+                String successMsg = "Success! You are now signed in.";
+                if (!A.proSe()) successMsg += " (To sign out or change settings, press the menu button.)";
+                act.mention(successMsg);
                 A.xagent = A.agent;
             }
-            signedAs.setText(A.agentName);
+            signedAs.setText(((A.signedIn && !A.proSe()) ? "Signed in as: " : "") + A.agentName);
         }
         A.log(9);
     }
 
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_MENU) {
-            if (A.signedIn()) act.start(PrefsActivity.class, 0);
+            if (A.signedIn) act.start(PrefsActivity.class, 0);
             return true;
         } else return super.onKeyUp(keyCode, event);
     }
@@ -344,7 +368,7 @@ public final class MainActivity extends Act {
      */
     public void doShowBalance(View v) {
 //        if (!oldTx())
-        act.sayOk("Customer Balance", A.balance, null);
+        act.sayOk(A.proSe() ? "My Balance" : "Customer Balance", A.balance, null);
     }
 
     /**
@@ -352,7 +376,7 @@ public final class MainActivity extends Act {
      * @return <transaction is too old>
      *//*
     private boolean oldTx() {
-        String created0 = A.db.getField("created", "txs", A.lastTxRow);
+        String created0 = A.db.getField("created", "txs", A.undoRow);
         int created = created0 == null ? 0 : Integer.parseInt(created0);
         if (created > A.now() - TX_OLD_INTERVAL) return false;
         A.undo = A.balance = null;
@@ -371,17 +395,17 @@ public final class MainActivity extends Act {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
-                A.db.changeStatus(A.lastTxRow, A.TX_CANCEL, null);
+                A.db.changeStatus(A.undoRow, A.TX_CANCEL, null);
                 A.log("about to undo");
-//                A.executeAsyncTask(new Act.Tx(), A.lastTxRow);
-                new Thread(new Tx(A.lastTxRow, false, new handleTxResult())).start();
+//                A.executeAsyncTask(new Act.Tx(), A.undoRow);
+                new Thread(new Tx(A.undoRow, false, new handleTxResult())).start();
             }
         });
     }
 
     /**
      * Sign the cashier out after confirmation.
-     */
+     *//*
     public void doSignOut(View v) {
         A.log(0);
         if (A.signedIn()) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
@@ -392,4 +416,5 @@ public final class MainActivity extends Act {
             }
         }); // (too unexpected) else doScan(v);
     }
+    */
 }

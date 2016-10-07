@@ -43,11 +43,12 @@ public final class PrefsActivity extends Act {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_prefs);
 
-        findViewById(R.id.emptyTestDb).setVisibility(A.testing && A.agent != null ? View.VISIBLE : View.INVISIBLE);
+        findViewById(R.id.emptyTestDb).setVisibility((A.b.test && A.fakeScan && A.agent != null) ? View.VISIBLE : View.INVISIBLE);
         ((CheckBox) findViewById(R.id.wifi)).setChecked(!A.wifiOff);
         ((CheckBox) findViewById(R.id.selfhelp)).setChecked(A.selfhelp);
+        findViewById(R.id.selfhelp_row).setVisibility(A.proSe() ? View.GONE : View.VISIBLE);
 //        ((CheckBox) findViewById(R.id.demo)).setChecked(A.demo);
-//        findViewById(i).setVisibility(A.testing ? View.VISIBLE : View.GONE);
+//        findViewById(i).setVisibility(A.b.test ? View.VISIBLE : View.GONE);
 
         /*
         for (int i = 0; i < A.CAN_AGENT - 2; i++) { // -2: ignore CAN_U6 and CAN_MANAGE permission
@@ -57,15 +58,28 @@ public final class PrefsActivity extends Act {
         */
     }
 
-/*    public void onPrefsBoxClick(CheckBox v) {
+    @Override
+    public void onBackPressed() { // not onDestroy, which happens AFTER MainActivity resumes
+        if (A.selfhelp) A.signOut(); // must precede super...
+        super.onBackPressed();
+    }
+
+    /*    public void onPrefsBoxClick(CheckBox v) {
         int i = find(v.getId(), canButtons) + A.CAN_CASHIER;
         if (i < 0) i = find(v.getId(), agtButtons) + A.CAN_AGENT;
         A.setCan(i, v.isChecked());
     }*/
 
     public void emptyTestDb(View v) {
-        for (String table : "members txs log".split(" ")) A.db.q("DELETE FROM " + table);
-        A.db.q("VACUUM");
+        if (!A.fakeScan) {act.sayFail("You can do this only when debugging, to be safe."); return;}
+        for (String table : "members txs log".split(" ")) A.bTest.db.q("DELETE FROM " + table);
+        A.bTest.db.q("VACUUM");
+        A.settings.edit().clear().commit(); //remove all
+        A.signOut();
+        A.agent = A.xagent = A.agentName = null;
+        A.descriptions = null;
+        A.can = 0;
+        act.goHome();
     }
 
     public void onWifiToggle(View v) {

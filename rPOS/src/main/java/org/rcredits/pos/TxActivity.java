@@ -9,6 +9,8 @@ package org.rcredits.pos;
         import android.widget.ImageButton;
         import android.widget.TextView;
 
+        import java.util.Arrays;
+
         import static org.rcredits.pos.R.*;
 
 /**
@@ -16,7 +18,8 @@ package org.rcredits.pos;
  * @intent customer: customer's account ID
  * @intent code: customer's rCard security code
  * @intent description: the current transaction description
- * @intent goods: "1" if the transaction is for real goods and services, else "0"
+ * @intent goods: "1" if the transaction is for real goods and services, "0" for USD, "2" for self-service, "3" non-goods
+ * @intent counter: (optional) a transaction counter for the customer
  * @intent photoId: the customer's photo ID number, if appropriate
  * Charges, "USD in", "USD out", and "refund" are all treated similarly.
  */
@@ -25,14 +28,17 @@ public class TxActivity extends Act {
     private final int PRECOMMA_DIGITS = 5; // maximum number of digits before we need a comma
     private final int CHANGE_DESC = 1; // change-description activity
     private final int GET_USD_TYPE = 2; // usd-type activity
+    private final int WHAT_FOR = 3; // activity to let the proSe device owner say what the tx is for
     private final String USD_CHECK_FEE = "$3";
     private final String USD_CARD_FEE = "3%";
 
     private String customer; // qid of current customer
     private String code; // current customer's rCard security code
     private String description; // transaction description
+    private String desc0; // description originally passed to us
     private String amount; // the transaction amount
     private String goods; // is this a purchase/refund of real goods & services (or an exchange for cash)
+    private String counter;
 
     /**
      * Show the appropriate options.
@@ -41,19 +47,20 @@ public class TxActivity extends Act {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        customer = A.getIntentString(this.getIntent(), "customer");
+        code = A.getIntentString(this.getIntent(), "code");
+        desc0 = description = A.getIntentString(this.getIntent(), "description");
+        goods = A.getIntentString(this.getIntent(), "goods");
+        counter = A.getIntentString(this.getIntent(), "counter");
+        photoId = A.getIntentString(this.getIntent(), "photoId");
+        amount = "0.00";
+        setLayout();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
-        customer = A.getIntentString(this.getIntent(), "customer");
-        code = A.getIntentString(this.getIntent(), "code");
-        description = A.getIntentString(this.getIntent(), "description");
-        goods = A.getIntentString(this.getIntent(), "goods");
-        photoId = A.getIntentString(this.getIntent(), "photoId");
-        amount = "0.00";
-        setLayout();
+        if (A.goingHome) return;
     }
 
     /**
@@ -68,12 +75,12 @@ public class TxActivity extends Act {
         if (description.equals(A.DESC_USD_IN) || description.equals(A.DESC_USD_OUT)) {
             desc.setText(description);
             changeDesc.setVisibility(View.GONE);
-        } else if (description.equals(A.DESC_REFUND)) {
+        } else if (description.equals(A.DESC_REFUND) || description.equals(A.DESC_PAY)) {
             desc.setText(description);
             changeDesc.setVisibility(View.GONE);
         } else { // charging
             if (A.descriptions.size() < 2) {
-                if (description.equals("")) description = "charge"; // don't let it be blank
+                if (description.equals("")) description = A.DESC_CHARGE; // don't let it be blank
                 changeDesc.setVisibility(View.GONE);
             }
             //desc.setText(A.ucFirst(description.toLowerCase()));
@@ -112,7 +119,7 @@ public class TxActivity extends Act {
             amount += c;
         } else {
             act.mention("You can have only up to " + MAX_DIGITS + " digits. Press clear (c) or backspace (\u25C0).");
-            if (amount.equals("800000") && c.equals("8")) A.report("user-initiated report");
+            if (amount.equals("800000") && c.equals("8")) A.b.report("user-initiated report");
         }
 
         int len = amount.length();
@@ -132,11 +139,6 @@ public class TxActivity extends Act {
     }
 
     /**
-     * For USD in, find out what kind of USD payment customer prefers.
-     */
-    public void getUsdType() {act.start(UsdActivity.class, GET_USD_TYPE);}
-
-    /**
      * Handle a change of description
      * @param requestCode
      * @param resultCode
@@ -144,28 +146,32 @@ public class TxActivity extends Act {
      */
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         A.log(0);
+        if (resultCode == RESULT_CANCELED) return;
+        if (resultCode != RESULT_OK) {A.b.report("weird result: " + resultCode); return;}
+
         if (requestCode == CHANGE_DESC) {
-            if(resultCode == RESULT_OK) {
-                A.log("changing description");
-                description = data.getStringExtra("description");
-                Button desc = (Button) findViewById(id.description);
-                //desc.setText(A.ucFirst(description.toLowerCase()));
-                desc.setText(description);
-            } else if (resultCode == RESULT_CANCELED) {} // do nothing if no result
+            A.log("changing description");
+            description = data.getStringExtra("description");
+            Button desc = (Button) findViewById(id.description);
+            //desc.setText(A.ucFirst(description.toLowerCase()));
+            desc.setText(description);
         } else if (requestCode == GET_USD_TYPE) {
-            if(resultCode == RESULT_OK) {
-                final int usdType = Integer.valueOf(data.getStringExtra("type"));
-                A.log("got usdType=" + usdType);
-                if (usdType != id.cash) {
-                    String fee = usdType == id.check ? (USD_CHECK_FEE + " check fee.") : (USD_CARD_FEE + " card fee.");
-                    act.askOk("The customer will be charged a " + fee, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                            finishTx(usdType);
-                        }
-                    }); // otherwise do nothing (stay in this Tx Activity)
-                } else finishTx(usdType);
-            } else if (resultCode == RESULT_CANCELED) {} // do nothing if no result
+            final int usdType = Integer.valueOf(data.getStringExtra("type"));
+            A.log("got usdType=" + usdType);
+            if (usdType != id.cash) {
+                String fee = usdType == id.check ? (USD_CHECK_FEE + " check fee.") : (USD_CARD_FEE + " card fee.");
+                act.askOk("The customer will be charged a " + fee, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                        finishTx(usdType);
+                    }
+                }); // otherwise do nothing (stay in this Tx Activity)
+            } else finishTx(usdType);
+        } else if (requestCode == WHAT_FOR) {
+            goods = data.getStringExtra("goods");
+            description = data.getStringExtra("description");
+            if (A.empty(description)) description = desc0.equals(A.DESC_PAY) ? A.DESC_USD_IN : A.DESC_USD_OUT; // goods.equals("0")
+            finishTx(null);
         }
         A.log(9);
     }
@@ -179,7 +185,11 @@ public class TxActivity extends Act {
         //        String amount = A.nn(((TextView) findViewById(R.id.amount)).getText()).substring(1); // no "$"
         if (progressing()) return; // ignore if already processing a (foreground) transaction
         if (amount.equals("0.00")) {sayError("You must enter an amount.", null); return;}
-        if (description.equals(A.DESC_USD_IN)) getUsdType(); else finishTx(null);
+        if (A.proSe()) {
+            act.start(ForActivity.class, WHAT_FOR);
+        } else {
+            if (description.equals(A.DESC_USD_IN)) act.start(UsdActivity.class, GET_USD_TYPE); else finishTx(null);
+        }
     }
 
     /**
@@ -190,22 +200,23 @@ public class TxActivity extends Act {
         A.log(0);
         String created = String.valueOf(A.now());
         String amountPlain = A.fmtAmt(amount, false);
-        if (description.equals(A.DESC_REFUND) || description.equals(A.DESC_USD_IN)) amountPlain = "-" + amountPlain; // a negative tx
-        String goods = (description.equals(A.DESC_USD_IN) || description.equals(A.DESC_USD_OUT)) ? "0" : "1";
+        if (Arrays.asList(new String[]{A.DESC_REFUND, A.DESC_USD_IN, A.DESC_PAY}).contains(desc0)) amountPlain = "-" + amountPlain; // a negative tx
+        if (A.empty(goods)) goods = (desc0.equals(A.DESC_USD_IN) || desc0.equals(A.DESC_USD_OUT)) ? "0" : "1";
         String desc = description; // copy, because we might come here again if tx fails
-        if (desc.equals(A.DESC_USD_IN)) desc += usdType == id.cash ? " (cash)" : (usdType == id.check ? " (check)" : " (card)");
+        if (desc0.equals(A.DESC_USD_IN)) desc += usdType == id.cash ? " (cash)" : (usdType == id.check ? " (check)" : " (card)");
 
         Pairs pairs = new Pairs("op", "charge");
         pairs.add("member", customer);
-        pairs.add(DbHelper.TXS_CARDCODE, A.hash(code)); // store hashed code temporarily for delayed identification
+        pairs.add(DbSetup.TXS_CARDCODE, A.hash(code)); // store hashed code temporarily for delayed identification
         pairs.add("created", created);
         pairs.add("amount", amountPlain);
         pairs.add("proof", A.hash(rCard.co(A.agent) + amountPlain + customer + code + created));
-        pairs.add("goods", goods);
+        pairs.add("goods", A.selfhelping() ? "2" : goods);
         pairs.add("description", desc);
+        pairs.add("counter", A.nn(counter));
         if (A.db.similarTx(pairs)) {act.sayFail("You already just completed a transaction for that amount with this member."); return;}
-// Can't add photoId to pairs until pairs stored in db and retrieved (see Act.Tx)
-        act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
+// Can't add photoId to pairs until pairs stored in db and retrieved (see Tx)
+        act.progress(true); // this progress meter gets turned off in Tx
 
         try {
             A.log("about to tx");

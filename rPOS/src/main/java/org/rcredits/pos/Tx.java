@@ -1,6 +1,5 @@
 package org.rcredits.pos;
 
-import android.content.DialogInterface;
 import android.os.Looper;
 
 /**
@@ -18,7 +17,7 @@ public class Tx implements Runnable {
 
     public interface ResultHandler {boolean done(int action, String msg);}
 
-    public Tx(Long rowid, boolean photoId, ResultHandler handle){
+    Tx (Long rowid, boolean photoId, ResultHandler handle){
         this.rowid = rowid;
         this.photoId = photoId;
         this.handle = handle;
@@ -34,13 +33,14 @@ public class Tx implements Runnable {
         if (Integer.valueOf(rpcPairs.get("force")) == A.TX_PENDING) {
             A.log("completing pending tx: " + rowid);
             if (photoId) rpcPairs.add("photoid", "1");
-            json = (A.positiveId) ? A.apiGetJson(A.region, rpcPairs) : null;
+            json = (A.positiveId) ? A.apiGetJson(A.b.region(), rpcPairs) : null;
         } else {
             A.log("canceling tx " + rowid);
             json = A.db.cancelTx(rowid, rpcPairs.get("agent"));
         }
 
         if (json == null) offlineTx(); else afterTx(json);
+        A.b.getTime(null); // check in with server after each transaction, whether successful or not
         Looper.loop();
         A.log(9);
     }
@@ -52,20 +52,24 @@ public class Tx implements Runnable {
     public boolean afterTx(Json json) {
         A.log(0);
         String message = json.get("message");
-        A.balance = A.balanceMessage(A.customerName, json); // null if secret or no balance was returned
-        if (A.selfhelping() && A.balance != null) message += " Your new balance is " + A.fmtAmt(json.get("balance"), true) + ".";
 
         if (json.get("ok").equals("1")) {
+            A.db.completeTx(this.rowid, json); // mark tx complete in db (unless deleted)
+            A.balance = A.balanceMessage(A.customerName, json); // null if secret or no balance was returned
+            if (A.selfhelping() && A.balance != null) {
+                    int i = A.balance.indexOf("\n");
+                    if (i > -1) message += A.balance.substring(i);
+//                if (A.selfhelping() && A.balance != null) message += " Your new balance is $" + A.fmtAmt(json.get("balance"), true) + ".";
+            }
             A.undo = json.get("undo");
-            if (A.undo != null && (A.undo.equals("") || A.undo.matches("\\d+"))) A.undo = null;
-
-            A.db.completeTx(A.lastTxRow, json); // mark tx complete in db (unless deleted)
+            if (A.empty(A.undo) || A.undo.matches("\\d+")) {
+                A.noUndo();
+            } else A.undoRow = this.rowid;
             return handle.done(OK, message);
         } else {
-            A.log("tx failed; so deleting row " + A.lastTxRow);
-            A.db.delete("txs", A.lastTxRow); // remove the rejected transaction
-            A.lastTxRow = null;
-            A.undo = null;
+            A.log("tx failed; so deleting row " + this.rowid);
+            A.db.delete("txs", this.rowid); // remove the rejected transaction
+            A.noUndo();
             return handle.done(FAIL, message);
         }
     }
@@ -91,14 +95,16 @@ public class Tx implements Runnable {
         String action = (charging ^ positive) ? "credited" : "charged";
 
         if (charging) { // set up undo text, if charging
-            msg = String.format("You %s %s $%s.", action, customer, amount);
+            if (A.selfhelping()) {
+                msg = String.format("You paid %s %s.", A.agentName, amount);
+            } else msg = String.format("You %s %s $%s.", action, customer, amount);
+            A.db.changeStatus(this.rowid, A.TX_OFFLINE, null);
             A.undo = String.format("Undo transfer of $%s %s %s?", amount, tofrom, customer);
-            A.db.changeStatus(A.lastTxRow, A.TX_OFFLINE, null);
-//            if (!A.db.getField("status", "txs", A.lastTxRow).equals(A.TX_OFFLINE + "")) act.die("system error: status not set");
+            A.undoRow = this.rowid;
         } else {
             msg = String.format("The transaction has been canceled. You transferred $%s back %s %s.",
                     amount, tofrom, customer);
-            A.undo = null;
+            A.noUndo();
         }
 
         A.log(9);

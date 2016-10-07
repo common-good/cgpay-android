@@ -21,8 +21,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/undo_last"
-                android:src="@drawable/undo"
-                android:background="@color/background"
+                android:background="@drawable/undo"
                 android:layout_gravity="center_horizontal"
                 android:onClick="doUndo"
                 android:clickable="true"/>
@@ -39,8 +38,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/show_balance"
-                android:src="@drawable/show_balance"
-                android:background="@color/background"
+                android:background="@drawable/show_balance"
                 android:layout_gravity="center_horizontal"
                 android:onClick="doShowBalance"
                 android:clickable="true"/>
@@ -52,7 +50,7 @@
         android:orientation="vertical"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
         android:layout_gravity="bottom"
         android:gravity="center_horizontal"
         android:paddingLeft="16dp"
@@ -127,7 +125,7 @@
             android:clickable="true"
             android:onClick="doScan"
             android:cropToPadding="false"
-            android:paddingEnd="10dp"/>
+            android:paddingRight="10dp"/>
 
         <Button
             android:layout_width="wrap_content"
@@ -135,7 +133,6 @@
             android:text="@string/not_signed_in"
             android:id="@+id/signed_as"
             android:clickable="true"
-            android:onClick="doSignOut"
             android:background="@color/background"
             android:ellipsize="middle"
             android:paddingTop="20dp"
@@ -150,7 +147,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="@+string/welcome"
+        android:text="@string/welcome"
         android:id="@+id/welcome"
         android:layout_gravity="center_horizontal"
         android:textSize="18dp"

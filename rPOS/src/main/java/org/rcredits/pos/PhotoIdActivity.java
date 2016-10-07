@@ -144,7 +144,7 @@ public class PhotoIdActivity extends Act {
                 for (Map.Entry<String, String> entry : states.entrySet()) {
                     if (entry.getValue().equals(state)) {state = entry.getKey(); break;}
                 }
-                act.returnIntentString("photoId", state + "-" + data.getStringExtra("idNumber"));
+                act.returnIntentString(new Pairs("photoId", state + "-" + data.getStringExtra("idNumber")));
             } else if (resultCode == RESULT_CANCELED) {}; // do nothing if no number (user must press Back)
         }
     }

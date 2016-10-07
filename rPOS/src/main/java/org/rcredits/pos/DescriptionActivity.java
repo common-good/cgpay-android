@@ -52,7 +52,7 @@ public class DescriptionActivity extends Act {
         list.setAdapter(adapter);
         list.setOnItemClickListener(new ListView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v, int i, long id) {
-            act.returnIntentString("description", A.descriptions.get(i));
+            act.returnIntentString(new Pairs("description", A.descriptions.get(i)));
             }
         });
 

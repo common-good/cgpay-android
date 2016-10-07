@@ -2,32 +2,32 @@
 <items version="2" >
 
     <item
-        jar="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\build\intermediates\exploded-aar\com.android.support\appcompat-v7\18.0.0\jars\classes.jar"
-        jumboMode="false"
-        revision="21.1.2"
-        sha1="8f11f56e350eacabf2273f646d981356eea0ed77">
-        <dex dex="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\build\intermediates\pre-dexed\debug\classes-f96c15ef173454f08b6072b830ddd9fa36cbe2fa.jar" />
-    </item>
-    <item
-        jar="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\libs\core-2.2.jar"
-        jumboMode="false"
-        revision="21.1.2"
-        sha1="cba0b93b0072105d808ef7a00a107a4eb97874e7">
-        <dex dex="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\build\intermediates\pre-dexed\debug\core-2.2-f853aeef9bb7a1dbd6348caa67be8b94409b0663.jar" />
-    </item>
-    <item
         jar="C:\Users\William\AppData\Local\Android\sdk\extras\android\m2repository\com\android\support\support-v4\18.0.0\support-v4-18.0.0.jar"
         jumboMode="false"
         revision="21.1.2"
         sha1="44ec51e9d395a47aab135e5e1b556c0007442156">
-        <dex dex="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\build\intermediates\pre-dexed\debug\support-v4-18.0.0-927a70c83f4a7f64ca2b36ed6fd9d6b3d7e8905c.jar" />
+        <dex dex="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\build\intermediates\pre-dexed\release\support-v4-18.0.0-927a70c83f4a7f64ca2b36ed6fd9d6b3d7e8905c.jar" />
+    </item>
+    <item
+        jar="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\build\intermediates\exploded-aar\com.android.support\appcompat-v7\18.0.0\jars\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="8f11f56e350eacabf2273f646d981356eea0ed77">
+        <dex dex="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\build\intermediates\pre-dexed\release\classes-f96c15ef173454f08b6072b830ddd9fa36cbe2fa.jar" />
     </item>
     <item
         jar="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\libs\javase-2.2.jar"
         jumboMode="false"
         revision="21.1.2"
         sha1="049c7efbaa67727bef5f2dd79efba1ca35f3e7f0">
-        <dex dex="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\build\intermediates\pre-dexed\debug\javase-2.2-18a6eba3ec49c0a7b7dda65d27cd50663d1bbcec.jar" />
+        <dex dex="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\build\intermediates\pre-dexed\release\javase-2.2-18a6eba3ec49c0a7b7dda65d27cd50663d1bbcec.jar" />
+    </item>
+    <item
+        jar="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\libs\core-2.2.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="cba0b93b0072105d808ef7a00a107a4eb97874e7">
+        <dex dex="C:\Documents\AndroidApps\rCreditsPOSProject\rPOS\build\intermediates\pre-dexed\release\core-2.2-f853aeef9bb7a1dbd6348caa67be8b94409b0663.jar" />
     </item>
 
 </items>

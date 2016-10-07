@@ -1,5 +1,4 @@
 package org.rcredits.pos;
-import android.annotation.TargetApi;
 import android.app.Application;
 import android.content.ContentValues;
 import android.content.Context;
@@ -18,12 +17,14 @@ import android.graphics.Paint;
 import android.hardware.Camera;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Build;
-import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import android.widget.TextView;
+
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -38,9 +39,6 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -94,23 +92,21 @@ import static java.lang.Integer.parseInt;
  *   11, 12, -12, -13, 13, -14, 14, 21, 31-32, 41-46, 51, -51, 52, -52 (or maybe neither 52 nor -52)
  */
 public class A extends Application {
-    public static boolean fakeScan = true; // for testing in simulator, without a webcam
+    public static boolean fakeScan = false; // for testing in simulator, without a webcam
     public static Context context;
     public static Resources resources;
-    public static String versionCode; // version number of this software
+    public static int versionCode; // version number of this software
     public static String versionName; // version name of this software
-    private static SharedPreferences settings = null;
+    public static SharedPreferences settings = null;
     private static String salt = null;
     private static ConnectivityManager cm = null;
 
     public static Long timeFix = 0L; // how much to add to device's time to get server time
 //    public static String update = null; // URL of update to install on restart, if any ("1" means already downloaded)
     public static String failMessage = null; // error message to display upon restart, if any
-    public static String serverMessage = null; // message from server to display when convenient
+    public static String sysMessage = null; // message from system to display when convenient
     public static String deviceId = null; // set once ever in storage upon first scan-in, read upon startup
     public static String debugString = null; // for debug messages
-    public static Thread periodic = null; // periodic reconciliation process running in background
-    public static Integer period = null; // how often to tickle (reconcile offline with server, etc.)
     public static boolean flip; // whether to flip the scanned image (for front-facing cameras)
     public static boolean positiveId; // did online customer identification succeed
     public static String packageName; // resource package
@@ -119,27 +115,30 @@ public class A extends Application {
 
     // variables that get reset when testing (or not testing)
     public static boolean testing = false; // assume testing if scan is faked
+    public static B b = null; // stuff that goes with real or test Db
+    public static B bTest = null;
+    public static B bReal = null;
+    public static Db db; // real or test db (should be always open when needed) -- convenient duplicate of A.b.db
     public static boolean wifiOff = false; // force wifi off
     public static boolean selfhelp = false; // whether to skip the photoID step and assume charging for default goods
-    public static Db db; // real or test db (should be always open when needed)
-    public static Json defaults = null; // parameters to use when no agent is signed in (empty if not allowed)
-    public static String region = null; // device company's rCredits region (QID header) set upon scan-in
     public static String agent = null; // QID of device operator, set upon scan-in (eg NEW:AAB), otherwise null
     public static String xagent = null; // previous agent
     public static String agentName = null; // set upon scan-in
     public static boolean goingHome = false; // flag set to return to main activity
+    public static boolean signedIn = false; // an authorized agent for the device owner is signed in
 
     // global variables that Periodic process must not screw up (refactor these to be local and passed)
-//    public static Pairs rpcPairs = null; // parameters from last RPC request
     public static String customerName = null; // set upon identifying a customer
     public static String balance = null; // message about last customer's balance
     public static String undo = null; // message about reversing last transaction
-    public static Long lastTxRow = null; // row number of last transaction in local db
+    public static Long undoRow = null; // row number of last transaction in local db (to undo or not duplicate)
+    public static String lastQid = null; // person whose balance or undo can be shown
     public static String httpError = null; // last HTTP failure message
-    public static boolean doReport = false; // tells Periodic to send report to server
 
     public static List<String> descriptions; // set upon scan-in
     public final static String DESC_REFUND = "refund";
+    public final static String DESC_PAY = "pay";
+    public final static String DESC_CHARGE = "charge";
     public final static String DESC_USD_IN = "USD in";
     public final static String DESC_USD_OUT = "USD out";
 
@@ -170,15 +169,16 @@ public class A extends Application {
     public final static int PIC_H_OFFLINE = 60; // standard pixel height of photos stored for offline use
     public final static double PIC_ASPECT = .75; // standard photo aspect ratio
 
-    public final static int TX_AGENT = -1; // agent flag in AGT_FLAG field (negative to distinguish)
+    public final static int TX_AGENT = -1; // agent flag in customer AGT_FLAG field (negative to distinguish)
     public final static String NUMERIC = "^-?\\d+([,\\.]\\d+)?$"; // with exponents: ^-?\d+([,\.]\d+)?([eE]-?\d+)?$
     public final static int MAX_REWARDS_LEN = 20; // anything longer than this is a photoId in the rewards (db) field
 
     private final static String PREFS_NAME = "rCreditsPOS";
-    private final static String REAL_API_PATH = "https://<region>.rcredits.org/pos"; // the real server (rc2.me fails)
+    public final static String REAL_PATH = "https://<region>.rcredits.org"; // the real server (rc2.me fails)
 //    private final static String REAL_API_PATH = "https://new.rcredits.org/pos"; // the only real server for now
-    private final static String TEST_API_PATH = "https://stage-<region>.rcredits.org/pos"; // the test server
+    public final static String TEST_PATH = "https://stage-<region>.rcredits.org"; // the test server
     //private final static String TEST_API_PATH = "http://192.168.2.101/rMembers/pos"; // testing locally
+    private final static String API_PATH = "/pos"; // where on server is the API
     private final static int TIMEOUT = 10; // how many seconds before HTTP POST times out
 
     @Override
@@ -197,15 +197,15 @@ public class A extends Application {
 
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
-            A.versionCode = pInfo.versionCode + "";
+            A.versionCode = pInfo.versionCode;
             A.versionName = pInfo.versionName + "";
         } catch (PackageManager.NameNotFoundException e) {e.printStackTrace();}
 
         A.cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        db_real = (new DbHelper(false)).getWritableDatabase();
-        db_test = (new DbHelper(true)).getWritableDatabase();
 
-        A.setMode(A.testing);
+        A.bTest = new B(true);
+        A.bReal = new B(false);
+        A.setMode(false); // not testing
 
         Camera.CameraInfo info = new Camera.CameraInfo();
         if (!A.fakeScan) {
@@ -234,35 +234,30 @@ public class A extends Application {
      */
     public static void setMode(boolean testing) {
         A.log(0);
-        A.testing = testing;
-        A.defaults = Json.make(A.getStored(testing ? "defaults_test" : "defaults")); // null if none
-        A.signOut();
+        A.b = testing ? bTest : bReal;
+        A.db = b.db;
+        if (A.empty(A.agent)) { // just starting up
+            A.useDefaults(); // get parameters
+            if (!A.empty(A.agent)) {
+                String where = String.format("qid=? AND %s=?", DbSetup.AGT_FLAG);
+                A.signedIn = A.db.exists("members", where, new String[]{A.agent, A.TX_AGENT + ""}); // keep individuals signed in
+            } else A.signedIn = false;
+        } else if (!A.proSe()) A.signOut(); // must postcede setting A.db
 
-        A.db = new Db(testing);
-        new Thread(new Periodic(A.db, testing ? A.TEST_PERIOD : A.REAL_PERIOD)).start();
+        b.launchPeriodic();
         A.log(9);
     }
-
-    public static void setDefaults(Json json, String ks) {
-        A.log(0);
-        if (json == null) return;
-
-        if (ks != null) {
-            for (String k : ks.split(" ")) A.defaults.put(k, json.get(k));
-        } else A.defaults = json.copy();
-        A.setStored(A.testing ? "defaults_test" : "defaults", A.defaults.toString());
-        A.log(9);
-    }
-    public static void setDefaults(Json json) {setDefaults(json, null);}
 
     public static void useDefaults() {
         A.log(0);
-        if (A.defaults == null) return;
-        A.agent = A.xagent = A.defaults.get("default");
-        A.region = rCard.qidRegion(A.agent);
-        A.agentName = A.defaults.get("company");
-        A.descriptions = A.defaults.getArray("descriptions");
-        A.can = Integer.valueOf(A.defaults.get("can"));
+        Json dft = A.b.defaults;
+        if (dft == null) return;
+        A.agent = A.xagent = dft.get("default");
+        A.agentName = dft.get("company");
+        A.descriptions = dft.getArray("descriptions");
+        A.can = Integer.valueOf(dft.get("can"));
+        A.noUndo(); // but leave balance accessible, if any
+        A.customerName = A.httpError = null;
         A.log(9);
     }
 
@@ -271,16 +266,12 @@ public class A extends Application {
      */
     public static void signOut() {
         A.log(0);
-        A.agent = A.xagent = A.agentName = A.region = A.balance = A.undo = null;
-        A.customerName = A.httpError = null;
-        A.lastTxRow = null;
         A.useDefaults();
+        A.signedIn = false;
         A.log(9);
     }
 
-    public static boolean signedIn() {return (A.defaults != null && !A.agent.equals(A.defaults.get("default")));}
-
-    public static boolean selfhelping() {return (A.selfhelp && !A.signedIn());}
+    public static boolean selfhelping() {return (A.selfhelp && !A.signedIn);}
 
     /**
      * Return a "shared preference" (stored value) as a string (the only way we store anything).
@@ -293,9 +284,7 @@ public class A extends Application {
     }
 
     public static void setStored(String name, String value) {
-        SharedPreferences.Editor editor = A.settings.edit();
-        editor.putString(name, value);
-        editor.commit();
+        A.settings.edit().putString(name, value).commit();
     }
 
     /**
@@ -308,11 +297,11 @@ public class A extends Application {
         A.log(0);
         final int timeout = TIMEOUT * 1000; // milliseconds
 
-        String api = (A.testing ? TEST_API_PATH : REAL_API_PATH).replace("<region>", region);
+        String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
 
         pairs.add("agent", A.agent);
         pairs.add("device", A.deviceId);
-        pairs.add("version", A.versionCode);
+        pairs.add("version", A.versionCode + "");
         //pairs.add("location", A.location);
         pairs.add("region", region);
         if (!A.connected()) return A.log("not connected") ? null : null;
@@ -378,91 +367,27 @@ public class A extends Application {
         } catch (IOException e) {return A.log(e) ? null : null;}
     }
 
-    /**
-     * Get the server's clock time
-     * @param data: whatever data the server just requested (null if no request)
-     * @return the server's unixtime, as a string (null if not available)
-     */
-    public static String getTime(String data) {
-        A.log(0);
-        if (A.region == null) return null; // time is tied to region
-        Pairs pairs = new Pairs("op", "time");
-        if (data != null) pairs.add("data", data);
-        HttpResponse response = A.post(region, pairs);
-        if (response == null) return null;
-
-        try {
-            Json json = Json.make(EntityUtils.toString(response.getEntity()));
-            if (json == null) return null;
-            String msg = json.get("message");
-            if (msg == null || msg.equals("")) return json.get("time");
-
-//            if (data != null) { // don't risk tight looping (handle data only if called with no data)
-                if (msg.equals("!log") || msg.equals("!members") || msg.equals("!txs")) { // send db data to server
-                    return getTime(A.db.dump(msg.substring(1)));
-                } else if (msg.equals("!device")) { // send device data to server
-                    return getTime(A.getDeviceData());
-                } else if (msg.length() > 8 && msg.substring(0, 8).equals("!delete:")) {
-                    String[] parts = msg.split("[:,]");
-                    int count = A.db.delete(parts[1], Long.valueOf(parts[2]));
-                    return getTime("deleted:" + count);
-                } else if (msg.equals("!report")) {
-                    return A.report("report:");
-//                }
-            } // all other messages require the UI, so are handled in MainActivity
-            if (A.serverMessage == null && !msg.substring(0, 1).equals("!")) A.serverMessage = msg; // don't overwrite
-            A.log(9);
-            return json.get("time");
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    /**
-     * Report something to the server on our own initiative
-     * @param data
-     */
-    public static String report(String data) {
-        /*
-        final String data = data0;
-
-        new Thread(new Runnable() { // run in background of course
-            @Override
-            public void run() {
-                A.log(data, 2);
-                A.doReport = true;
-//                A.getTime(A.sysLog());
-            }
-        }).start();
-        */
-        A.log(data, 2);
-        A.doReport = true;
-        return null;
-    }
-
-    /**
+   /**
      * Read the system log file.
      */
     public static String sysLog() {
         String res = "";
         String line;
-        final int limit = 500; // number of lines to return
-        ArrayList<String> commandLine = new ArrayList<String>();
-        commandLine.add("logcat");
-        commandLine.add("-t");
-        commandLine.add("-" + limit);
+        final int limit = 2000; // number of characters to return
 
         try {
-            Process process = Runtime.getRuntime().exec(commandLine.toArray(new String[0]));
-//            Process process = Runtime.getRuntime().exec("logcat -t -" + limit); // better, if it works
+            /*
+            Process process = Runtime.getRuntime().exec("logcat -d -" + limit); // better, if it works
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            while ((line = bufferedReader.readLine()) != null) res += line + "|";
-        } catch (java.io.IOException e) {
-            return res;
-        }
+            while ((line = bufferedReader.readLine()) != null) res += line + "\n";
+            */
+            Process process = Runtime.getRuntime().exec("logcat");
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            while ((line = bufferedReader.readLine()) != null) res = (res + line + "\n").substring(0, limit);
+        } catch (java.io.IOException e) {A.log(e);} // fall through to return db dump
 
-        return res.length() < 100 ? A.db.dump("log", limit) : res; // read logcat seems to not work. log table is similar
+//        if (res.length() < 100) res += A.db.dump("log", limit); // read logcat seems to not work. log table is similar
+        return res;
     }
 
 /*
@@ -480,7 +405,7 @@ public class A extends Application {
      * Return a json-encoded string of information about the device.
      * @return: json-encoded string of associative array
      */
-    private static String getDeviceData() {
+    public static String getDeviceData() {
         Json j = new Json("{}"); // the overall result
         j.put("board", Build.BOARD);
         j.put("brand", Build.BRAND);
@@ -499,7 +424,7 @@ public class A extends Application {
         j.put("user", Build.USER);
         j.put("kLeft", A.db.kLeft() + "");
 
-        j.put("defaults", A.defaults.toString());
+        j.put("defaults", b.defaults.toString());
         return j.toString();
     }
 
@@ -567,12 +492,15 @@ public class A extends Application {
      * @return true if the agent can do it
      */
     public static boolean can(int permission) {
-        int can = A.can >> (A.signedIn() ? CAN_AGENT : CAN_CASHIER);
-//        A.log("permission=" + permission + " can=" + can + " A.can=" + A.can + " signed in:" + A.signedIn() + " 1<<perm=" + (1<<permission));
+        if (A.proSe()) return true; // all permissions for individual accounts
+        int can = A.can >> (A.signedIn ? CAN_AGENT : CAN_CASHIER);
+//        A.log("permission=" + permission + " can=" + can + " A.can=" + A.can + " signed in:" + A.signedIn + " 1<<perm=" + (1<<permission));
         return ((can & (1 << permission)) != 0);
     }
 
     public static void setCan(int bit, boolean how) {A.can = how ? (A.can | (1 << bit)) : (A.can & ~(1 << bit));}
+
+    public static boolean proSe() {return (A.signedIn && !rCard.isAgent(A.agent));} // (A.agent == A.defaults.get("default")) && A.signedIn);}
 
     /**
      * Say whether the customer's balance is to be kept secret.
@@ -608,7 +536,7 @@ public class A extends Application {
      */
      public static String balanceMessage(String name, String balance, String rewards, String did) {
         if (A.isSecret(balance)) return null;
-        return "Customer: " + name + "\n\n" +
+        return (A.proSe() ? "" : ("Customer: " + name + "\n\n")) +
                 "Balance: $" + A.fmtAmt(balance, true) + "\n" +
                 "Credit Reserve: $" + A.fmtAmt(rewards, true) +
                 A.nn(did); // if not empty, did includes leading blank lines
@@ -642,7 +570,7 @@ public class A extends Application {
         String rewards = json.get("rewards");
         String did = json.get("did");
 
-        return balanceMessage(name, balance, rewards, did);
+        return balanceMessage(A.proSe() ? A.agentName : name, balance, rewards, did);
     }
 
     public static String customerName(String name, String company) {
@@ -658,7 +586,7 @@ public class A extends Application {
             return bytesToHex(md.digest());
 //            return new String(md.digest());
         } catch(Exception e) {
-            A.report(e.getMessage());
+            b.report(e.getMessage());
             return null;
         }
     }
@@ -813,8 +741,15 @@ public class A extends Application {
         return Bitmap.createScaledBitmap(bm, (int) (A.PIC_ASPECT * height), height, true);
     }
 
+    public static ContentValues list(String keyString, String[] values) {
+        String[] keys = keyString.split(" ");
+        ContentValues map = new ContentValues(0);
+        for (int i = 0; i < keys.length; i++) map.put(keys[i], values.length > i ? values[i] : null);
+        return map;
+    }
+
     public static boolean log(String s, int traceIndex) {
-        if (A.db != null) logDb(s, traceIndex > 0 ? traceIndex + 1 : 2); // redundant logging
+//        if (A.db != null) logDb(s, traceIndex > 0 ? traceIndex + 1 : 2); // redundant logging
         if (traceIndex != 0) {
             StackTraceElement l = new Exception().getStackTrace()[traceIndex]; // look at caller
             s += String.format(" - %s.%s %s", l.getClassName().replace("org.rcredits.pos.", ""), l.getMethodName(), l.getLineNumber());
@@ -828,7 +763,7 @@ public class A extends Application {
     /**
      * Log the given message in the log table, possibly for reporting to rCredits admin
      * @param s: the message
-     */
+     *//*
     public static boolean logDb(String s, int traceIndex) {
         StackTraceElement l = new Exception().getStackTrace()[traceIndex]; // look at caller
         ContentValues values = new ContentValues();
@@ -843,7 +778,7 @@ public class A extends Application {
             A.db.insert("log", values);
         } catch (Db.NoRoom noRoom) {} // nothing to be done
         return true;
-    }
+    }*/
 
     /**
      * Log the exception.
@@ -900,10 +835,14 @@ public class A extends Application {
         return stream.toByteArray();
     }
 
+    public static void noUndo() {A.undo = null; A.undoRow = null;}
+
     public static String nn(String s) {return s == null ? "" : s;}
     public static boolean empty(String s) {return nn(s).length() == 0;}
     public static boolean empty(byte[] b) {return (b == null || b.length == 0);}
     public static String nnc(String s) {return empty(s) ? "" : (s + ", ");}
+    public static String spnn(String s) {return empty(s) ? "" : (" " + s);}
+    public static String nnsp(String s) {return empty(s) ? "" : (s + " ");}
 //    public static String nn(CharSequence s) {return s == null ? "" : s.toString();}
     public static Long n(String s) {return s == null ? null : Long.parseLong(s);}
     public static String ucFirst(String s) {return s.substring(0, 1).toUpperCase() + s.substring(1);}

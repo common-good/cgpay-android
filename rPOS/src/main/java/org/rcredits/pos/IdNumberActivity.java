@@ -63,6 +63,6 @@ public class IdNumberActivity extends Act {
     public void onGoClick(View v) {
         if (idNumber.equals("")) {
           sayError("You must enter a number or press the Back key (not to be confused with the red backspace key).", null);
-        } else act.returnIntentString("idNumber", idNumber);
+        } else act.returnIntentString(new Pairs("idNumber", idNumber));
     }
 }
