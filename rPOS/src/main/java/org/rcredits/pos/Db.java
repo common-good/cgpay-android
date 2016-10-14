@@ -22,7 +22,6 @@ public class Db {
     private static final int TX_DUP_INTERVAL = 10 * 60; // how many seconds before a duplicate tx can be done
 
     Db (boolean testing) {
-//        db = testing ? A.db_test : A.db_real;
         db = (new DbSetup(testing)).getWritableDatabase();
     }
 
@@ -184,7 +183,7 @@ public class Db {
         Q q = oldCustomer(qid);
         if (q == null) { // new customer!
             insert("members", values);
-//            Q r = A.db.oldCustomer(qid); if (r != null) {A.log("saveCustomer r.qid=" + r.getString("qid") + " r.name=" + r.getString("name")); r.close();}
+//            Q r = A.b.db.oldCustomer(qid); if (r != null) {A.log("saveCustomer r.qid=" + r.getString("qid") + " r.name=" + r.getString("name")); r.close();}
         } else {
             update("members", values, q.getLong("rowid"));
             q.close();
@@ -215,7 +214,7 @@ public class Db {
      * Return the customer's photo.
      */
     public byte[] custPhoto(String qid) {
-        byte[] image = A.db.custField(qid, "photo").getBytes();
+        byte[] image = A.b.db.custField(qid, "photo").getBytes();
         return A.empty(image) ? A.photoFile("no_photo") : image;
     }
 
@@ -234,7 +233,7 @@ public class Db {
         values.put("agent", A.agent); // gets added to pairs in A.post (not yet)
         for (Map.Entry<String, Object> k : values.valueSet()) A.log(String.format("Tx value %s: %s", k.getKey(), k.getValue()));
         A.log("inserting tx row ");
-        return A.db.insert("txs", values);
+        return A.b.db.insert("txs", values);
     }
 
     /**
@@ -247,7 +246,7 @@ public class Db {
         String where = "rowid=? AND member=? AND amount=? AND goods=? AND created>? AND status IN (?,?)";
         String[] params = {A.undoRow + "", pairs.get("member"), pairs.get("amount"), pairs.get("goods")
                 , (A.now() - TX_DUP_INTERVAL) + "", "" + A.TX_OFFLINE, "" + A.TX_DONE};
-        return (A.db.getField("rowid", "txs", where, params) != null);
+        return (A.b.db.getField("rowid", "txs", where, params) != null);
     }
 
     /**
@@ -458,7 +457,7 @@ public class Db {
 
         rec = new JSONArray();
         for (String field : fields) rec.put(field);
-        //j.put("0", rec.toString());
+
         res += "\"0\":" + rec.toString();
 
         String sql = "SELECT rowid, * FROM " + table + " ORDER BY rowid DESC";
@@ -477,7 +476,7 @@ public class Db {
                     } else v = q.getString(i + 1); // i+1 because rowid is not included in fields variable
                     rec.put(v);
                 }
-    //            j.put(q.getLong(0) + "", rec.toString().replace("\\", ""));
+
                 line = ",\"" + q.getLong(0) + "\":" + rec.toString();
                 assert((res + line + MEM_ERR).length() > 0); // make sure we can add the final brace or an error notice
                 res += line;
@@ -487,7 +486,7 @@ public class Db {
             return res + MEM_ERR;
         }
         q.close();
-//        return j.toString();
+
         return res + "}"; // no memory error
     }
     public String dump(String table) {return dump(table, 0);}

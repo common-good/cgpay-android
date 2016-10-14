@@ -14,7 +14,7 @@ import android.widget.TextView;
 
 /**
  * Change the description of the transaction.
- * returns the customer's payment method (USD_CASH, USD_CHECK, or USD_CARD_
+ * returns the type of transaction (goods, usd, or nongoods) and the description (if any)
  */
 public class ForActivity extends Act {
     private static EditText forWhat;

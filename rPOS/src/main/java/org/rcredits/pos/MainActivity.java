@@ -1,27 +1,16 @@
 /*
- * Copyright (C) 2008 ZXing authors
- * and Common Good Finance (for the modifications)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Offer the user a button to use to scan a customer's rCard. And some menu options.
  */
 
 package org.rcredits.pos;
 
 import android.app.Activity;
 import android.app.KeyguardManager;
+import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -40,13 +29,13 @@ import java.util.Calendar;
 /**
  * Give the user (usually a cashier) a button to press, to scan rCards at POS.
  * When appropriate, also offer a button to show the customer's balance and a button to undo the last transaction.
- * This activity restarts (and cancels all child processes) before each new scan. See Act.restart().
+ * This activity restarts before each new scan. See Act.restart().
  * @todo: rework deprecated KeyguardManager lines with WindowManager.FLAG_DISMISS_KEYGUARD (see zxing code for tips)
  */
 public final class MainActivity extends Act {
     private final int CAPTURE = 1; // the capture activity
     private final static int TX_OLD_INTERVAL = 15 * 60; // number of seconds Undo and Balance buttons last
-    final String QRS = "," +
+    private final String QRS = "," +
 //            "OLD Curt/NEW/AAK./NyCBBlUF1qWNZ2k," +
             "Curt/6VM/G0A/NyCBBlUF1qWNZ2k," +
             "Bob short/?," +
@@ -64,7 +53,7 @@ public final class MainActivity extends Act {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
+        if (A.hasMenu) getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
         setContentView(R.layout.activity_main);
 
         KeyguardManager keyguardManager = (KeyguardManager)getSystemService(Activity.KEYGUARD_SERVICE);
@@ -74,15 +63,13 @@ public final class MainActivity extends Act {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        if (!A.hasMenu) return false;
+
         act.menu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main, menu);
 
         if (A.fakeScan) {
-//            SubMenu scanMenu = menu.addSubMenu(Menu.NONE, R.id.action_scan, Menu.NONE, "Scan");
-//        SubMenu scanMenu = menu.findItem(R.id.action_scan).getSubMenu();
-//            SubMenu.clear();
-
             String[] qrs = QRS.split(",");
             String[] parts;
             for (int i = 1; i < qrs.length; i++) {
@@ -116,35 +103,20 @@ public final class MainActivity extends Act {
     public boolean onOptionsItemSelected(MenuItem item) {
         super.onOptionsItemSelected(item);
 
-        Intent browserIntent;
         int id = item.getItemId();
         A.log("menu id=" + id);
 
         switch (id) {
             case R.id.action_settings:
-                act.start(PrefsActivity.class, 0);
-                return true;
+                act.start(PrefsActivity.class, 0); return true;
             case R.id.action_qr:
-                act.start(ShowQrActivity.class, 0);
-                return true;
+                act.start(ShowQrActivity.class, 0); return true;
             case R.id.action_account:
-                String path = (A.b.test ? A.TEST_PATH : A.REAL_PATH).replace("<region>", A.b.region());
-                browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(path));
-                startActivity(browserIntent);
-                return true;
+                return act.browseTo(A.b.signinPath());
             case R.id.action_promo:
-                browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://rCredits.org"));
-                startActivity(browserIntent);
-                return true;
+                return act.browseTo(A.PROMO_SITE);
             case R.id.action_signout:
-                if (A.signedIn) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.cancel();
-                        A.signOut();
-                        setLayout();
-                    }
-                });
-                return true;
+                return act.askSignout();
             default:
                 String[] qrs = QRS.split(",");
                 String[] part = qrs[item.getItemId() - R.id.action_signout].split("/");
@@ -163,8 +135,8 @@ public final class MainActivity extends Act {
         if (menu != null) {
             menu.setGroupVisible(R.id.group_all, A.signedIn);
             menu.findItem(R.id.action_signout).setVisible(A.signedIn && !A.proSe());
+            menu.findItem(R.id.action_qr).setVisible(A.proSe() || A.can(A.CAN_BUY));
         }
-//        if (menu != null) menu.findItem(R.id.action_settings).setVisible(A.signedIn() || A.fakeScan);
 
         setLayout();
 
@@ -176,16 +148,10 @@ public final class MainActivity extends Act {
             A.failMessage = null;
         }
         if (A.nn(A.sysMessage).equals("!update")) {
-            act.askOk("Okay to update now? (it takes a few seconds)", new DialogInterface.OnClickListener() {
+            act.askYesNo(A.t(R.string.update_needed), new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
-                    dialog.cancel();
-                    A.db = null; // tell periodic thread to stop
-                    Intent getApp = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=org.rcredits.pos"));
-                    act.finish();
-                    startActivity(getApp);
-                    System.exit(0);
-//                    act.progress(true);
-//                    new UpdateApp().execute(A.update); // download the update in the background
+                    dialog.dismiss();
+                    updateNow();
                 }
             });
             A.sysMessage = null;
@@ -194,34 +160,25 @@ public final class MainActivity extends Act {
             A.sysMessage = null;
         }
 
-        A.db.q("DELETE from log WHERE time<?", new String[]{"" + A.daysAgo(7)});
-        A.db.q("DELETE from txs WHERE created<?", new String[]{"" + A.daysAgo(180)});
+        A.b.db.q("DELETE from log WHERE time<?", new String[]{"" + A.daysAgo(7)});
+        A.b.db.q("DELETE from txs WHERE created<?", new String[]{"" + A.daysAgo(180)});
         String where = String.format("%s<>%s AND lastTx<?", DbSetup.AGT_FLAG, A.TX_AGENT); // don't delete agents
-        A.db.q("DELETE from members WHERE " + where, new String[]{"" + A.daysAgo(180)});
+        A.b.db.q("DELETE from members WHERE " + where, new String[]{"" + A.daysAgo(180)});
 
-        // } else if ... mention(R.string.connect_soon); // if this business is often offline, ask for ID
+    }
 
-        /*
-        final TextView debug = (TextView) findViewById(R.id.debug);
-        Thread t = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    while (!isInterrupted()) {
-                        Thread.sleep(10000);
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                debug.setText(A.debugString);
-                            }
-                        });
-                    }
-                } catch (InterruptedException e) {
-                }
-            }
-        };
-        t.start();
-        */
+    private void updateNow() {
+        A.stop = true; // tell periodic thread to stop
+        Intent getApp = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=org.rcredits.pos"));
+        if (act.activityExists(getApp)) {
+            startActivity(getApp);
+            System.exit(0);
+            act.finish();
+        } else {
+            act.sayOk("Get Update", t(R.string.get_update), null);
+        }
+//                    act.progress(true);
+//                    new UpdateApp().execute(A.update); // download the update in the background
     }
 
     /**
@@ -239,21 +196,26 @@ public final class MainActivity extends Act {
         findViewById(R.id.undo_last).setVisibility(showUndo ? View.VISIBLE : View.INVISIBLE);
         if (A.proSe()) findViewById(R.id.show_balance).setBackgroundResource(R.drawable.show_my_balance);
         findViewById(R.id.show_balance).setVisibility(showBalance ? View.VISIBLE : View.INVISIBLE);
-        findViewById(R.id.test).setVisibility(A.b.test ? View.VISIBLE : View.INVISIBLE);
-//        if (A.demo) ((TextView) findViewById(R.id.test)).setText("DEMO");
         findViewById(R.id.settings).setVisibility(A.can(A.CAN_MANAGE) ? View.INVISIBLE : View.INVISIBLE); // not used yet
+        TextView modeText = (TextView) findViewById(R.id.test);
+        modeText.setClickable(false);
+        boolean visible = true;
+        if (A.selfhelping()) {
+            modeText.setText("SELF-SERVE");
+        } else if (A.wifiOff) {
+            modeText.setText("Wifi OFF");
+        } else if (A.b.test) {
+            modeText.setText("TEST");
+            modeText.setClickable(true);
+        } else visible = false;
+        modeText.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
 
-        if (A.agent == null) {
+        if (A.empty(A.agent)) {
             welcome.setText(R.string.no_company);
             signedAs.setText(R.string.not_signed_in);
         } else {
             welcome.setText((showUndo || showBalance) ? "" : "Ready for customers...");
-            if (!A.agent.equals(A.xagent) && A.failMessage == null) {
-                String successMsg = "Success! You are now signed in.";
-                if (!A.proSe()) successMsg += " (To sign out or change settings, press the menu button.)";
-                act.mention(successMsg);
-                A.xagent = A.agent;
-            }
+            if (A.empty(A.failMessage) && A.empty(A.balance) && A.empty(A.undo)) act.mention(R.string.mention_menu);
             signedAs.setText(((A.signedIn && !A.proSe()) ? "Signed in as: " : "") + A.agentName);
         }
         A.log(9);
@@ -312,7 +274,6 @@ public final class MainActivity extends Act {
     }
 */
 
-//    public void doScan(View v) {act.start(CaptureActivity.class, CAPTURE);} // user pressed the SCAN button
     public void doScan(View v) { // user pressed the SCAN button
         A.log(0);
         final boolean old = false;
@@ -327,13 +288,11 @@ public final class MainActivity extends Act {
             act.askYesNo("Scan BOB? (else Susan)",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        dialog.cancel();
                         act.start(CustomerActivity.class, 0, "qr", BOB);
                     }
                 },
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        dialog.cancel();
                         act.start(CustomerActivity.class, 0, "qr", SUSAN);
                     }
                 }
@@ -341,7 +300,6 @@ public final class MainActivity extends Act {
         } else act.start(CaptureActivity.class, CAPTURE);
         A.log(9);
     }
-    // NOT YET USED public void doPrefs(View v) {act.start(PrefsActivity.class, 0);} // user pressed the gear button
 
     /**
      * Handle result callbacks from activities launched (especially to capture a QR code)
@@ -353,12 +311,10 @@ public final class MainActivity extends Act {
         A.log(0);
         if (requestCode == CAPTURE) {
             if(resultCode == RESULT_OK) {
-//                act.sayOk("Scan succeeded.", data.getStringExtra("qr"), null);
                 act.start(CustomerActivity.class, 0, "qr", data.getStringExtra("qr"));
-            } else if (resultCode == RESULT_CANCELED) { // dunno how this happens, if ever
-                A.log("scan canceled. Weird.");
-//                 // do nothing
-            } // else act.sayOk("Scan failed.", "", null); // sayFail seems to fail here (?)
+            } else { // if (resultCode == RESULT_CANCELED) { // dunno how this happens, if ever
+                A.log("scan failed or canceled. Weird."); // do nothing
+            }
         }
     }
 
@@ -367,54 +323,23 @@ public final class MainActivity extends Act {
      * @param v
      */
     public void doShowBalance(View v) {
-//        if (!oldTx())
         act.sayOk(A.proSe() ? "My Balance" : "Customer Balance", A.balance, null);
     }
-
-    /**
-     * Complain if the latest transaction is too old to risk remembering (cashiers mishandle old transactions).
-     * @return <transaction is too old>
-     *//*
-    private boolean oldTx() {
-        String created0 = A.db.getField("created", "txs", A.undoRow);
-        int created = created0 == null ? 0 : Integer.parseInt(created0);
-        if (created > A.now() - TX_OLD_INTERVAL) return false;
-        A.undo = A.balance = null;
-        act.sayFail(getString(R.string.old_tx));
-        return true;
-    }*/
 
     /**
      * Undo the last transaction after confirmation (when the user presses the "Undo" button).
      * @param v
      */
     public void doUndo(View v) {
-//        if (!oldTx())
         A.log(0);
         act.askOk(A.undo, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()
-                A.db.changeStatus(A.undoRow, A.TX_CANCEL, null);
+                A.b.db.changeStatus(A.undoRow, A.TX_CANCEL, null);
                 A.log("about to undo");
-//                A.executeAsyncTask(new Act.Tx(), A.undoRow);
                 new Thread(new Tx(A.undoRow, false, new handleTxResult())).start();
             }
         });
     }
-
-    /**
-     * Sign the cashier out after confirmation.
-     *//*
-    public void doSignOut(View v) {
-        A.log(0);
-        if (A.signedIn()) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-                dialog.cancel();
-                A.signOut();
-                setLayout();
-            }
-        }); // (too unexpected) else doScan(v);
-    }
-    */
 }

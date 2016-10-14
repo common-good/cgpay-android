@@ -3,6 +3,7 @@ package org.rcredits.pos;
 import android.database.Cursor;
 
 /**
+ * SQLite Query object handling by column name instead of column index.
  * Created by William on 7/8/14.
  */
 public class Q {

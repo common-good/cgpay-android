@@ -19,10 +19,10 @@ public class rCard {
         public int type;
         BadCard(int type) {this.type = type;}
     }
-    public static int CARD_INVALID = 0;
-    public static int CARD_FRAUD = 1; // card has been invalidated (lost, stolen, or attempted fake)
-    private static int CODE_LEN_MIN = 11; // some old cards have codes this short
-    private static String oldAgentQids = "INAAAA/INAAAF-A,MIWAAC/MIWAAK-A,MIWAAD/MIWAAY-A,MIWAAE/MIWAAY-B," +
+    public final static int CARD_NOT = 0; // QR is not for an rCard
+    public final static int CARD_FRAUD = 1; // card has been invalidated (lost, stolen, or attempted fake)
+    private final static int CODE_LEN_MIN = 11; // some old cards have codes this short
+    private final static String oldAgentQids = "INAAAA/INAAAF-A,MIWAAC/MIWAAK-A,MIWAAD/MIWAAY-A,MIWAAE/MIWAAY-B," +
             "MIWAAF/MIWAAY-C,MIWAAH/MIWACA-A,MIWAAJ/MIWACE-A,MIWAAL/MIWADZ-A,MIWAAM/MIWAAY-D," +
             "MIWAAP/MIWADO-A,MIWAAQ/MIWADR-A,MIWAAV/MIWADQ-A,MIWAAY/MIWAEP-A,MIWABB/MIWAER-A," +
             "MIWABC/MIWAER-B,MIWABD/MIWAFH-A,NEVAAA/NEVAAP-A,NEVAAB/NEVAAW-A,NEVAAC/NEVAAZ-A," +
@@ -47,23 +47,27 @@ public class rCard {
      */
     rCard (String qrUrl) throws BadCard {
         A.log(0);
+        try { //code is simpler if we can ignore string index errors until here
+            parse(qrUrl);
+        } catch (StringIndexOutOfBoundsException  e) {throw new BadCard(CARD_NOT);}
+    }
+
+    private void parse(String qrUrl) throws BadCard {
         String account;
         String[] parts = qrUrl.split("[/\\.-]");
         int count = parts.length;
         boolean isTestCard;
-        //A.log("count=" + count);
-        if (count != 9 && count != 7 && count != 6 && count != 2) throw new BadCard(CARD_INVALID);
 
         if (count > 2) {
             region = parts[2];
             isTestCard = parts[3].toUpperCase().equals("RC4");
         } else isTestCard = (qrUrl.indexOf("-") < 0);
-        db = new Db(isTestCard); // might be different from A.db
+        db = new Db(isTestCard); // might be different from A.b.db
 
-        if (count == 2) { // abbreviated new format
-            char fmt = qrUrl.charAt(0); // one radix 36 digit representing format (field lengths)
-
-            int i = Integer.parseInt(fmt + "", 36);
+        if (count == 2) { // abbreviated new format (for QRs displayed by app)
+            String fmt = qrUrl.charAt(0) + ""; // one radix 36 digit representing format (field lengths)
+            if (!fmt.matches("[0-9A-Z]")) throw new BadCard(CARD_NOT);
+            int i = Integer.parseInt(fmt, 36) / 4;
             int regionLen = Integer.parseInt(regionLens.charAt(i) + "");
 
             region = qrUrl.substring(1, 1 + regionLen);
@@ -71,7 +75,7 @@ public class rCard {
             newFormat(fmt + parts[0].substring(1 + regionLen), isTestCard); // pretend it was the long new format to get the rest
         } else if (count == 6) { // new format
             newFormat(parts[5], isTestCard);
-        } else { // old formats
+        } else if (count == 7 || count == 9){ // old formats
             A.log("old fmt");
             code = parts[count - 1];
             account = parts[count - 2];
@@ -79,48 +83,46 @@ public class rCard {
             qid = region + account;
             if (isAgent = qrUrl.substring(markPos, markPos + 1).equals("-")) {
                 int i = oldAgentQids.indexOf(qid + "/");
-                if (i < 0) throw new BadCard(CARD_INVALID);
+                if (i < 0) throw new BadCard(CARD_NOT);
                 oldAgent(region + ":" + account, oldAgentQids.substring(i + 7, i + 7 + 8), isTestCard);
             } else co = qid;
-            if (!qid.matches("^[A-Z]{6}(-[A-Z])?")) throw new BadCard(CARD_INVALID);
+            if (!qid.matches("^[A-Z]{6}(-[A-Z])?")) throw new BadCard(CARD_NOT);
             abbrev = region + "/" + account + (isAgent ? "-" : ".");
-        }
+        } else throw new BadCard(CARD_NOT);
 
-        if (code.length() < CODE_LEN_MIN || !code.matches("^[A-Za-z0-9]+")) throw new BadCard(CARD_INVALID);
+        if (code.length() < CODE_LEN_MIN || !code.matches("^[A-Za-z0-9]+")) throw new BadCard(CARD_NOT);
         if (db.exists("bad", "qid=? AND code IN (?,?)", new String[]{qid, code, A.hash(code)})) throw new BadCard(CARD_FRAUD);
-
-        //boolean proSe = (A.nn(A.agent).indexOf('.') > 0);
-        //A.log("isTestCard=" + String.valueOf(isTestCard));
 
         if (isOdd = (A.b.test ^ isTestCard)) A.setMode(isTestCard);
     }
-
+    
     private void newFormat(String tail, boolean isTestCard) throws BadCard {
         A.log("new fmt");
         String account;
-        char fmt = tail.charAt(0); // one radix 36 digit representing format (field lengths)
+        String fmt = tail.charAt(0) + ""; // one radix 36 digit representing format (field lengths)
+        if (!fmt.matches("[0-9A-Z]")) throw new BadCard(CARD_NOT);
 
-        int i = Integer.parseInt(fmt + "", 36);
+        int i = Integer.parseInt(fmt, 36);
         int agentLen = i % 4;
         int acctLen = Integer.parseInt(acctLens.charAt(i / 4) + "");
 
-        if (acctLen == 6 || tail.length() < 1 + acctLen + agentLen) throw new BadCard(CARD_INVALID);
+        if (acctLen == 6 || tail.length() < 1 + acctLen + agentLen) throw new BadCard(CARD_NOT);
         account = tail.substring(1, 1 + acctLen);
         String agent = tail.substring(1 + acctLen, 1 + acctLen + agentLen);
         code = tail.substring(1 + acctLen + agentLen);
         abbrev = fmt + region + account + agent;
         isAgent = (agentLen > 0);
 
-        region = base36to26AZ_3(region);
-        account = base36to26AZ_3(account);
-        agent = isAgent ? ("-" + base36to26AZ(agent)) : "";
+        try {
+            region = base36to26AZ_3(region);
+            account = base36to26AZ_3(account);
+            agent = isAgent ? ("-" + base36to26AZ(agent)) : "";
+        } catch (NumberFormatException e) {throw new BadCard(CARD_NOT);}
 
-//            co = region + "." + account;
         co = region + account;
         qid = co + agent;
-//            if (!qid.matches("^[A-Z0-9]{3,13}$")) throw new OddCard(CARD_INVALID);
-//            if (!qid.matches("^[A-Z]{3,4}(:|\\.)[A-Z]{3,5}(-[A-Z]{1,5})?")) throw new OddCard(CARD_INVALID);
-        if (!qid.matches("^[A-Z]{3,4}[A-Z]{3,5}(-[A-Z]{1,5})?")) throw new BadCard(CARD_INVALID);
+
+        if (!qid.matches("^[A-Z]{3,4}[A-Z]{3,5}(-[A-Z]{1,5})?")) throw new BadCard(CARD_NOT);
     }
 
     /**
@@ -146,13 +148,6 @@ public class rCard {
             A.log("converted");
         }
     }
-    /*
-    String sql = String.format("UPDATE members SET qid=? WHERE %s=%s AND qid=? LIMIT 1", DbSetup.AGT_FLAG, A.TX_AGENT);
-    db.q(sql, new String[]{qid, oldQid}); // fix agent in db, so zir rCard still works for signing in
-    if (db.changes("members") > 0) { // agent changed, so fix default agent (company) also
-        A.setDefaults(new Json().put("default", co), "default");
-    }
-    */
 
     public static String qidRegion(String qid) {
         String[] parts = qid.split("[\\.:\\-]");
@@ -189,7 +184,7 @@ public class rCard {
      * @return n in base 26 A-Z, left-filled with "A"s
      */
     private static String base36to26AZ_3(String n) {
-        String s = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" + base36to26AZ(n); // pad with "zero"s on the left
+        String s = "AAA" + base36to26AZ(n); // pad with "zero"s on the left
         return s.substring(s.length() - 3);
     }
 }

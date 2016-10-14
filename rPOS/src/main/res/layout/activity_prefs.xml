@@ -20,6 +20,58 @@
         android:paddingTop="16dp"
         android:layout_gravity="left|top">
 
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Show My rCard"
+            android:id="@+id/btn_qr"
+            android:layout_gravity="center_horizontal"
+            android:onClick="onBtnPushed"
+            android:layout_marginLeft="50dp"
+            android:layout_marginRight="50dp"/>
+
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="My Account"
+            android:id="@+id/btn_account"
+            android:layout_gravity="center_horizontal"
+            android:onClick="onBtnPushed"
+            android:layout_marginLeft="50dp"
+            android:layout_marginRight="50dp"/>
+
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="rCredits Website"
+            android:id="@+id/btn_promo"
+            android:layout_gravity="center_horizontal"
+            android:onClick="onBtnPushed"
+            android:layout_marginLeft="50dp"
+            android:layout_marginRight="50dp"/>
+
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Sign Out"
+            android:id="@+id/btn_signout"
+            android:layout_gravity="center_horizontal"
+            android:onClick="onBtnPushed"
+            android:nestedScrollingEnabled="true"
+            android:layout_marginLeft="50dp"
+            android:layout_marginRight="50dp"/>
+
+        <Button
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Empty Test Database"
+            android:id="@+id/btn_empty_test_db"
+            android:onClick="onBtnPushed"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginLeft="50dp"
+            android:layout_marginRight="50dp"/>
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -27,7 +79,8 @@
             android:text="Preferences"
             android:id="@+id/textView"
             android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="5dp"/>
+            android:layout_marginBottom="5dp"
+            android:layout_marginTop="20dp"/>
 
         <TableLayout
             android:layout_width="wrap_content"
@@ -319,15 +372,15 @@
             <TableRow
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent"
-                android:id="@+id/tableRow6">
+                android:id="@+id/buttons">
 
-                <Button
-                    style="?android:attr/buttonStyleSmall"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Empty Test Database"
-                    android:id="@+id/emptyTestDb"
-                    android:onClick="emptyTestDb"/>
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_width="fill_parent"
+                    android:layout_height="match_parent">
+
+                </LinearLayout>
+
             </TableRow>
 
             <TableRow

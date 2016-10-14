@@ -43,12 +43,16 @@ public final class PrefsActivity extends Act {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_prefs);
 
-        findViewById(R.id.emptyTestDb).setVisibility((A.b.test && A.fakeScan && A.agent != null) ? View.VISIBLE : View.INVISIBLE);
+        findViewById(R.id.btn_signout).setVisibility((!A.hasMenu && A.signedIn && !A.proSe()) ? View.VISIBLE : View.GONE);
+        findViewById(R.id.btn_qr).setVisibility((!A.hasMenu && (A.proSe() || A.can(A.CAN_BUY))) ? View.VISIBLE : View.GONE);
+        if (A.hasMenu) {
+            findViewById(R.id.btn_account).setVisibility(View.GONE);
+            findViewById(R.id.btn_promo).setVisibility(View.GONE);
+        }
+        findViewById(R.id.btn_empty_test_db).setVisibility((A.b.test && A.fakeScan && A.agent != null) ? View.VISIBLE : View.INVISIBLE);
         ((CheckBox) findViewById(R.id.wifi)).setChecked(!A.wifiOff);
         ((CheckBox) findViewById(R.id.selfhelp)).setChecked(A.selfhelp);
         findViewById(R.id.selfhelp_row).setVisibility(A.proSe() ? View.GONE : View.VISIBLE);
-//        ((CheckBox) findViewById(R.id.demo)).setChecked(A.demo);
-//        findViewById(i).setVisibility(A.b.test ? View.VISIBLE : View.GONE);
 
         /*
         for (int i = 0; i < A.CAN_AGENT - 2; i++) { // -2: ignore CAN_U6 and CAN_MANAGE permission
@@ -69,19 +73,6 @@ public final class PrefsActivity extends Act {
         if (i < 0) i = find(v.getId(), agtButtons) + A.CAN_AGENT;
         A.setCan(i, v.isChecked());
     }*/
-
-    public void emptyTestDb(View v) {
-        if (!A.fakeScan) {act.sayFail("You can do this only when debugging, to be safe."); return;}
-        for (String table : "members txs log".split(" ")) A.bTest.db.q("DELETE FROM " + table);
-        A.bTest.db.q("VACUUM");
-        A.settings.edit().clear().commit(); //remove all
-        A.signOut();
-        A.agent = A.xagent = A.agentName = null;
-        A.descriptions = null;
-        A.can = 0;
-        act.goHome();
-    }
-
     public void onWifiToggle(View v) {
         boolean wifi = ((CheckBox) findViewById(R.id.wifi)).isChecked();
         if (wifi) {
@@ -94,11 +85,31 @@ public final class PrefsActivity extends Act {
         if (A.selfhelp) act.sayOk("Self-Help Mode", R.string.self_help_signout, null);
     }
 
-/*    public void onDemoToggle(View v) {
-        A.demo = ((CheckBox) findViewById(R.id.demo)).isChecked();
-        A.setStored("demo", A.demo ? "1" : "0");
+    public void onBtnPushed(View v) {
+        int id = v.getId();
+        switch (id) {
+            case R.id.btn_qr:
+                act.start(ShowQrActivity.class, 0); break;
+            case R.id.btn_account:
+                act.browseTo(A.b.signinPath()); act.goHome(); break;
+            case R.id.btn_promo:
+                act.browseTo(A.PROMO_SITE); act.goHome(); break;
+            case R.id.btn_signout:
+                act.askSignout(); break;
+            case R.id.btn_empty_test_db:
+                if (!A.fakeScan) {act.sayFail("You can do this only when debugging, to be safe."); return;}
+                for (String table : "members txs log".split(" ")) A.bTest.db.q("DELETE FROM " + table);
+                A.bTest.db.q("VACUUM");
+                A.bTest.defaults = null;
+                for (String k : "deviceId defaults defaults_test counter".split(" ")) A.setStored(k, null);
+                A.settings.edit().clear().commit(); //remove all
+                A.setMode(false);
+                act.goHome();
+                break;
+            default: throw new AssertionError("weird button");
+        }
     }
-*/
+
     private int find(int needle, int[] hay) {
         for (int i = 0; i < hay.length; i++) if (hay[i] == needle) return i;
         return -1;

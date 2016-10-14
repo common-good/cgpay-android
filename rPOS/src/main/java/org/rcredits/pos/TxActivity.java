@@ -54,13 +54,13 @@ public class TxActivity extends Act {
         counter = A.getIntentString(this.getIntent(), "counter");
         photoId = A.getIntentString(this.getIntent(), "photoId");
         amount = "0.00";
-        setLayout();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         if (A.goingHome) return;
+        setLayout();
     }
 
     /**
@@ -214,14 +214,13 @@ public class TxActivity extends Act {
         pairs.add("goods", A.selfhelping() ? "2" : goods);
         pairs.add("description", desc);
         pairs.add("counter", A.nn(counter));
-        if (A.db.similarTx(pairs)) {act.sayFail("You already just completed a transaction for that amount with this member."); return;}
+        if (A.b.db.similarTx(pairs)) {act.sayFail("You already just completed a transaction for that amount with this member."); return;}
 // Can't add photoId to pairs until pairs stored in db and retrieved (see Tx)
         act.progress(true); // this progress meter gets turned off in Tx
 
         try {
             A.log("about to tx");
-            new Thread(new Tx(A.db.storeTx(pairs), photoId != null, new handleTxResult())).start();
-//            A.executeAsyncTask(new Act.Tx(), A.db.storeTx(pairs));
+            new Thread(new Tx(A.b.db.storeTx(pairs), photoId != null, new handleTxResult())).start();
         } catch (Db.NoRoom e) {act.sayFail(string.no_room); return;}
         A.log(9);
     }

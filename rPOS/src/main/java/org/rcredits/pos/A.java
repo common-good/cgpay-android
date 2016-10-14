@@ -98,7 +98,6 @@ public class A extends Application {
     public static int versionCode; // version number of this software
     public static String versionName; // version name of this software
     public static SharedPreferences settings = null;
-    private static String salt = null;
     private static ConnectivityManager cm = null;
 
     public static Long timeFix = 0L; // how much to add to device's time to get server time
@@ -110,19 +109,16 @@ public class A extends Application {
     public static boolean flip; // whether to flip the scanned image (for front-facing cameras)
     public static boolean positiveId; // did online customer identification succeed
     public static String packageName; // resource package
-    public static SQLiteDatabase db_real;
-    public static SQLiteDatabase db_test;
-
-    // variables that get reset when testing (or not testing)
-    public static boolean testing = false; // assume testing if scan is faked
-    public static B b = null; // stuff that goes with real or test Db
     public static B bTest = null;
     public static B bReal = null;
-    public static Db db; // real or test db (should be always open when needed) -- convenient duplicate of A.b.db
+    public static final boolean hasMenu = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB);
+
+    // variables that get reset when changing mode between testing and not testing
+    public static B b = null; // stuff that goes with real or test Db
+    public static boolean stop = false; // <app is ending>
     public static boolean wifiOff = false; // force wifi off
     public static boolean selfhelp = false; // whether to skip the photoID step and assume charging for default goods
     public static String agent = null; // QID of device operator, set upon scan-in (eg NEW:AAB), otherwise null
-    public static String xagent = null; // previous agent
     public static String agentName = null; // set upon scan-in
     public static boolean goingHome = false; // flag set to return to main activity
     public static boolean signedIn = false; // an authorized agent for the device owner is signed in
@@ -174,8 +170,8 @@ public class A extends Application {
     public final static int MAX_REWARDS_LEN = 20; // anything longer than this is a photoId in the rewards (db) field
 
     private final static String PREFS_NAME = "rCreditsPOS";
+    public final static String PROMO_SITE = "http://rCredits.org";
     public final static String REAL_PATH = "https://<region>.rcredits.org"; // the real server (rc2.me fails)
-//    private final static String REAL_API_PATH = "https://new.rcredits.org/pos"; // the only real server for now
     public final static String TEST_PATH = "https://stage-<region>.rcredits.org"; // the test server
     //private final static String TEST_API_PATH = "http://192.168.2.101/rMembers/pos"; // testing locally
     private final static String API_PATH = "/pos"; // where on server is the API
@@ -190,11 +186,6 @@ public class A extends Application {
         A.resources = getResources();
         A.packageName = getApplicationContext().getPackageName();
         A.deviceId = getStored("deviceId");
-        A.salt = getStored("salt");
-        try {
-            if (A.salt == null) setStored("salt", A.salt = A.getSalt());
-        } catch (NoSuchAlgorithmException e) {e.printStackTrace();}
-
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             A.versionCode = pInfo.versionCode;
@@ -235,15 +226,15 @@ public class A extends Application {
     public static void setMode(boolean testing) {
         A.log(0);
         A.b = testing ? bTest : bReal;
-        A.db = b.db;
         if (A.empty(A.agent)) { // just starting up
             A.useDefaults(); // get parameters
             if (!A.empty(A.agent)) {
                 String where = String.format("qid=? AND %s=?", DbSetup.AGT_FLAG);
-                A.signedIn = A.db.exists("members", where, new String[]{A.agent, A.TX_AGENT + ""}); // keep individuals signed in
+                A.signedIn = A.b.db.exists("members", where, new String[]{A.agent, A.TX_AGENT + ""}); // keep individuals signed in
             } else A.signedIn = false;
-        } else if (!A.proSe()) A.signOut(); // must postcede setting A.db
+        } else if (!A.proSe()) A.signOut(); // must postcede setting A.b
 
+        A.balance = A.undo = null;
         b.launchPeriodic();
         A.log(9);
     }
@@ -251,11 +242,16 @@ public class A extends Application {
     public static void useDefaults() {
         A.log(0);
         Json dft = A.b.defaults;
-        if (dft == null) return;
-        A.agent = A.xagent = dft.get("default");
-        A.agentName = dft.get("company");
-        A.descriptions = dft.getArray("descriptions");
-        A.can = Integer.valueOf(dft.get("can"));
+        if (dft == null) {
+            A.agent = A.agentName = null;
+            A.descriptions = null;
+            A.can = 0;
+        } else {
+            A.agent = dft.get("default");
+            A.agentName = dft.get("company");
+            A.descriptions = dft.getArray("descriptions");
+            A.can = Integer.valueOf(dft.get("can"));
+        }
         A.noUndo(); // but leave balance accessible, if any
         A.customerName = A.httpError = null;
         A.log(9);
@@ -386,20 +382,9 @@ public class A extends Application {
             while ((line = bufferedReader.readLine()) != null) res = (res + line + "\n").substring(0, limit);
         } catch (java.io.IOException e) {A.log(e);} // fall through to return db dump
 
-//        if (res.length() < 100) res += A.db.dump("log", limit); // read logcat seems to not work. log table is similar
+//        if (res.length() < 100) res += A.b.db.dump("log", limit); // read logcat seems to not work. log table is similar
         return res;
     }
-
-/*
-
-        try {
-            Process process = Runtime.getRuntime().exec("logcat -t -500");
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            while ((line = bufferedReader.readLine()) != null) res += line + "|";
-        } catch (java.io.IOException e) {}
-        return res;
-    }
-     */
 
     /**
      * Return a json-encoded string of information about the device.
@@ -422,7 +407,7 @@ public class A extends Application {
         j.put("time", Build.TIME + "");
         j.put("type", Build.TYPE);
         j.put("user", Build.USER);
-        j.put("kLeft", A.db.kLeft() + "");
+        j.put("kLeft", A.b.db.kLeft() + "");
 
         j.put("defaults", b.defaults.toString());
         return j.toString();
@@ -466,25 +451,6 @@ public class A extends Application {
         String pkg = intent.getComponent().getPackageName();
         return intent.getStringExtra(pkg + "." + key);
     }
-
-    /**
-     * Avoid single-thread limitation of some API versions.
-     * Thanks to http://stackoverflow.com/questions/4068984/running-multiple-asynctasks-at-the-same-time-not-possible
-     * @param asyncTask
-     * @param params
-     * @param <T>
-     *//*
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB) // API 11
-    public static <T> void executeAsyncTask(AsyncTask<T, ?, ?> asyncTask, T... params) {
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            A.log(">=honey");
-            asyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, params);
-        } else {
-            A.log("<honey");
-            asyncTask.execute(params);
-        }
-    }
-*/
 
     /**
      * Say whether the agent can do something
@@ -543,23 +509,6 @@ public class A extends Application {
     }
 
     /**
-     * Return a suitable message for when the "Show Customer Balance" button is pressed in demo mode.
-     * @param name
-     * @param qid
-     * @return
-     *//*
-    public static String balanceMessage(String name, String qid) {
-        assert A.demo;
-        String where = "created>? AND member=? AND status<>?";
-        String[] params = {"" + today(), qid, "" + TX_CANCEL};
-        Double total = db.sum("amount", "txs", where, params);
-        String balance = String.valueOf(1000 - total);
-        total = db.sum("amount", "txs", "goods AND " + where, params);
-        String rewards = String.valueOf(total * .10);
-        return balanceMessage(name, balance, rewards, "");
-    }
-*/
-    /**
      * Return a suitable message for when the "Show Customer Balance" button is pressed.
      * @param name: customer name (including agent and company name, for company agents)
      * @return: a suitable message or null if the balance is secret (or no data)
@@ -584,7 +533,6 @@ public class A extends Application {
             md.update(text.getBytes("UTF-8")); // Change this to "UTF-16" ifeeded
             A.log(9);
             return bytesToHex(md.digest());
-//            return new String(md.digest());
         } catch(Exception e) {
             b.report(e.getMessage());
             return null;
@@ -596,71 +544,6 @@ public class A extends Application {
         for(byte b: a) sb.append(String.format("%02x", b & 0xff));
         return sb.toString();
     }
-/*
-    public static byte[] hexToBytes(String s) {
-        int len = s.length();
-        byte[] data = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                    + Character.digit(s.charAt(i+1), 16));
-        }
-        return data;
-    }
-*/
-    public static byte[] hexToBytes(String str) {
-        if (str == null || str.length() < 2) return null;
-        int len = str.length() / 2;
-        byte[] buffer = new byte[len];
-        for (int i = 0; i < len; i++) {
-            buffer[i] = (byte) parseInt(str.substring(i * 2, i * 2 + 2), 16);
-        }
-        return buffer;
-    }
-/*
-    public static String encrypt(String text, String key) {
-        key = padRight(key, 32);
-        String iv = padRight(key, 16);
-        if(text == null || text.length() == 0) return null;
-
-        IvParameterSpec ivspec = new IvParameterSpec(iv.getBytes());
-        SecretKeySpec keyspec = new SecretKeySpec(key.getBytes(), "AES");
-
-        try {
-            Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
-            cipher.init(Cipher.ENCRYPT_MODE, keyspec, ivspec);
-            return bytesToHex(cipher.doFinal(padRight(text).getBytes()));
-        } catch (Exception e) {Log.e("encrypt", e.getMessage()); return null;}
-    }
-
-
-    public static String decrypt(String text, String key) {
-        key = padRight(key, 32);
-        String iv = padRight(key, 16);
-        if(text == null || text.length() == 0) return null;
-
-        IvParameterSpec ivspec = new IvParameterSpec(iv.getBytes());
-        SecretKeySpec keyspec = new SecretKeySpec(key.getBytes(), "AES");
-
-        try {
-            Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
-            cipher.init(Cipher.DECRYPT_MODE, keyspec, ivspec);
-            return (new String(cipher.doFinal(hexToBytes(text)))).trim();
-        } catch (Exception e) {Log.e("decrypt", e.getMessage()); return null;}
-    }
-
-
-    public static String bytesToHex(byte[] data) {
-        if (data == null) return null;
-        int len = data.length;
-        int c;
-        String str = "";
-
-        for (int i = 0; i < len; i++) {
-            c = data[i] & 0xFF;
-            str += (c < 16 ? "0" : "") + java.lang.Integer.toHexString(c);
-        }
-        return str;
-    }
 
     public static byte[] hexToBytes(String str) {
         if (str == null || str.length() < 2) return null;
@@ -670,47 +553,6 @@ public class A extends Application {
             buffer[i] = (byte) parseInt(str.substring(i * 2, i * 2 + 2), 16);
         }
         return buffer;
-    }
-*/
-
-    /**
-     * Pad the given string to the given length n or multiple of n characters
-     * @param s
-     * @return
-     */
-  /*  private static String padRight(String s) {
-        return String.format("%1$-" + (s.length() + 16 - (s.length() % 16)) + "s", s);
-    } */
-//    private static String padRight(String s, int n) {return String.format("%1$-" + n + "s", s).substring(0, n);}
-
-    /*
-    public static String hash(String source) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256"); // -1, -256, -384, or -512
-            md.update(A.salt.getBytes());
-            byte[] bytes = md.digest(source.getBytes());
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < bytes.length ;i++) {
-                sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-    */
-
-    /**
-     * Get salt for encryption.
-     * @return a random salt
-     * @throws NoSuchAlgorithmException
-     */
-    private static String getSalt() throws NoSuchAlgorithmException {
-        SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
-        byte[] salt = new byte[16];
-        sr.nextBytes(salt);
-        return salt.toString();
     }
 
     /**
@@ -749,7 +591,7 @@ public class A extends Application {
     }
 
     public static boolean log(String s, int traceIndex) {
-//        if (A.db != null) logDb(s, traceIndex > 0 ? traceIndex + 1 : 2); // redundant logging
+//        if (A.b.db != null) logDb(s, traceIndex > 0 ? traceIndex + 1 : 2); // redundant logging
         if (traceIndex != 0) {
             StackTraceElement l = new Exception().getStackTrace()[traceIndex]; // look at caller
             s += String.format(" - %s.%s %s", l.getClassName().replace("org.rcredits.pos.", ""), l.getMethodName(), l.getLineNumber());
@@ -773,9 +615,9 @@ public class A extends Application {
         values.put("time", A.now());
         values.put("what", s);
 
-        A.db.enoughRoom(); // always make room for logging, if there's any room for anything
+        A.b.db.enoughRoom(); // always make room for logging, if there's any room for anything
         try {
-            A.db.insert("log", values);
+            A.b.db.insert("log", values);
         } catch (Db.NoRoom noRoom) {} // nothing to be done
         return true;
     }*/

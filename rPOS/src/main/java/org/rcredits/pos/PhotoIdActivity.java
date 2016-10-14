@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Ask the customer for a photo ID, record the state and number.
+ * Ask the customer for a photo ID, record the state and number. (unused as of summer 2016)
  * @intent place: the customer's city and state
  * @return photoId: the state and number of the customer's driver's license or state ID
  *

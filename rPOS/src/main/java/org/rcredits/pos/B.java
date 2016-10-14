@@ -70,7 +70,7 @@ public class B {
             if (A.empty(msg)) return json.get("time");
 
             for (String k : DbSetup.TABLES.split(" ")) {
-                if (msg.equals("!" + k)) return getTime(A.db.dump(k)); // send db data to server
+                if (msg.equals("!" + k)) return getTime(A.b.db.dump(k)); // send db data to server
             }
 
             if (msg.equals("!device")) { // send device data to server
@@ -79,16 +79,22 @@ public class B {
                 return b.report("report requested from server");
             } else if (msg.length() > 8 && msg.substring(0, 8).equals("!delete:")) {
                 String[] parts = msg.split("[:,]");
-                int count = A.db.delete(parts[1], Long.valueOf(parts[2]));
+                int count = A.b.db.delete(parts[1], Long.valueOf(parts[2]));
                 return getTime("deleted:" + count);
             } // all other messages require the UI, so are handled in MainActivity
-            if (A.empty(A.sysMessage) && !msg.substring(0, 1).equals("!")) A.sysMessage = msg; // don't overwrite
+
+            if (A.empty(A.sysMessage)) A.sysMessage = msg; // don't overwrite
             A.log(9);
             return json.get("time");
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public String signinPath() {
+        String path = (b.test ? A.TEST_PATH : A.REAL_PATH).replace("<region>", b.region());
+        return path + "/signin" + (A.proSe() ? "?name=" + A.agent : "");
     }
 
     /**

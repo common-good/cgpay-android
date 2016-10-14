@@ -6,6 +6,7 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -19,7 +20,7 @@ import java.util.Map;
 
 /**
  * An Activity class extension that includes some utility methods.
- * The convention in this project is to define act = this in each instance of Act, then
+ * The convention in this project is to define act = this in each Activity that extends Act, then
  *   call these methods using "act." rather than "this.".
  */
 public class Act extends Activity {
@@ -93,16 +94,6 @@ public class Act extends Activity {
         if (timer != null) timer.cancel();
 
         if (A.goingHome = !isMain()) act.finish(); else onResume();
-
-/*        if (A.goingHome = !isMain()) {
-            act.finish();
-           if (act.name != "CustomerActivity") {
-                Intent intent = new Intent(A.context, MainActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP); // end all other activities
-                act.startActivity(intent); // restart
-            }
-        } else onResume();
-        */
     }
     public void goHome() {goHome(null);}
 
@@ -150,11 +141,6 @@ public class Act extends Activity {
                      boolean cancelable, DialogInterface.OnClickListener cancel) {
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(act);
 
-/*        DialogInterface.OnClickListener doNothing = new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-                dialog.cancel(); // default to do nothing
-            }
-        }; */
         if (ok == null) ok = new doNothing();
         if (cancel == null) cancel = new doNothing();
         A.log("SAY " + title + ": " + message);
@@ -229,6 +215,23 @@ public class Act extends Activity {
         } catch (final IllegalArgumentException e) {return false;} // work around Android bug
     }
 
+    public boolean browseTo(String path) {
+        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(path));
+        startActivity(browserIntent);
+        return true;
+    }
+
+    public boolean askSignout() {
+        if (A.signedIn) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                dialog.cancel();
+                A.signOut();
+                goHome();
+            }
+        });
+        return true;
+    }
+
     /**
      * Launch a new activity.
      * @param cls: the activity to launch
@@ -245,6 +248,10 @@ public class Act extends Activity {
     }
 
     public void start(Class cls, int id) {act.start(cls, id, null, null);}
+
+    public boolean activityExists(Intent intent) {
+        return (intent.resolveActivityInfo(getPackageManager(), 0) != null);
+    }
 
     /**
      * Return a string to the parent activity.
@@ -273,7 +280,7 @@ public class Act extends Activity {
         act.sayOk("Wifi", msg, null);
     }
 
-    public void showTables(View v) {if (A.b.test) sayOk("Records", A.db.showCust() + "\n\n" + A.db.showTxs(), null);}
+    public void showTables(View v) {if (A.b.test) sayOk("Records", A.b.db.showCust() + "\n\n" + A.b.db.showTxs(), null);}
 
     /**
      * Provide wifi toggle shortcuts when testing (clicking +id/test, +id/customer_place, or +id/amount).
@@ -296,8 +303,7 @@ public class Act extends Activity {
                     if (action == Tx.OK) {
                         act.sayOk("Success!", msg, new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                //                    dialog.cancel();
-                                act.goHome();
+                           act.goHome();
                             }
                         });
                     } else if (action == Tx.FAIL || act.isMain()) {
@@ -320,131 +326,4 @@ public class Act extends Activity {
         view.setText(v);
         return view;
     }
-
-    /**
-     * After requesting a transaction, handle the server's response.
-     * @param json: json-format parameter string returned from server
-     *//*
-    public void afterTx(Json json) {
-        String message = json.get("message");
-        A.balance = A.balanceMessage(A.customerName, json); // null if secret or no balance was returned
-        if (A.selfhelping() && A.balance != null) message += " Your new balance is " + A.fmtAmt(json.get("balance"), true) + ".";
-
-        if (json.get("ok").equals("1")) {
-            A.undo = json.get("undo");
-            if (A.undo != null && (A.undo.equals("") || A.undo.matches("\\d+"))) A.undo = null;
-
-// seems to fail (probably because cashiers don't press OK)    A.db.beginTransaction();
-            A.log("before complete of " + A.undoRow);
-            A.db.completeTx(A.undoRow, json); // mark tx complete in db (unless deleted)
-            A.log("after complete of " + A.undoRow);
-
-            String status = A.db.getField("status", "txs", A.undoRow); // make sure it succeeded (remove this?)
-            if (status == null) {
-                A.log("null status -- tx was deleted from db?");
-            } else if (!status.equals(A.TX_DONE + "")) act.die("status not set");
-
-            act.sayOk("Success!", message, new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int id) {
-                    A.log("after OK of " + A.undoRow);
-//                    A.db.setTransactionSuccessful();
-//                    A.db.endTransaction();
-                    dialog.cancel();
-                    goHome();
-                }
-            });
-        } else {
-            A.log("tx failed; so deleting row " + A.undoRow);
-            A.db.delete("txs", A.undoRow); // remove the rejected transaction
-            A.undoRow = null;
-            A.undo = null;
-            if (act.getLocalClassName().equals("MainActivity")) act.sayFail(message); else act.sayError(message, null);
-        }
-    }
-
-    /**
-     * Store the transaction for later.
-     *//*
-    public void offlineTx() {
-        String msg;
-        A.log("offline rpcPairs=" + rpcPairs.show());
-        String amount = rpcPairs.get("amount");
-        boolean positive = (amount.indexOf("-") < 0);
-        amount = A.fmtAmt(amount.replace("-", ""), true);
-        if (amount.length() > MAX_DIGITS_OFFLINE + (positive ? 1 : 2)) { // account for "." and "-"
-            act.sayError("That is too large an amount for an offline transaction (your internet connection is not available).", null);
-            return;
-        }
-        boolean charging = rpcPairs.get("force").equals("" + A.TX_PENDING); // as opposed to TX_CANCEL
-        String qid = rpcPairs.get("member");
-        String customer = A.db.customerName(qid);
-//        A.balance = A.demo ? A.balanceMessage(customer, qid) : null;
-        A.balance = null;
-        String tofrom = (charging ^ positive) ? "to" : "from";
-        String action = (charging ^ positive) ? "credited" : "charged";
-
-        if (charging) { // set up undo text, if charging
-            msg = String.format("You %s %s $%s.", action, customer, amount);
-            A.undo = String.format("Undo transfer of $%s %s %s?", amount, tofrom, customer);
-            A.db.changeStatus(A.undoRow, A.TX_OFFLINE, null);
-            if (!A.db.getField("status", "txs", A.undoRow).equals(A.TX_OFFLINE + "")) act.die("status not set");
-        } else {
-            msg = String.format("The transaction has been canceled. You transferred $%s back %s %s.",
-                    amount, tofrom, customer);
-            A.undo = null;
-        }
-
-        msg = "OFFLINE " + msg + t(R.string.connect_soon);
-        act.sayOk("Done!", msg, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-                dialog.cancel();
-                act.goHome();
-            }
-        });
-    }
-
-    /**
-     * Submit and handle a transaction request, in the background (but called from the UI).
-     * If the status of the transaction is pending, complete it.
-     * If the status is TX_DONE, reverse it.
-     *//*
-    public class Tx0 extends AsyncTask<Long, Void, Json> {
-        @Override
-        protected Json doInBackground(Long... txRows) {
-            Long rowid = txRows[0];
-
-            rpcPairs = A.db.txPairs(rowid);
-
-            if (Integer.valueOf(rpcPairs.get("force")) == A.TX_PENDING) {
-                A.log("completing pending tx: " + rowid);
-// (Do this on identifying instead)  if (A.setTime(A.getTime(null))) A.db.fixTxTime(rowid, rpcPairs); // sync creation date with server time
-                //A.db.fixTxTime(rowid, rpcPairs); // sync creation date with server time NO! might cause dups
-                if (photoId != null) rpcPairs.add("photoid", photoId);
-                return (A.positiveId) ? A.apiGetJson(A.region, rpcPairs) : null;
-            } else {
-                A.log("canceling tx " + rowid);
-                return A.db.cancelTx(rowid, rpcPairs.get("agent"));
-            }
-        }
-
-        @Override
-        protected void onPostExecute(Json json) {
-            A.log("Tx PostExecute");
-            act.progress(false);
-            if (json == null) {
-                act.offlineTx();
-            } else act.afterTx(json);
-        }
-
-/*            if (A.positiveId) {
-                act.askOk(A.nn(A.httpError) + " " + t(R.string.try_offline), new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.cancel();
-                        act.offlineTx();
-                    }
-                });
-            } else act.offlineTx();
-            return;
-        }; */
-//    }
 }

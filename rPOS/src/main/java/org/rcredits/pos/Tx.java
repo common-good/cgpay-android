@@ -3,6 +3,7 @@ package org.rcredits.pos;
 import android.os.Looper;
 
 /**
+ * Submit a transaction to the server.
  * Created by William on 9/22/2016.
  */
 public class Tx implements Runnable {
@@ -28,7 +29,7 @@ public class Tx implements Runnable {
         A.log(0);
         Looper.prepare();
         Json json;
-        rpcPairs = A.db.txPairs(rowid);
+        rpcPairs = A.b.db.txPairs(rowid);
 
         if (Integer.valueOf(rpcPairs.get("force")) == A.TX_PENDING) {
             A.log("completing pending tx: " + rowid);
@@ -36,7 +37,7 @@ public class Tx implements Runnable {
             json = (A.positiveId) ? A.apiGetJson(A.b.region(), rpcPairs) : null;
         } else {
             A.log("canceling tx " + rowid);
-            json = A.db.cancelTx(rowid, rpcPairs.get("agent"));
+            json = A.b.db.cancelTx(rowid, rpcPairs.get("agent"));
         }
 
         if (json == null) offlineTx(); else afterTx(json);
@@ -54,7 +55,7 @@ public class Tx implements Runnable {
         String message = json.get("message");
 
         if (json.get("ok").equals("1")) {
-            A.db.completeTx(this.rowid, json); // mark tx complete in db (unless deleted)
+            A.b.db.completeTx(this.rowid, json); // mark tx complete in db (unless deleted)
             A.balance = A.balanceMessage(A.customerName, json); // null if secret or no balance was returned
             if (A.selfhelping() && A.balance != null) {
                     int i = A.balance.indexOf("\n");
@@ -68,7 +69,7 @@ public class Tx implements Runnable {
             return handle.done(OK, message);
         } else {
             A.log("tx failed; so deleting row " + this.rowid);
-            A.db.delete("txs", this.rowid); // remove the rejected transaction
+            A.b.db.delete("txs", this.rowid); // remove the rejected transaction
             A.noUndo();
             return handle.done(FAIL, message);
         }
@@ -88,8 +89,7 @@ public class Tx implements Runnable {
         }
         boolean charging = rpcPairs.get("force").equals("" + A.TX_PENDING); // as opposed to TX_CANCEL
         String qid = rpcPairs.get("member");
-        String customer = A.db.customerName(qid);
-//        if (A.empty(customer)) customer = "member " + qid;
+        String customer = A.b.db.customerName(qid);
         A.balance = null;
         String tofrom = (charging ^ positive) ? "to" : "from";
         String action = (charging ^ positive) ? "credited" : "charged";
@@ -98,7 +98,7 @@ public class Tx implements Runnable {
             if (A.selfhelping()) {
                 msg = String.format("You paid %s %s.", A.agentName, amount);
             } else msg = String.format("You %s %s $%s.", action, customer, amount);
-            A.db.changeStatus(this.rowid, A.TX_OFFLINE, null);
+            A.b.db.changeStatus(this.rowid, A.TX_OFFLINE, null);
             A.undo = String.format("Undo transfer of $%s %s %s?", amount, tofrom, customer);
             A.undoRow = this.rowid;
         } else {

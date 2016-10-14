@@ -12,7 +12,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 /**
- * Get the customer's driver's license or state ID (just the digits).
+ * Get the customer's driver's license or state ID (just the digits). (UNUSED as of summer 2016)
  * @return idNumber: the ID number
  */
 public class IdNumberActivity extends Act {

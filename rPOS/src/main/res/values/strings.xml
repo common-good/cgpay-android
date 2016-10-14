@@ -43,6 +43,9 @@
     <string name="timed_out">Your activity timed out. Start again?</string>
     <string name="invalid_rcard">That is not a valid rCard.</string>
     <string name="fraudulent_rcard">That card is invalid or fraudulent</string>
+    <string name="update_needed">Important: Your app needs updating. Okay to update now? (it takes a few seconds)</string>
+    <string name="get_update">Search for "rCredits POS" in the Google Play Store, to download the latest version of the app.</string>
+    <string name="mention_menu">Press "Scan" to scan a customer card or press the menu button.</string>
 
     <string name="not_signed_in"></string>
     <string name="welcome"></string>

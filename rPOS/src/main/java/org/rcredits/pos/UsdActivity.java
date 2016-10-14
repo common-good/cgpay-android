@@ -5,7 +5,7 @@ import android.view.View;
 
 /**
  * Change the description of the transaction.
- * returns the customer's payment method (USD_CASH, USD_CHECK, or USD_CARD_
+ * returns the customer's payment method (USD_CASH, USD_CHECK, or USD_CARD)
  */
 public class UsdActivity extends Act {
 

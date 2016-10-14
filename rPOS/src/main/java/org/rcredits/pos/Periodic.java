@@ -7,9 +7,8 @@ import android.os.SystemClock;
  *  - Reconcile offline transactions with server
  *  - Synchronize the system clock with the server's
  *  - Check for available updates (included in clock sync)
- * cancel by calling A.periodic.cancel(true); A.periodic = null;
+ * cancel by setting A.stop = true;
  */
-//public class Periodic extends AsyncTask<String, Void, Integer> {
 public class Periodic implements Runnable {
     private B b;
     private int period;
@@ -28,7 +27,7 @@ public class Periodic implements Runnable {
         String[] params;
         final String sql = "SELECT rowid, * FROM txs WHERE status<>? AND created<?";
 
-        while (true) {
+        while (!A.stop) {
             if (b.doReport) {b.doReport = false; b.getTime("report: " + A.sysLog());}
             if (A.now() - b.lastGetTime > (A.fakeScan ? 20 : GETTIME_INTERVAL)) A.setTime(b.getTime(null));
 
@@ -49,14 +48,6 @@ public class Periodic implements Runnable {
 
 //    return 0;
     }
-
-
-        /*
-    @Override
-    protected void onPostExecute(Integer arg) {
-        //if (db != null) db.close();
-    }
-*/
 
     /**
      * Reconcile the given transaction with the server.

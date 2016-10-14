@@ -44,6 +44,9 @@ public class CustomerActivity extends Act {
         } catch (rCard.BadCard e) {
             act.sayFail(e.type == rCard.CARD_FRAUD ? R.string.fraudulent_rcard : R.string.invalid_rcard);
             return;
+        } catch (Exception e) { // handle random QR codes that generate parsing errors
+            act.sayFail(R.string.invalid_rcard);
+            return;
         }
 
         A.log("rcard qid=" + rcard.qid);
@@ -93,16 +96,6 @@ public class CustomerActivity extends Act {
         new Thread(new Identify(rcard, new handleIdResult())).start();
         A.log(9);
     }
-
-    /**
-     * Go all the way back to Main screen on Back Button press.
-     *//*
-    @Override
-    public void onBackPressed() {act.restart();}
-
-    @Override
-    public void goBack(View v) {onBackPressed();}
-*/
 
     /**
      * The user clicked one of four buttons: charge, refund, USD in, or USD out. Handle each in the Tx Activity.
@@ -155,21 +148,6 @@ public class CustomerActivity extends Act {
         }
     }
 
-    /*
-    private void handleScan(int result) {
-        A.log("handleScan");
-        A.positiveId = (result != SCAN_NO_WIFI);
-
-        if (result == SCAN_AGENT) gotAgent(json.get("name"));
-        if (result == SCAN_CUSTOMER) gotCustomer(); // this has to happen on the UI thread (here, not in background)
-        if (result == SCAN_NO_WIFI) noWifi();
-//        if (result == PHOTOID) getPhotoId(); // MAYBE
-        if (result == PHOTOID) askPhotoId();
-
-        act.progress(false);
-    }
-*/
-
     /**
      * Get cashier to ask customer for a photo ID.
      */
@@ -217,7 +195,7 @@ public class CustomerActivity extends Act {
      */
     private void noWifi() {
         A.log(0);
-        Q q = A.db.oldCustomer(rcard.qid);
+        Q q = A.b.db.oldCustomer(rcard.qid);
         if (q != null) {
             if (q.getString("code") == null) {sayFail("There is no stored card security code for that customer."); return;}
             if (!A.nn(q.getString("code")).equals(A.hash(rcard.code))) {sayFail(R.string.invalid_rcard); return;}
@@ -225,15 +203,6 @@ public class CustomerActivity extends Act {
             q.close();
         } else askPhotoId(); // if this business is often offline, nudge cashier to ask for ID
         A.log(9);
-
-/*
-        act.askOk(A.nn(A.httpError) + " " + A.t(R.string.try_offline), null, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) { // Cancel
-                dialog.cancel();
-                sayFail("Transaction canceled.");
-            } // otherwise fall through and continue the transaction
-        }); // can't identify. give the cashier the option to do the transaction anyway
-        */
     }
 
     /**
@@ -260,7 +229,6 @@ public class CustomerActivity extends Act {
 
         A.customerName = A.customerName(name, company);
         A.balance = json == null ? null : A.balanceMessage(A.customerName, json); // in case tx fails or is canceled
-//        if (A.demo) A.balance = A.balanceMessage(A.customerName, rcard.qid);
 
         if (A.proSe()) {
             View refund = findViewById(R.id.refund);
@@ -293,43 +261,4 @@ public class CustomerActivity extends Act {
     private void gotCustomer() {
         gotCustomer(json.get("name"), json.get("company"), json.get("place"));
     }
-
-    /**
-     * Get the customer's info from the server and display it, with options for what to do next.
-     *//*
-    private class Identify extends AsyncTask<String, Void, Integer> {
-        /**
-         * Do the background part
-         * @param qrs: one-element array of the scanned QR
-         * @return true if it's a customer
-         *//*
-        @Override
-        protected Integer doInBackground(String... qrs) { // param list must be "Type... varname"
-            String qr = qrs[0];
-            A.log("in Identify background qr=" + A.nn(qr));
-
-            try {
-                return onScan();
-            } catch (Db.NoRoom e) {
-                act.sayFail(R.string.no_room);
-                return SCAN_FAIL;
-            } catch (Exception e) {
-                return SCAN_NO_WIFI;
-            }
-        }
-
-        @Override
-        protected void onCancelled(Integer result) {
-            A.log("idCanceled");
-            identifyTask = null;
-        }
-
-        @Override
-        protected void onPostExecute(Integer result) {
-            handleScan(scanResult = result);
-            identifyTask = null;
-            A.log("idPostExec");
-        }
-    }
-*/
 }

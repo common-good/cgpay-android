@@ -38,8 +38,8 @@ import org.rcredits.pos.Q;
 import org.rcredits.pos.R;
 
 /**
- * The main settings activity.
- * @author William Spademan 7/27/2014
+ * Display the device owner's rCard photo and QR code
+ * @author William Spademan 10/9/2016
  */
 public final class ShowQrActivity extends Act {
 
@@ -55,7 +55,7 @@ public final class ShowQrActivity extends Act {
         act.setView(R.id.customer_qid, A.agent);
 
         ImageView photo = (ImageView) findViewById(R.id.photo);
-        Q q = A.db.oldCustomer(A.agent);
+        Q q = A.b.db.oldCustomer(A.agent);
         photo.setImageBitmap(Identify.scaledPhoto(q.getBlob("photo")));
         String s = q.getString(DbSetup.AGT_ABBREV); // get abbreviated QR string (region/acct. or fmtregionacct)
         if (s.indexOf("/") == -1) { // new format

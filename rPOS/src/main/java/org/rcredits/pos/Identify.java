@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.os.Looper;
 
 /**
+ * Identify the member whose card was just scanned.
  * Created by William on 9/23/2016.
  */
 public class Identify implements Runnable {
@@ -68,7 +69,7 @@ public class Identify implements Runnable {
     private boolean doCustomer(Pairs pairs) throws Db.NoRoom {
         json = A.apiGetJson(rcard.region, pairs); // get json-encoded info from server
         if (json == null) {
-            Q q = A.db.oldCustomer(rcard.qid);
+            Q q = A.b.db.oldCustomer(rcard.qid);
             if (q != null) {image = q.getBlob("photo"); q.close();}
             return handle.done(NO_WIFI, "", null, A.empty(image) ? null : scaledPhoto(image));
         }
@@ -81,9 +82,8 @@ public class Identify implements Runnable {
         if (doBads()) return handle.done(FAIL, A.t(R.string.fraudulent_rcard), null, null);
 
         image = A.apiGetPhoto(rcard.qid, pairs.get("code"));
-        if (image == null || image.length < 100) image = A.db.custPhoto(rcard.qid);
-//            if (image.length < 100) return handle.done(FAIL, "That rCard is not valid.", null, null);
-        A.db.saveCustomer(rcard.qid, image, pairs.get("code"), json); // might be saving non-photo, which needs updating next time
+        if (image == null || image.length < 100) image = A.b.db.custPhoto(rcard.qid);
+        A.b.db.saveCustomer(rcard.qid, image, pairs.get("code"), json); // might be saving non-photo, which needs updating next time
         int result = (json.get("first").equals("0") || A.selfhelping()) ? CUSTOMER : PHOTOID;
         return handle.done(result, "", json, scaledPhoto(image));
     }
@@ -99,10 +99,10 @@ public class Identify implements Runnable {
         if (rcard.qid.equals(A.agent)) return handle.done(FAIL, A.t(R.string.already_in), null, null);
         json = A.apiGetJson(rcard.region, pairs); // get json-encoded info from server
         if (json == null) { //return handle.done(NO_WIFI, "", null, null); // assume it's a customer (since we can't tell)
-            Q q = A.db.oldCustomer(rcard.qid);
+            Q q = A.b.db.oldCustomer(rcard.qid);
             if (q == null) return handle.done(FAIL, A.t(R.string.wifi_for_setup), null, null);
             if (!q.isAgent()) A.b.report("non-agent");
-            if (A.db.badAgent(rcard.qid, rcard.code)) {q.close(); return handle.done(FAIL, "That Company Agent rCard is not valid.", null, null);}
+            if (A.b.db.badAgent(rcard.qid, rcard.code)) {q.close(); return handle.done(FAIL, "That Company Agent rCard is not valid.", null, null);}
             gotAgent(q.getString("name"), q.getInt(DbSetup.AGT_CAN));
             q.close();
         } else {
@@ -115,7 +115,7 @@ public class Identify implements Runnable {
 
             A.b.setDefaults(json);
             gotAgent(json.get("name"), A.n(json.get("can")).intValue());
-            A.db.saveAgent(rcard.qid, rcard.abbrev, rcard.code, image, json); // save or update manager info
+            A.b.db.saveAgent(rcard.qid, rcard.abbrev, rcard.code, image, json); // save or update manager info
         }
         return handle.done(AGENT, "", null, null);
     }
@@ -125,7 +125,6 @@ public class Identify implements Runnable {
      */
     private void gotAgent(String name, int can) {
         A.log("got agent: " + name);
-        A.xagent = A.agent; // remember previous agent, for comparison
         A.agent = rcard.qid;
         A.agentName = name;
         A.can = can;
@@ -139,23 +138,18 @@ public class Identify implements Runnable {
     private boolean doBads() throws Db.NoRoom {
         String[] newBads = new String[0];
         newBads = json.getArray("bad").toArray(newBads);
-//        ContentValues values;
         String[] ray, params;
         String qid, code, hashCode;
         boolean bad = false;
 
         for (String k : newBads) {
-//            values = A.list("qid code", ray = k.split(","));
             ray = k.split(",");
             code = ray.length < 2 ? "" : ray[1];
             params = new String[] {qid = ray[0], code, hashCode = A.hash(code)};
-            A.db.q("DELETE FROM members WHERE qid=? AND code IN (?,?)", params);
+            A.b.db.q("DELETE FROM members WHERE qid=? AND code IN (?,?)", params);
             if (rcard.qid.equals(qid) && (rcard.code.equals(code) || rcard.code.equals(hashCode))) bad = true;
-//            try {
-            if (!A.db.enoughRoom()) throw new Db.NoRoom();
-            A.db.q("INSERT INTO bad (qid, code) VALUES (?, ?)", new String[]{qid, code}); // A.db.insert fails with no e. (Android bug)
-//                A.db.insert("bad", values);
-//            } catch (Db.NoRoom e) {A.b.report("can't save bads (no room)");}
+            if (!A.b.db.enoughRoom()) throw new Db.NoRoom();
+            A.b.db.q("INSERT INTO bad (qid, code) VALUES (?, ?)", new String[]{qid, code}); // A.b.db.insert fails with no e. (Android bug)
         }
         return bad;
     }

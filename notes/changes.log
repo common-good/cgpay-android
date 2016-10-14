@@ -66,6 +66,8 @@ public void onRestoreInstanceState(Bundle savedInstanceState) {
 . LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
 . LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
 
+2016-10-14 minor bug fixes and improvements
+
 2016-10-06 release version 2.18 still
 . enabled use by individuals
 . refactored rCard class
