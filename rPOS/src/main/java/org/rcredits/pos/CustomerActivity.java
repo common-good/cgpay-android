@@ -153,12 +153,12 @@ public class CustomerActivity extends Act {
      */
     private void askPhotoId() {
         A.log(0);
-        act.askYesNo(t(R.string.ask_for_id), new DialogInterface.OnClickListener() {
+        if (A.selfhelping()) {
+            unknownCustomer();
+        } else act.askYesNo(t(R.string.ask_for_id), new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
-                if (json == null) {
-                    gotCustomer("Member " + rcard.qid, UNKNOWN_CUST, t(R.string.offline));
-                } else gotCustomer();
+                if (json == null) unknownCustomer(); else gotCustomer();
             }
         }, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
@@ -167,6 +167,8 @@ public class CustomerActivity extends Act {
             }
         });
     }
+
+    private void unknownCustomer() {gotCustomer("Member " + rcard.qid, UNKNOWN_CUST, t(R.string.offline));}
 
     /**
      * Get cashier to ask customer for a photo ID. Save the ID number for upload with transaction info.

@@ -63,7 +63,7 @@ public final class ShowQrActivity extends Act {
             int n = A.empty(counter) ? 0 : (A.n(counter).intValue() + 1);
             A.setStored("counter", n + "");
             s += q.getString("code") + (A.b.test ? "." : "-") + rCard.base26AZ(n);
-        } else s = "//" + s.replace("/", A.b.test ? "RC4.ME/" : "RC2.ME/") + q.getString("code");
+        } else s = "//" + s.replace("/", A.b.test ? ".RC4.ME/" : ".RC2.ME/") + q.getString("code");
         q.close();
 
         ImageView qr = (ImageView) findViewById(R.id.qr);

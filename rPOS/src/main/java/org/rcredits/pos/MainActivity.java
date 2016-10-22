@@ -39,6 +39,7 @@ public final class MainActivity extends Act {
 //            "OLD Curt/NEW/AAK./NyCBBlUF1qWNZ2k," +
             "Curt/6VM/G0A/NyCBBlUF1qWNZ2k," +
             "Bob short/?," +
+            "Susan short/?," +
 //            "OLD Helga's/NEW/AAD-/utbYceW3KLLCcaw," +
             "Helga's/6VM/H0G0/utbYceW3KLLCcaw," +
 //            "OLD Cathy Cashier/NEW/ABJ-/ME04nW44DHzxVDg," +
@@ -122,7 +123,9 @@ public final class MainActivity extends Act {
                 String[] part = qrs[item.getItemId() - R.id.action_signout].split("/");
                 String qr = part[0].equals("Bob short")
                 ? "H6VM010WeHlioM5JZv1O9G.B"
-                : String.format("HTTP://%s.RC4.ME/%s%s", part[1], part[2], part[3]);
+                : (part[0].equals("Susan short")
+                ? "G6VM0RZzhWMCq0zcBowqw.C"
+                : String.format("HTTP://%s.RC4.ME/%s%s", part[1], part[2], part[3]));
                 act.start(CustomerActivity.class, 0, "qr", qr);
                 return true;
         }
@@ -197,28 +200,40 @@ public final class MainActivity extends Act {
         if (A.proSe()) findViewById(R.id.show_balance).setBackgroundResource(R.drawable.show_my_balance);
         findViewById(R.id.show_balance).setVisibility(showBalance ? View.VISIBLE : View.INVISIBLE);
         findViewById(R.id.settings).setVisibility(A.can(A.CAN_MANAGE) ? View.INVISIBLE : View.INVISIBLE); // not used yet
-        TextView modeText = (TextView) findViewById(R.id.test);
-        modeText.setClickable(false);
-        boolean visible = true;
-        if (A.selfhelping()) {
-            modeText.setText("SELF-SERVE");
-        } else if (A.wifiOff) {
-            modeText.setText("Wifi OFF");
-        } else if (A.b.test) {
-            modeText.setText("TEST");
-            modeText.setClickable(true);
-        } else visible = false;
-        modeText.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+        setMode();
 
         if (A.empty(A.agent)) {
             welcome.setText(R.string.no_company);
             signedAs.setText(R.string.not_signed_in);
         } else {
             welcome.setText((showUndo || showBalance) ? "" : "Ready for customers...");
-            if (A.empty(A.failMessage) && A.empty(A.balance) && A.empty(A.undo)) act.mention(R.string.mention_menu);
+// annoying            if (A.empty(A.failMessage) && A.empty(A.balance) && A.empty(A.undo)) act.mention(R.string.mention_menu);
             signedAs.setText(((A.signedIn && !A.proSe()) ? "Signed in as: " : "") + A.agentName);
         }
         A.log(9);
+    }
+
+    @Override
+    public void setWifi(boolean wifi) {
+        super.setWifi(wifi);
+        setMode();
+    }
+
+    private void setMode() {
+        TextView modeText = (TextView) findViewById(R.id.test);
+        boolean clickable = false;
+        boolean visible = true;
+        if (A.selfhelping()) {
+            modeText.setText(A.wifiOff ? "SELF-SERVE\nWifi OFF" : "SELF-SERVE");
+        } else if (A.wifiOff) {
+            modeText.setText("Wifi OFF");
+            clickable = true;
+        } else if (A.b.test) {
+            modeText.setText("TEST");
+            clickable = true;
+        } else visible = false;
+        modeText.setClickable(clickable);
+        modeText.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
     }
 
     public boolean onKeyUp(int keyCode, KeyEvent event) {

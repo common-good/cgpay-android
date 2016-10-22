@@ -82,7 +82,7 @@ public final class PrefsActivity extends Act {
 
     public void onSelfHelpToggle(View v) {
         A.selfhelp = ((CheckBox) findViewById(R.id.selfhelp)).isChecked();
-        if (A.selfhelp) act.sayOk("Self-Help Mode", R.string.self_help_signout, null);
+// no need        if (A.selfhelp) act.sayOk("Self-Help Mode", R.string.self_help_signout, null);
     }
 
     public void onBtnPushed(View v) {

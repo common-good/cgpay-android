@@ -85,7 +85,7 @@ public class Tx implements Runnable {
         boolean positive = (amount.indexOf("-") < 0);
         amount = A.fmtAmt(amount.replace("-", ""), true);
         if (amount.length() > MAX_DIGITS_OFFLINE + (positive ? 1 : 2)) { // account for "." and "-"
-            return handle.done(ERROR, "That is too large an amount for an offline transaction (your internet connection is not available).");
+            return handle.done(ERROR, A.t(R.string.too_big));
         }
         boolean charging = rpcPairs.get("force").equals("" + A.TX_PENDING); // as opposed to TX_CANCEL
         String qid = rpcPairs.get("member");
@@ -102,13 +102,13 @@ public class Tx implements Runnable {
             A.undo = String.format("Undo transfer of $%s %s %s?", amount, tofrom, customer);
             A.undoRow = this.rowid;
         } else {
-            msg = String.format("The transaction has been canceled. You transferred $%s back %s %s.",
-                    amount, tofrom, customer);
+            msg = String.format(A.t(R.string.tx_canceled), amount, tofrom, customer);
             A.noUndo();
         }
 
         A.log(9);
-        return handle.done(OK, "OFFLINE " + msg + A.t(R.string.connect_soon));
+        if (!A.selfhelping()) msg += A.t(R.string.connect_soon);
+        return handle.done(OK, "OFFLINE " + msg);
     }
 
 }

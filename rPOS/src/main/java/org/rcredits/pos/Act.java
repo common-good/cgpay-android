@@ -101,7 +101,9 @@ public class Act extends Activity {
      * Terminate activity on Back Button press.
      */
     @Override
-    public void onBackPressed() {act.finish();}
+    public void onBackPressed() {
+        if (act.name.equals("TxActivity") && A.selfhelping()) act.goHome(); else act.finish();
+    }
 
     public void goBack(View v) {onBackPressed();}
 

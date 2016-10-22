@@ -77,7 +77,7 @@ public class B {
                 return getTime(A.getDeviceData());
             } else if (msg.equals("!report")) {
                 return b.report("report requested from server");
-            } else if (msg.length() > 8 && msg.substring(0, 8).equals("!delete:")) {
+            } else if (A.substr(msg, 0, 8).equals("!delete:")) {
                 String[] parts = msg.split("[:,]");
                 int count = A.b.db.delete(parts[1], Long.valueOf(parts[2]));
                 return getTime("deleted:" + count);

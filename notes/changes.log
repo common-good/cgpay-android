@@ -1,5 +1,6 @@
 To Do:
-. save instance state in Act:
+. save instance state in Act?
+. put a menu on every page for report problem (ask for a description of problem, then simply call report(desc) and tell the user the problem has been reported.
 
 @Override
 public void onSaveInstanceState(Bundle savedInstanceState) {

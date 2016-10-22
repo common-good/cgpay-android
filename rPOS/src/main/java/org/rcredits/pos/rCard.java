@@ -70,7 +70,7 @@ public class rCard {
             int i = Integer.parseInt(fmt, 36) / 4;
             int regionLen = Integer.parseInt(regionLens.charAt(i) + "");
 
-            region = qrUrl.substring(1, 1 + regionLen);
+            region = A.substr(qrUrl, 1, regionLen);
             counter = parts[1];
             newFormat(fmt + parts[0].substring(1 + regionLen), isTestCard); // pretend it was the long new format to get the rest
         } else if (count == 6) { // new format
@@ -81,10 +81,10 @@ public class rCard {
             account = parts[count - 2];
             int markPos = qrUrl.length() - code.length() - (count == 9 ? account.length() + 2 : 1);
             qid = region + account;
-            if (isAgent = qrUrl.substring(markPos, markPos + 1).equals("-")) {
+            if (isAgent = A.substr(qrUrl, markPos, 1).equals("-")) {
                 int i = oldAgentQids.indexOf(qid + "/");
                 if (i < 0) throw new BadCard(CARD_NOT);
-                oldAgent(region + ":" + account, oldAgentQids.substring(i + 7, i + 7 + 8), isTestCard);
+                oldAgent(region + ":" + account, A.substr(oldAgentQids, i + 7, 8), isTestCard);
             } else co = qid;
             if (!qid.matches("^[A-Z]{6}(-[A-Z])?")) throw new BadCard(CARD_NOT);
             abbrev = region + "/" + account + (isAgent ? "-" : ".");
@@ -98,7 +98,6 @@ public class rCard {
     
     private void newFormat(String tail, boolean isTestCard) throws BadCard {
         A.log("new fmt");
-        String account;
         String fmt = tail.charAt(0) + ""; // one radix 36 digit representing format (field lengths)
         if (!fmt.matches("[0-9A-Z]")) throw new BadCard(CARD_NOT);
 
@@ -107,8 +106,8 @@ public class rCard {
         int acctLen = Integer.parseInt(acctLens.charAt(i / 4) + "");
 
         if (acctLen == 6 || tail.length() < 1 + acctLen + agentLen) throw new BadCard(CARD_NOT);
-        account = tail.substring(1, 1 + acctLen);
-        String agent = tail.substring(1 + acctLen, 1 + acctLen + agentLen);
+        String account = A.substr(tail, 1, acctLen);
+        String agent = A.substr(tail, 1 + acctLen, agentLen);
         code = tail.substring(1 + acctLen + agentLen);
         abbrev = fmt + region + account + agent;
         isAgent = (agentLen > 0);
@@ -133,7 +132,7 @@ public class rCard {
     private void oldAgent(String oldQid, String newQid, boolean isTestCard) {
         A.log(String.format("convert old agent %s to %s", oldQid, newQid));
         qid = newQid;
-        co = qid.substring(0, 6);
+        co = A.substr(qid, 0, 6);
         String where = String.format("%s=%s AND qid=?", DbSetup.AGT_FLAG, A.TX_AGENT);
         Long rowid = db.rowid("members", where, new String[]{oldQid});
         if (rowid != null) { // this agent needs updating

@@ -369,7 +369,10 @@ public class A extends Application {
     public static String sysLog() {
         String res = "";
         String line;
-        final int limit = 2000; // number of characters to return
+        final int limit = 20000; // number of characters to return
+//        int newLen;
+        String mark = "now=" + A.now();
+        A.log(mark);
 
         try {
             /*
@@ -379,11 +382,22 @@ public class A extends Application {
             */
             Process process = Runtime.getRuntime().exec("logcat");
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            while ((line = bufferedReader.readLine()) != null) res = (res + line + "\n").substring(0, limit);
-        } catch (java.io.IOException e) {A.log(e);} // fall through to return db dump
+            while (true) {
+                line = bufferedReader.readLine() + "\n";
+                res = A.substr(res + line, 0, limit);
+                if (line.indexOf(mark) > -1) return res; // otherwise loop never ends (readLine of logcat is never null?)
+/*
+                line = A.substr(line, 0, limit - 1) + "\n";
+                newLen = res.length() + line.length();
+                res = res.substring(newLen > limit ? newLen - limit : 0) + line; // this is correct but takes thought
+                */
+            }
+//            return res;
+        } catch (Exception e) { // java.io.IOException
+            A.log(e);
+            return "problem in sysLog: " + e.getMessage();
+        }
 
-//        if (res.length() < 100) res += A.b.db.dump("log", limit); // read logcat seems to not work. log table is similar
-        return res;
     }
 
     /**
@@ -474,8 +488,7 @@ public class A extends Application {
      * @return <balance is secret or null>
      */
     public static boolean isSecret(String balance) {
-        if (balance == null || balance.equals("")) return true;
-        return balance.substring(0, 1).equals("*");
+        return A.empty(balance) ? true : balance.substring(0, 1).equals("*");
     }
 
     /**
@@ -550,7 +563,7 @@ public class A extends Application {
         int len = str.length() / 2;
         byte[] buffer = new byte[len];
         for (int i = 0; i < len; i++) {
-            buffer[i] = (byte) parseInt(str.substring(i * 2, i * 2 + 2), 16);
+            buffer[i] = (byte) parseInt(A.substr(str, i * 2, 2), 16);
         }
         return buffer;
     }
@@ -591,7 +604,7 @@ public class A extends Application {
     }
 
     public static boolean log(String s, int traceIndex) {
-//        if (A.b.db != null) logDb(s, traceIndex > 0 ? traceIndex + 1 : 2); // redundant logging
+        if (A.b != null) logDb(s, traceIndex > 0 ? traceIndex + 1 : 2); // redundant logging
         if (traceIndex != 0) {
             StackTraceElement l = new Exception().getStackTrace()[traceIndex]; // look at caller
             s += String.format(" - %s.%s %s", l.getClassName().replace("org.rcredits.pos.", ""), l.getMethodName(), l.getLineNumber());
@@ -605,7 +618,7 @@ public class A extends Application {
     /**
      * Log the given message in the log table, possibly for reporting to rCredits admin
      * @param s: the message
-     *//*
+     */
     public static boolean logDb(String s, int traceIndex) {
         StackTraceElement l = new Exception().getStackTrace()[traceIndex]; // look at caller
         ContentValues values = new ContentValues();
@@ -620,7 +633,7 @@ public class A extends Application {
             A.b.db.insert("log", values);
         } catch (Db.NoRoom noRoom) {} // nothing to be done
         return true;
-    }*/
+    }
 
     /**
      * Log the exception.
@@ -677,6 +690,19 @@ public class A extends Application {
         return stream.toByteArray();
     }
 
+    /**
+     * Return a substring of a given length, like in PHP.
+     * @param s
+     * @param start
+     * @param count (if there are not enough chars starting at start, return what there are)
+     * @return
+     */
+    public static String substr(String s, int start, int count) {
+        int len = s.length();
+        if (start + count > len) count = len - start;
+        return s.substring(start, start + count);
+    }
+
     public static void noUndo() {A.undo = null; A.undoRow = null;}
 
     public static String nn(String s) {return s == null ? "" : s;}
@@ -687,7 +713,7 @@ public class A extends Application {
     public static String nnsp(String s) {return empty(s) ? "" : (s + " ");}
 //    public static String nn(CharSequence s) {return s == null ? "" : s.toString();}
     public static Long n(String s) {return s == null ? null : Long.parseLong(s);}
-    public static String ucFirst(String s) {return s.substring(0, 1).toUpperCase() + s.substring(1);}
+    public static String ucFirst(String s) {return s.length() < 1 ? "" : (s.substring(0, 1).toUpperCase() + s.substring(1));}
     public static String t(int stringResource) {return A.resources.getString(stringResource);}
     public static Long now0() {return System.currentTimeMillis() / 1000L;}
     public static Long now() {return A.timeFix + A.now0();}

@@ -23,3 +23,15 @@ Notes/Ideas:
 . All internal variables are camelCase
 . Some devices with a front-only camera do not report this properly to Android, so we build an alternate version of the app (rposb) by uncommenting a line in the Application's onCreate(). That alternate app passes its version code with a leading zero, to tell the server which upgrade URL to return, when appropriate.
 
+Tests:
+First-time sign-in as Bob
+First-time sign-in as Susan
+First-time sign-in as CGF
+Signed out sale to Susan (1), undo (-1), Helga's (2) / balance
+Nowifi same thing (3,-3,4)
+Turn wifi back on, charge Curt (5) (txs 1,-1,2,4,5 show up)
+Sign in, Self-service mode Curt (6)
+Scan Susan's generated QR
+Update of previous version (data is preserved)
+
+

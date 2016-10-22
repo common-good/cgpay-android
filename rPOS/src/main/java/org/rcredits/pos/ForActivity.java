@@ -48,6 +48,7 @@ public class ForActivity extends Act {
     }
 
     public void onGoClick(View v) {
+        act.progress(true);
         RadioGroup group = (RadioGroup) findViewById(R.id.goods);
         int i = group.getCheckedRadioButtonId();
         if (i < 0) return; // no button clicked yet
