@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.rcredits.pos"
-    android:versionCode="218"
-    android:versionName="2.18">
+    android:versionCode="219"
+    android:versionName="2.19">
     <!-- Do NOT use android:installLocation="auto" or ="preferExternal"! which can result in data loss -->
 
     <uses-sdk
         android:minSdkVersion="7"
-        android:targetSdkVersion="10" />
+        android:targetSdkVersion="19" />
 
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.INTERNET"/>

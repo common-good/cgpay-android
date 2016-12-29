@@ -56,7 +56,7 @@ public class Identify implements Runnable {
         pairs.add("member", rcard.qid);
         pairs.add("code", A.hash(rcard.code));
 
-        String co = A.b.defaults == null ? null : A.b.defaults.get("default");
+        String co = A.b.get("default");
         boolean isAgent = (co == null || (rcard.isAgent && rCard.co(co).equals(rcard.co)));
         pairs.add("signin", isAgent ? "1" : "0");
 
@@ -73,13 +73,12 @@ public class Identify implements Runnable {
             if (q != null) {image = q.getBlob("photo"); q.close();}
             return handle.done(NO_WIFI, "", null, A.empty(image) ? null : scaledPhoto(image));
         }
-        if (!json.get("ok").equals("1")) return handle.done(FAIL, json.get("message"), json, null);
         A.descriptions = json.getArray("descriptions");
         if (A.descriptions.isEmpty()) return handle.done(FAIL, A.t(R.string.no_descriptions), json, null);
         A.can = Integer.parseInt(json.get("can")); // stay up-to-date on the signed-out permissions
         A.b.setDefaults(json, "can descriptions");
-        if (A.b.defaults.get("descriptions").isEmpty()) return handle.done(DIE, "setDefaults description error", json, null);
         if (doBads()) return handle.done(FAIL, A.t(R.string.fraudulent_rcard), null, null);
+        if (!json.get("ok").equals("1")) return handle.done(FAIL, json.get("message"), json, null);
 
         image = A.apiGetPhoto(rcard.qid, pairs.get("code"));
         if (image == null || image.length < 100) image = A.b.db.custPhoto(rcard.qid);

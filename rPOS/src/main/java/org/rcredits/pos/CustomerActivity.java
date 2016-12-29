@@ -150,15 +150,19 @@ public class CustomerActivity extends Act {
 
     /**
      * Get cashier to ask customer for a photo ID.
+     * @param extra: optional explanation why we're asking for a photo ID
      */
-    private void askPhotoId() {
+    private void askPhotoId(String extra, final Q q) {
         A.log(0);
+        
         if (A.selfhelping()) {
-            unknownCustomer();
-        } else act.askYesNo(t(R.string.ask_for_id), new DialogInterface.OnClickListener() {
+            if (q == null) unknownCustomer(); else oldCustomer(q);
+        } else act.askYesNo(extra + " " + t(R.string.ask_for_id), new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
-                if (json == null) unknownCustomer(); else gotCustomer();
+                if (json == null) { // offline
+                    if (q == null) unknownCustomer(); else oldCustomer(q);
+                } else gotCustomer(); // online
             }
         }, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
@@ -166,6 +170,14 @@ public class CustomerActivity extends Act {
                 act.sayFail(R.string.need_photo_id);
             }
         });
+    }
+    private void askPhotoId() {askPhotoId("", null);}
+
+    private void oldCustomer(Q q) {
+        String name = q.getString("name");
+        String coName = A.nnc(q.getString("company")) + q.getString("place");
+        q.close();
+        gotCustomer(name, coName, t(R.string.offline));
     }
 
     private void unknownCustomer() {gotCustomer("Member " + rcard.qid, UNKNOWN_CUST, t(R.string.offline));}
@@ -198,12 +210,12 @@ public class CustomerActivity extends Act {
     private void noWifi() {
         A.log(0);
         Q q = A.b.db.oldCustomer(rcard.qid);
-        if (q != null) {
-            if (q.getString("code") == null) {sayFail("There is no stored card security code for that customer."); return;}
-            if (!A.nn(q.getString("code")).equals(A.hash(rcard.code))) {sayFail(R.string.invalid_rcard); return;}
-            gotCustomer(q.getString("name"), A.nnc(q.getString("company")) + q.getString("place"), t(R.string.offline));
-            q.close();
-        } else askPhotoId(); // if this business is often offline, nudge cashier to ask for ID
+        // if this business is often offline, nudge cashier to ask for ID
+        // (empty code sometimes in records stored before version 2.18)
+        if (q == null || A.empty(q.getString("code"))) {askPhotoId("", q); return;}
+        if (!q.getString("code").equals(A.hash(rcard.code))) {askPhotoId(t(R.string.maybe_fraudulent), q); return;}
+        
+        oldCustomer(q); // closes q
         A.log(9);
     }
 

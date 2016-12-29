@@ -38,6 +38,7 @@ public final class MainActivity extends Act {
     private final String QRS = "," +
 //            "OLD Curt/NEW/AAK./NyCBBlUF1qWNZ2k," +
             "Curt/6VM/G0A/NyCBBlUF1qWNZ2k," +
+//            "CurtFAKE/6VM/G0A/WrongCode," +
             "Bob short/?," +
             "Susan short/?," +
 //            "OLD Helga's/NEW/AAD-/utbYceW3KLLCcaw," +

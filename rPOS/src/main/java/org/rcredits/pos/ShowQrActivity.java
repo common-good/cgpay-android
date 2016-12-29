@@ -48,7 +48,7 @@ public final class ShowQrActivity extends Act {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_showqr);
 
-        String company = A.b.defaults.get("company");
+        String company = A.b.get("company");
         boolean hideCompany = (company == null || company.equals(A.agentName));
         act.setView(R.id.customer_company, company).setVisibility(hideCompany ? View.GONE : View.VISIBLE);
         act.setView(R.id.customer_name, A.agentName);

@@ -1,6 +1,40 @@
 To Do:
 . save instance state in Act?
 . put a menu on every page for report problem (ask for a description of problem, then simply call report(desc) and tell the user the problem has been reported.
+. *** require PIN (or RFID) for self-checkout?
+. ** let cashier see a list of the most recent N txs that day (manager can see all)
+. warn every time if not reconciled within a day (and say how long and how many pending txs)
+. maybe use https://code.google.com/p/android-market-api/ to check Google itself for rPOS update availability
+. when battery is below 20%, complain and suggest they keep it plugged in
+. show "did" in demo mode
+. option to include tip in QR?
+. automated testing! Using InstrumentationTestRunner? Like this:
+		// Typical Sale
+		act "Main"
+		withButton("scan");
+		withImage("logo");
+		withText("name", "Corner Store");
+		withoutText("welcome");
+
+		whenClick("scan");
+		act("Capture");
+
+		whenScan("HTTP://NEW....");
+		act("Customer");
+		withButton("charge");
+		...
+
+. from Mike: Could we teach the app to try to ping the DNS server and/or the base station and try to diagnose the problem ahead of time?
+. experiment with making the buttons show a bigger splash when pressed. That might make it more obvious when a digit is missed. Or maybe making the amount figure change more obviously.
+. give frequent hints about what to do next
+. time out manager (after 24 hours?)
+. LATER * use assets consistently (instead of literal strings)
+. LATER * ask user to confirm small and large amounts (a magnitude off their average? -- research bank algorithms)
+. rework KeyguardManager lines with WindowManager.FLAG_DISMISS_KEYGUARD (see zxing code for tips)
+. LATER customer activity: show just ID as name, while async activity fills in the rest
+. LATER change "change desc" button to fling left?
+. LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
+. LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
 
 @Override
 public void onSaveInstanceState(Bundle savedInstanceState) {
@@ -27,45 +61,17 @@ public void onRestoreInstanceState(Bundle savedInstanceState) {
   String myString = savedInstanceState.getString("MyString");
 }
 
-. *** require PIN (or RFID) for self-checkout
-. cashier must ask for ID when new customer and offline
-. ** let cashier see a list of the most recent N txs that day (manager can see all)
-. figure out why the app hangs sometimes trying to update tx status
-. warn every time if not reconciled within a day (and say how long and how many pending txs)
-. maybe use https://code.google.com/p/android-market-api/ to check Google itself for rPOS update availability
-. when battery is below 20%, complain and suggest they keep it plugged in
-. photo not available maybe should say instead: "(offline) Ask to see a photo ID"
-. show "did" in demo mode
-. option to include tip in QR?
-. automated testing! Using InstrumentationTestRunner? Like this:
-		// Typical Sale
-		act "Main"
-		withButton("scan");
-		withImage("logo");
-		withText("name", "Corner Store");
-		withoutText("welcome");
+2016-12-28 version 2.19
+. bug fixes
 
-		whenClick("scan");
-		act("Capture");
+2016-11-10 version 2.19
+. better handling of fraudulent cards, including asking for photoID when no code stored and offline (bug fix)
 
-		whenScan("HTTP://NEW....");
-		act("Customer");
-		withButton("charge");
-		...
-
-. bug: if you change orientation several times while waiting for customer photo to appear, the app crashes
-. from Mike: Could we teach the app to try to ping the DNS server and/or the base station and try to diagnose the problem ahead of time?
-. experiment with making the buttons show a bigger splash when pressed. That might make it more obvious when a digit is missed. Or maybe making the amount figure change more obviously.
-. give frequent hints about what to do next
-. time out manager (after 24 hours?)
-. LATER * use assets instead of literals
-. LATER * ask user to confirm small and large amounts (a magnitude off their average? -- research bank algorithms)
-. rework KeyguardManager lines with WindowManager.FLAG_DISMISS_KEYGUARD (see zxing code for tips)
-. LATER talk to Blake about why not to use AyncTask
-. LATER customer activity: show just ID as name, while async activity fills in the rest
-. LATER change "change desc" button to fling left?
-. LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
-. LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
+2016-10-22 definitive version 2.18
+. improved self-service mode
+. A.substr function to prevent string-out-of-bounds errors when expected substring is too short
+. fixed sysLog and report function
+. reinstated db logging
 
 2016-10-14 minor bug fixes and improvements
 

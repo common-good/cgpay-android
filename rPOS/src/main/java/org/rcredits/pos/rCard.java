@@ -22,6 +22,7 @@ public class rCard {
     public final static int CARD_NOT = 0; // QR is not for an rCard
     public final static int CARD_FRAUD = 1; // card has been invalidated (lost, stolen, or attempted fake)
     private final static int CODE_LEN_MIN = 11; // some old cards have codes this short
+    private final static int CODE_LEN_MAX = 64; // head off db errors
     private final static String oldAgentQids = "INAAAA/INAAAF-A,MIWAAC/MIWAAK-A,MIWAAD/MIWAAY-A,MIWAAE/MIWAAY-B," +
             "MIWAAF/MIWAAY-C,MIWAAH/MIWACA-A,MIWAAJ/MIWACE-A,MIWAAL/MIWADZ-A,MIWAAM/MIWAAY-D," +
             "MIWAAP/MIWADO-A,MIWAAQ/MIWADR-A,MIWAAV/MIWADQ-A,MIWAAY/MIWAEP-A,MIWABB/MIWAER-A," +
@@ -62,7 +63,7 @@ public class rCard {
             region = parts[2];
             isTestCard = parts[3].toUpperCase().equals("RC4");
         } else isTestCard = (qrUrl.indexOf("-") < 0);
-        db = new Db(isTestCard); // might be different from A.b.db
+        db = isTestCard ? A.bTest.db : A.bReal.db; // might be different from A.b.db
 
         if (count == 2) { // abbreviated new format (for QRs displayed by app)
             String fmt = qrUrl.charAt(0) + ""; // one radix 36 digit representing format (field lengths)
@@ -90,7 +91,7 @@ public class rCard {
             abbrev = region + "/" + account + (isAgent ? "-" : ".");
         } else throw new BadCard(CARD_NOT);
 
-        if (code.length() < CODE_LEN_MIN || !code.matches("^[A-Za-z0-9]+")) throw new BadCard(CARD_NOT);
+        if (code.length() < CODE_LEN_MIN || code.length() > CODE_LEN_MAX || !code.matches("^[A-Za-z0-9]+")) throw new BadCard(CARD_NOT);
         if (db.exists("bad", "qid=? AND code IN (?,?)", new String[]{qid, code, A.hash(code)})) throw new BadCard(CARD_FRAUD);
 
         if (isOdd = (A.b.test ^ isTestCard)) A.setMode(isTestCard);
@@ -139,16 +140,12 @@ public class rCard {
             ContentValues fix = new ContentValues();
             fix.put("qid", qid);
             db.update("members", fix, rowid);
-            Json defaults = Json.make(A.getStored(B.defaultsName(isTestCard)));
-            if (defaults != null && defaults.get("default").replace(".", "").equals(co)) {
-                defaults.put("default", co); // fix default agent (company) also
-                A.setStored(B.defaultsName(isTestCard), A.b.defaults.toString());
-            }
             A.log("converted");
         }
     }
 
     public static String qidRegion(String qid) {
+        if (qid == null) return null;
         String[] parts = qid.split("[\\.:\\-]");
         String part0 = parts[0];
         return part0.length() > 3 ? part0.substring(0, part0.length() / 2) : part0;

@@ -17,15 +17,24 @@ public class B {
     public Json defaults = null; // parameters to use when no agent is signed in (empty if not allowed)
     public Long lastGetTime = 0L;
     public boolean doReport = false; // tells Periodic to send report to server
+    private String defaultsName = null;
 
     public B (boolean testing) {
         b.test = testing;
         b.db = new Db(testing);
-        b.defaults = Json.make(A.getStored(defaultsName())); // null if none
+        b.defaultsName = b.test ? "defaults_test" : "defaults";
+        b.defaults = Json.make(A.getStored(b.defaultsName)); // null if none
+        if (b.defaults != null && b.get("default").indexOf(".") > -1) { // fix old-style default agent (company)
+            b.defaults.put("default", b.get("default").replace(".", "")); // remove this when we stop getting proof errors
+            A.setStored(b.defaultsName, b.defaults.toString());
+        }
     }
 
-    public String defaultsName() {return defaultsName(b.test);}
-    public static String defaultsName(boolean testing) {return testing ? "defaults_test" : "defaults";}
+    public String get(String k) {return b.defaults == null ? null : b.defaults.get(k);}
+    public void put(String k, String v) { // DEBUG
+        defaults.put(k, v);
+        A.setStored(b.defaultsName, b.defaults.toString());
+    }
 
     public void setDefaults(Json json, String ks) {
         A.log(0);
@@ -34,13 +43,12 @@ public class B {
         if (ks != null) {
             for (String k : ks.split(" ")) b.defaults.put(k, json.get(k));
         } else b.defaults = json.copy();
-        A.setStored(b.defaultsName(), b.defaults.toString());
+        A.setStored(b.defaultsName, b.defaults.toString());
         A.log(9);
     }
     public void setDefaults(Json json) {setDefaults(json, null);}
 
-    // device company's rCredits region (based on defaults)
-    public String region() {return b.defaults == null ? null : rCard.qidRegion(b.defaults.get("default"));}
+    public String region() {return rCard.qidRegion(b.get("default"));} // device company's rCredits region
 
     public void launchPeriodic() {
         if (!b.periodic && !A.empty(b.region())) {
