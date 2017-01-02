@@ -16,21 +16,13 @@
 
 package org.rcredits.zxing.client.android.share;
 
-import android.app.ListActivity;
-import android.content.Intent;
-import android.database.Cursor;
-import android.os.Bundle;
-import android.provider.Browser;
-import android.util.Log;
-import android.view.View;
-import android.widget.ListView;
-
 /**
  * This class is only needed because I can't successfully send an ACTION_PICK intent to
  * com.android.browser.BrowserBookmarksPage. It can go away if that starts working in the future.
  *
  * @author dswitkin@google.com (Daniel Switkin)
  */
+/*
 public final class BookmarkPickerActivity extends ListActivity {
 
   private static final String TAG = BookmarkPickerActivity.class.getSimpleName();
@@ -77,3 +69,4 @@ public final class BookmarkPickerActivity extends ListActivity {
     finish();
   }
 }
+*/

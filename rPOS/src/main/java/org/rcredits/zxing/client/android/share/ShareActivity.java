@@ -16,12 +16,6 @@
 
 package org.rcredits.zxing.client.android.share;
 
-import android.provider.ContactsContract;
-import com.google.zxing.BarcodeFormat;
-import org.rcredits.zxing.client.android.Contents;
-import org.rcredits.zxing.client.android.Intents;
-import org.rcredits.pos.R;
-
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
@@ -29,13 +23,19 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.BaseColumns;
-import android.provider.Browser;
+import android.provider.ContactsContract;
 import android.text.ClipboardManager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+
+import com.google.zxing.BarcodeFormat;
+
+import org.rcredits.pos.R;
+import org.rcredits.zxing.client.android.Contents;
+import org.rcredits.zxing.client.android.Intents;
 
 /**
  * Barcode Scanner can share data like contacts and bookmarks by displaying a QR Code on screen,
@@ -67,7 +67,7 @@ public final class ShareActivity extends Activity {
     public void onClick(View v) {
       Intent intent = new Intent(Intent.ACTION_PICK);
       intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-      intent.setClassName(ShareActivity.this, BookmarkPickerActivity.class.getName());
+//      intent.setClassName(ShareActivity.this, BookmarkPickerActivity.class.getName());
       startActivityForResult(intent, PICK_BOOKMARK);
     }
   };
@@ -142,7 +142,7 @@ public final class ShareActivity extends Activity {
       switch (requestCode) {
         case PICK_BOOKMARK:
         case PICK_APP:
-          showTextAsBarcode(intent.getStringExtra(Browser.BookmarkColumns.URL));
+//          showTextAsBarcode(intent.getStringExtra(Browser.BookmarkColumns.URL));
           break;
         case PICK_CONTACT:
           // Data field is content://contacts/people/984

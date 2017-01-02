@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/rCreditsPOSProject.iml" filepath="$PROJECT_DIR$/rCreditsPOSProject.iml" />
+      <module fileurl="file://$PROJECT_DIR$/rCredits-Android.iml" filepath="$PROJECT_DIR$/rCredits-Android.iml" />
       <module fileurl="file://$PROJECT_DIR$/rPOS/rPOS.iml" filepath="$PROJECT_DIR$/rPOS/rPOS.iml" />
     </modules>
   </component>
 </project>
-
