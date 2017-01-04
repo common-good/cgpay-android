@@ -50,6 +50,7 @@ public class Pairs {
      */
     public String show(String omit) {
 //        A.log("showPairs pairs is null: " + (pairs == null ? "yes" : "no"));
+//        A.log(list.toString());
         if (omit.equals("")) return list.toString();
         Pairs pairs = new Pairs(this);
         pairs.list.remove(omit);

@@ -26,13 +26,15 @@ import org.apache.http.client.utils.URLEncodedUtils;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
+import java.io.OutputStreamWriter;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.text.NumberFormat;
 import java.util.List;
+
+import javax.net.ssl.HttpsURLConnection;
 
 import static java.lang.Integer.parseInt;
 
@@ -287,28 +289,36 @@ public class A extends Application {
 	public static String post(String region, Pairs pairs) {
 		A.log(0);
 		final int timeout = TIMEOUT * 1000; // milliseconds
+		String res="";
+		try {
+			String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
+			pairs.add("agent", A.agent);
+			pairs.add("device", A.deviceId);
+			pairs.add("version", A.versionCode + "");
+			//pairs.add("location", A.location);
+			pairs.add("region", region);
+			if (!A.connected()) return A.log("not connected") ? null : null;
 
-		String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
-
-		pairs.add("agent", A.agent);
-		pairs.add("device", A.deviceId);
-		pairs.add("version", A.versionCode + "");
-		//pairs.add("location", A.location);
-		pairs.add("region", region);
-		if (!A.connected()) return A.log("not connected") ? null : null;
-
-		String data = pairs.get("data");
-		List dataList=pairs.toPost();
-		A.log("data: "+ URLEncodedUtils.format(dataList,"UTF-8"));
-		if (data != null) {
-			A.log("datalen = " + data.length());
+			String data = pairs.get("data");
+			List dataList = pairs.toPost();
+			A.log("code: " + dataList);
+			if (data != null) {
+				A.log("datalen = " + data.length());
+			}
+			String urlS = URLEncodedUtils.format(dataList, "UTF-8");
+			URL url = new URL(api);
+			A.log(url.toString());
+			res = A.requestData(url,urlS);
+			A.log("post: " + api + " | " + pairs.show("data") + " | " + res); // don't log data field sent with time op (don't recurse)
+		} catch (MalformedURLException e) {
+			A.log(e);
+			return "MalformedURL:"+e.getMessage();
+		} catch (IOException e) {
+			A.log(e);
 		}
-		A.log("post: " + api + " | " + pairs.show("data")+" | "+data); // don't log data field sent with time op (don't recurse)
-		String url = api+"?"+URLEncodedUtils.format(dataList,"UTF-8");
-		String res= requestData(url).toString();
 		return res;
 		/*HttpPost post = new HttpPost(api);
-	    //HttpClient client = new DefaultHttpClient();
+		//HttpClient client = new DefaultHttpClient();
 
         HttpParams params = new BasicHttpParams();
         HttpConnectionParams.setConnectionTimeout(params, timeout);
@@ -326,29 +336,42 @@ public class A extends Application {
             return A.log(e) ? null : null;
         }*/
 	}
-	private static StringBuffer requestData(String urlString) {
-		StringBuffer chaine = new StringBuffer("");
-		try{
-			URL url = new URL(urlString);
-			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
-			connection.setRequestProperty("User-Agent", "");
+	private static String requestData(URL url,String data) {
+		StringBuilder stringBuilder = new StringBuilder();
+		try {
+			A.log("data: "+data);
+			HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+			connection.setUseCaches(false);
+			connection.setRequestProperty("application/x-www-form-urlencoded", "");
 			connection.setRequestMethod("POST");
 			connection.setDoInput(true);
-			connection.connect();
+			OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream());
+			out.write(data);
+			out.close();
+//			connection.connect();
+			int status = connection.getResponseCode();
+			A.log("status: "+url + " - " + status);
 
-			InputStream inputStream = connection.getInputStream();
+//			Scanner inStream = new Scanner(connection.getInputStream());
 
-			BufferedReader rd = new BufferedReader(new InputStreamReader(inputStream));
-			String line = "";
-			while ((line = rd.readLine()) != null) {
-				chaine.append(line);
+//			InputStream responseStream = connection.getInputStream();
+
+			BufferedReader in = new BufferedReader(
+					new InputStreamReader(
+							connection.getInputStream()));
+			String decodedString;
+			while ((decodedString = in.readLine()) != null) {
+				System.out.println(decodedString);
 			}
-		}
-		catch (IOException e) {
+			in.close();
+		} catch (MalformedURLException e) {
+			A.log("MalformedURL:"+e);
+		} catch (IOException e) {
 			// Writing exception to log
-			e.printStackTrace();
+			A.log(e);
 		}
-		return chaine;
+		A.log(stringBuilder.toString());
+		return stringBuilder.toString();
 	}
 	/**
 	 * Get a string response from the server
@@ -656,6 +679,9 @@ public class A extends Application {
 	}
 	public static boolean log(String s) {
 		return log(s, 2);
+	}
+	public static boolean log(StringBuffer s) {
+		return log(s.toString(), 2);
 	}
 	public static boolean log(int n) {
 		return log("p" + n, 2);
