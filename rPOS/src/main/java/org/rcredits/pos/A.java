@@ -292,6 +292,9 @@ public class A extends Application {
 		String res="";
 		try {
 			String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
+			if(A.agent==null){
+				A.agent=pairs.get("member").split("-")[1];
+			}
 			pairs.add("agent", A.agent);
 			pairs.add("device", A.deviceId);
 			pairs.add("version", A.versionCode + "");
@@ -300,16 +303,17 @@ public class A extends Application {
 			if (!A.connected()) return A.log("not connected") ? null : null;
 
 			String data = pairs.get("data");
+
 			List dataList = pairs.toPost();
-			A.log("code: " + dataList);
+			A.log("code: " + dataList+" A.member: "+pairs.get("agent"));
 			if (data != null) {
 				A.log("datalen = " + data.length());
 			}
 			String urlS = URLEncodedUtils.format(dataList, "UTF-8");
-			URL url = new URL(api);
-			A.log(url.toString());
-			res = A.requestData(url,urlS);
-			A.log("post: " + api + " | " + pairs.show("data") + " | " + res); // don't log data field sent with time op (don't recurse)
+			URL url = new URL(api);//"https://otherrealm.org/cgf/test.php"
+			A.log("311"+urlS);
+			res = A.requestData(url,urlS.toString());
+			A.log("post: " + api + " | " + urlS + " | " + res); // don't log data field sent with time op (don't recurse)
 		} catch (MalformedURLException e) {
 			A.log(e);
 			return "MalformedURL:"+e.getMessage();
@@ -348,14 +352,8 @@ public class A extends Application {
 			OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream());
 			out.write(data);
 			out.close();
-//			connection.connect();
 			int status = connection.getResponseCode();
 			A.log("status: "+url + " - " + status);
-
-//			Scanner inStream = new Scanner(connection.getInputStream());
-
-//			InputStream responseStream = connection.getInputStream();
-
 			BufferedReader in = new BufferedReader(
 					new InputStreamReader(
 							connection.getInputStream()));
@@ -383,12 +381,13 @@ public class A extends Application {
 	public static Json apiGetJson(String region, Pairs pairs) {
 		A.log(0);
 		String response = A.post(region, pairs);
+		A.log("| |"+response+"| |");
 		if (response == null) {
 			A.log("got null");
 			return null;
 		}
 
-		A.log("got:" + response);
+		A.log("got!" + response);
 		A.log(9);
 		return Json.make(response);
 	}

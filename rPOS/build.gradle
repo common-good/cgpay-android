@@ -26,7 +26,6 @@ dependencies {
 	compile 'com.android.support:appcompat-v7:23.0.0'
 	compile 'com.android.support:support-v4:23.0.0'
 	compile fileTree(include: '*.jar', dir: 'libs')
-	compile 'org.apache.httpcomponents:httpclient-android:4.3.5.1'
-	provided 'org.jbundle.util.osgi.wrapped:org.jbundle.util.osgi.wrapped.org.apache.http.client:4.1.2'
-	compile 'com.mcxiaoke.volley:library:1.0.19'
+//	compile 'org.apache.httpcomponents:httpclient-android:4.3.5.1'
+//	provided 'org.jbundle.util.osgi.wrapped:org.jbundle.util.osgi.wrapped.org.apache.http.client:4.1.2'
 }

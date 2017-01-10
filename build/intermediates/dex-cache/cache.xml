@@ -39,15 +39,6 @@
     </item>
     <item
         is-multidex="true"
-        jar="C:\Users\Someone\.gradle\caches\modules-2\files-2.1\org.apache.httpcomponents\httpclient-android\4.3.5.1\eecbb0b998e77629862a13d957d552b3be58fc4e\httpclient-android-4.3.5.1.jar"
-        jumboMode="true"
-        optimize="true"
-        revision="23.0.0"
-        sha1="eecbb0b998e77629862a13d957d552b3be58fc4e">
-        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\httpclient-android-4.3.5.1_f959c27e620c3fca85b99b16d50b8defbefd3eeb\classes.dex" />
-    </item>
-    <item
-        is-multidex="true"
         jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
         jumboMode="true"
         optimize="true"
@@ -120,15 +111,6 @@
     </item>
     <item
         is-multidex="true"
-        jar="C:\Users\Someone\.gradle\caches\modules-2\files-2.1\com.mcxiaoke.volley\library\1.0.19\a8f23f65fc1e522ee4a1a697ee569901a46741fa\library-1.0.19.jar"
-        jumboMode="true"
-        optimize="true"
-        revision="23.0.1"
-        sha1="a8f23f65fc1e522ee4a1a697ee569901a46741fa">
-        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\library-1.0.19_6bb1b512ab5a977d8d335b19f45cfa5505ce2f6e\classes.dex" />
-    </item>
-    <item
-        is-multidex="true"
         jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\exploded-aar\com.android.support\support-v4\23.0.0\jars\classes.jar"
         jumboMode="true"
         optimize="true"
@@ -165,30 +147,12 @@
     </item>
     <item
         is-multidex="true"
-        jar="C:\Users\Someone\.gradle\caches\modules-2\files-2.1\org.apache.httpcomponents\httpclient-android\4.3.5.1\eecbb0b998e77629862a13d957d552b3be58fc4e\httpclient-android-4.3.5.1.jar"
-        jumboMode="true"
-        optimize="true"
-        revision="23.0.1"
-        sha1="eecbb0b998e77629862a13d957d552b3be58fc4e">
-        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\httpclient-android-4.3.5.1_f959c27e620c3fca85b99b16d50b8defbefd3eeb\classes.dex" />
-    </item>
-    <item
-        is-multidex="true"
         jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\libs\org.apache.http.legacy.jar"
         jumboMode="true"
         optimize="true"
         revision="23.0.1"
         sha1="017030d11901291abf8f83a812984276b643ea0f">
         <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\2\org.apache.http.legacy_e2a1ab1ab038b85cf8d399198eb70f7ea78cfcd4\classes.dex" />
-    </item>
-    <item
-        is-multidex="true"
-        jar="C:\Users\Someone\.gradle\caches\modules-2\files-2.1\org.apache.httpcomponents\httpclient-android\4.3.5.1\eecbb0b998e77629862a13d957d552b3be58fc4e\httpclient-android-4.3.5.1.jar"
-        jumboMode="true"
-        optimize="true"
-        revision="21.1.2"
-        sha1="eecbb0b998e77629862a13d957d552b3be58fc4e">
-        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\httpclient-android-4.3.5.1_f959c27e620c3fca85b99b16d50b8defbefd3eeb\classes.dex" />
     </item>
     <item
         is-multidex="true"
