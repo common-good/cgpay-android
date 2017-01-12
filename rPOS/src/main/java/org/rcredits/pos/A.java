@@ -292,8 +292,9 @@ public class A extends Application {
 		String res="";
 		try {
 			String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
-			if(A.agent==null){
-				A.agent=pairs.get("member").split("-")[1];
+			if(pairs.get("member").split("-")[1]!=null){
+				A.log(pairs.get("member").split("-")[0]+","+pairs.get("member").split("-")[1]);
+				pairs.add("member",pairs.get("member").split("-")[0]);
 			}
 			pairs.add("agent", A.agent);
 			pairs.add("device", A.deviceId);
@@ -346,7 +347,11 @@ public class A extends Application {
 			A.log("data: "+data);
 			HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
 			connection.setUseCaches(false);
-			connection.setRequestProperty("application/x-www-form-urlencoded", "");
+//			connection.setChunkedStreamingMode(0);
+			connection.setRequestProperty("Content-Type","application/x-www-form-urlencoded");
+			connection.setRequestProperty("Accept", "application/json, text/plain, */*");
+//			connection.setRequestProperty("Accept-Encoding", "gzip, deflate");
+//			connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 6.0.1; SM-G930F Build/MMB29K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Crosswalk/15.44.384.13 Mobile Safari/537.36");
 			connection.setRequestMethod("POST");
 			connection.setDoInput(true);
 			OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream());
