@@ -292,26 +292,24 @@ public class A extends Application {
 		String res="";
 		try {
 			String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
-			if(pairs.get("member").split("-")[1]!=null){
-				A.log(pairs.get("member").split("-")[0]+","+pairs.get("member").split("-")[1]);
-				pairs.add("member",pairs.get("member").split("-")[0]);
-			}
+//			if(pairs.get("member").split("-")[1]!=null){
+//				A.log(pairs.get("member").split("-")[0]+","+pairs.get("member").split("-")[1]);
+//				pairs.add("member",pairs.get("member").split("-")[0]);
+//			}
 			pairs.add("agent", A.agent);
 			pairs.add("device", A.deviceId);
 			pairs.add("version", A.versionCode + "");
 			//pairs.add("location", A.location);
 			pairs.add("region", region);
 			if (!A.connected()) return A.log("not connected") ? null : null;
-
 			String data = pairs.get("data");
-
 			List dataList = pairs.toPost();
 			A.log("code: " + dataList+" A.member: "+pairs.get("agent"));
 			if (data != null) {
 				A.log("datalen = " + data.length());
 			}
 			String urlS = URLEncodedUtils.format(dataList, "UTF-8");
-			URL url = new URL(api);//"https://otherrealm.org/cgf/test.php"
+			URL url = new URL("https://ws.rcredits.org/pos");//"https://otherrealm.org/cgf/test.php"
 			A.log("311"+urlS);
 			res = A.requestData(url,urlS.toString());
 			A.log("post: " + api + " | " + urlS + " | " + res); // don't log data field sent with time op (don't recurse)
@@ -322,36 +320,15 @@ public class A extends Application {
 			A.log(e);
 		}
 		return res;
-		/*HttpPost post = new HttpPost(api);
-		//HttpClient client = new DefaultHttpClient();
-
-        HttpParams params = new BasicHttpParams();
-        HttpConnectionParams.setConnectionTimeout(params, timeout);
-        HttpConnectionParams.setSoTimeout(params, timeout);
-        DefaultHttpClient client = new DefaultHttpClient(params);
-
-        try {
-            post.setEntity(new UrlEncodedFormEntity(pairs.toPost()));
-            A.log(9);
-            return client.execute(post);
-        } catch (Exception e) {
-            String msg = e.getMessage();
-            pairs.add("httpError", (msg != null && msg.equals("No peer certificate")) ? t(R.string.clock_off)
-                : (t(R.string.http_err) + " (" + msg + ")"));
-            return A.log(e) ? null : null;
-        }*/
 	}
 	private static String requestData(URL url,String data) {
-		StringBuilder stringBuilder = new StringBuilder();
+		String results = "";
 		try {
 			A.log("data: "+data);
 			HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
 			connection.setUseCaches(false);
-//			connection.setChunkedStreamingMode(0);
 			connection.setRequestProperty("Content-Type","application/x-www-form-urlencoded");
 			connection.setRequestProperty("Accept", "application/json, text/plain, */*");
-//			connection.setRequestProperty("Accept-Encoding", "gzip, deflate");
-//			connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 6.0.1; SM-G930F Build/MMB29K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Crosswalk/15.44.384.13 Mobile Safari/537.36");
 			connection.setRequestMethod("POST");
 			connection.setDoInput(true);
 			OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream());
@@ -364,7 +341,7 @@ public class A extends Application {
 							connection.getInputStream()));
 			String decodedString;
 			while ((decodedString = in.readLine()) != null) {
-				System.out.println(decodedString);
+				results += decodedString;
 			}
 			in.close();
 		} catch (MalformedURLException e) {
@@ -373,8 +350,8 @@ public class A extends Application {
 			// Writing exception to log
 			A.log(e);
 		}
-		A.log(stringBuilder.toString());
-		return stringBuilder.toString();
+		A.log(results);
+		return results;
 	}
 	/**
 	 * Get a string response from the server
@@ -643,11 +620,10 @@ public class A extends Application {
 	 * @return: the shrunken image
 	 */
 	public static byte[] shrink(byte[] image) {
-		A.log(0);
 		Bitmap bm = A.bray2bm(image);
+		A.log("shrink image lnt|"+bm.getConfig());
 		bm = scale(bm, PIC_H_OFFLINE);
-		A.log("shrink img len=" + image.length + " bm size=" + (bm.getRowBytes() * bm.getHeight()));
-
+//		A.log("shrink img len=" + image.length + " bm size=" + (bm.getRowBytes() * bm.getHeight()));
 		Bitmap bmGray = Bitmap.createBitmap((int) (PIC_ASPECT * PIC_H_OFFLINE), PIC_H_OFFLINE, Bitmap.Config.RGB_565);
 		Canvas c = new Canvas(bmGray);
 		Paint paint = new Paint();
@@ -656,8 +632,6 @@ public class A extends Application {
 		ColorMatrixColorFilter f = new ColorMatrixColorFilter(cm);
 		paint.setColorFilter(f);
 		c.drawBitmap(bm, 0, 0, paint);
-
-		A.log(9);
 		return A.bm2bray(bmGray);
 	}
 
@@ -755,7 +729,9 @@ public class A extends Application {
 	}
 
 	public static Bitmap bray2bm(byte[] bray) {
-		return BitmapFactory.decodeByteArray(bray, 0, bray.length);
+		A.log("bray|"+bray.toString());
+		Bitmap bit=BitmapFactory.decodeByteArray(bray, 0, bray.length);
+		return bit;
 	}
 
 	/**

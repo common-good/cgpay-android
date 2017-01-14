@@ -38,6 +38,7 @@ public class Identify implements Runnable {
         } catch (Db.NoRoom e) {
             handle.done(FAIL, A.t(R.string.no_room), null, null);
         } catch (Exception e) {
+	        A.log(e);
             handle.done(NO_WIFI, "", null, null);
         }
         Looper.loop();
@@ -97,7 +98,8 @@ public class Identify implements Runnable {
     private boolean doAgent(Pairs pairs) throws Db.NoRoom {
         if (rcard.qid.equals(A.agent)) return handle.done(FAIL, A.t(R.string.already_in), null, null);
         json = A.apiGetJson(rcard.region, pairs); // get json-encoded info from server
-        if (json == null) { //return handle.done(NO_WIFI, "", null, null); // assume it's a customer (since we can't tell)
+        A.log(pairs.toPost().toString()+rcard.qid);
+	    if (json == null) { //return handle.done(NO_WIFI, "", null, null); // assume it's a customer (since we can't tell)
             Q q = A.b.db.oldCustomer(rcard.qid);
             if (q == null) return handle.done(FAIL, A.t(R.string.wifi_for_setup), null, null);
             if (!q.isAgent()) A.b.report("non-agent");

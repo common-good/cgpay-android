@@ -172,14 +172,14 @@ public class Db {
      */
     public void saveCustomer(String qid, byte[] image, String code, Json idJson) throws NoRoom {
 //        if (!rcard.region.equals(A.region)) return; // don't record customers outside the region?
-        A.log("saving customer " + qid + " idJson=" + idJson.toString());
+        A.log(" image|"+image+"| saving customer " + qid + " idJson=" + idJson.toString());
         if (A.empty(idJson.get("name"))) A.b.report("customer with no name");
         ContentValues values = new ContentValues();
         for (String k : DbSetup.CUSTOMERS_FIELDS_TO_GET.split(" ")) values.put(k, idJson.get(k));
         values.put("qid", qid);
         values.put("photo", A.shrink(image));
         values.put("code", code);
-
+        A.log(values.get("photo").toString());
         Q q = oldCustomer(qid);
         if (q == null) { // new customer!
             insert("members", values);
