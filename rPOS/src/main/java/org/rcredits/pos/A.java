@@ -289,7 +289,7 @@ public class A extends Application {
 	public static String post(String region, Pairs pairs) {
 		A.log(0);
 		final int timeout = TIMEOUT * 1000; // milliseconds
-		String res="";
+		String res = "";
 		try {
 			String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
 //			if(pairs.get("member").split("-")[1]!=null){
@@ -304,30 +304,30 @@ public class A extends Application {
 			if (!A.connected()) return A.log("not connected") ? null : null;
 			String data = pairs.get("data");
 			List dataList = pairs.toPost();
-			A.log("code: " + dataList+" A.member: "+pairs.get("agent"));
+			A.log("code: " + dataList + " A.member: " + pairs.get("agent"));
 			if (data != null) {
 				A.log("datalen = " + data.length());
 			}
 			String urlS = URLEncodedUtils.format(dataList, "UTF-8");
 			URL url = new URL("https://ws.rcredits.org/pos");//"https://otherrealm.org/cgf/test.php"
-			A.log("311"+urlS);
-			res = A.requestData(url,urlS.toString());
-			A.log("post: " + api + " | " + urlS + " | " + res); // don't log data field sent with time op (don't recurse)
+			A.log("311" + urlS);
+			res = A.requestData(url, urlS.toString());
+			A.log("post: " + api + " | " + urlS + " | " + res);
 		} catch (MalformedURLException e) {
 			A.log(e);
-			return "MalformedURL:"+e.getMessage();
+			return "MalformedURL:" + e.getMessage();
 		} catch (IOException e) {
 			A.log(e);
 		}
 		return res;
 	}
-	private static String requestData(URL url,String data) {
+	private static String requestData(URL url, String data) {
 		String results = "";
 		try {
-			A.log("data: "+data);
+			A.log("data: " + data);
 			HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
 			connection.setUseCaches(false);
-			connection.setRequestProperty("Content-Type","application/x-www-form-urlencoded");
+			connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 			connection.setRequestProperty("Accept", "application/json, text/plain, */*");
 			connection.setRequestMethod("POST");
 			connection.setDoInput(true);
@@ -335,7 +335,7 @@ public class A extends Application {
 			out.write(data);
 			out.close();
 			int status = connection.getResponseCode();
-			A.log("status: "+url + " - " + status);
+			A.log("status: " + url + " - " + status);
 			BufferedReader in = new BufferedReader(
 					new InputStreamReader(
 							connection.getInputStream()));
@@ -345,13 +345,88 @@ public class A extends Application {
 			}
 			in.close();
 		} catch (MalformedURLException e) {
-			A.log("MalformedURL:"+e);
+			A.log("MalformedURL:" + e);
 		} catch (IOException e) {
 			// Writing exception to log
 			A.log(e);
 		}
 		A.log(results);
 		return results;
+	}
+	public static String post(String region, Pairs pairs, Boolean isPhoto) {
+		A.log(0);
+		final int timeout = TIMEOUT * 1000; // milliseconds
+		String res = "";
+		if (isPhoto) {
+			try {
+				String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
+//			if(pairs.get("member").split("-")[1]!=null){
+//				A.log(pairs.get("member").split("-")[0]+","+pairs.get("member").split("-")[1]);
+//				pairs.add("member",pairs.get("member").split("-")[0]);
+//			}
+				pairs.add("agent", A.agent);
+				pairs.add("device", A.deviceId);
+				pairs.add("version", A.versionCode + "");
+				//pairs.add("location", A.location);
+				pairs.add("region", region);
+				if (!A.connected()) return A.log("not connected") ? null : null;
+				String data = pairs.get("data");
+				List dataList = pairs.toPost();
+				A.log("code: " + dataList + " A.member: " + pairs.get("agent"));
+				if (data != null) {
+					A.log("datalen = " + data.length());
+				}
+				String urlS = URLEncodedUtils.format(dataList, "UTF-8");
+				URL url = new URL("https://ws.rcredits.org/pos");//"https://otherrealm.org/cgf/test.php"
+				A.log("311" + urlS);
+				res = A.requestData(url, urlS.toString(), isPhoto);
+				A.log("post: " + api + " | " + urlS + " | " + res);
+			} catch (MalformedURLException e) {
+				A.log(e);
+				return "MalformedURL:" + e.getMessage();
+			} catch (IOException e) {
+				A.log(e);
+			}
+			return res;
+		} else {
+			return post(region, pairs);
+		}
+	}
+	private static String requestData(URL url, String data, Boolean isPhoto) {
+		String results = "";
+		if (isPhoto) {
+			try {
+				A.log("data: " + data);
+				HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+				connection.setUseCaches(false);
+				connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+				connection.setRequestProperty("Accept", "application/json, text/plain, */*");
+				connection.setRequestMethod("POST");
+				connection.setDoInput(true);
+				OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream());
+				out.write(data);
+				out.close();
+				int status = connection.getResponseCode();
+				A.log("status: " + url + " - " + status);
+				BufferedReader in = new BufferedReader(
+						new InputStreamReader(
+								connection.getInputStream()));
+				String decodedString;
+				while ((decodedString = in.readLine()) != null) {
+					results += decodedString;
+				}
+				in.close();
+			} catch (MalformedURLException e) {
+				A.log("MalformedURL:" + e);
+			} catch (IOException e) {
+				// Writing exception to log
+				A.log(e);
+			}
+			A.log(results);
+			return results;
+		} else {
+			return requestData(url, data);
+		}
 	}
 	/**
 	 * Get a string response from the server
@@ -363,7 +438,7 @@ public class A extends Application {
 	public static Json apiGetJson(String region, Pairs pairs) {
 		A.log(0);
 		String response = A.post(region, pairs);
-		A.log("| |"+response+"| |");
+		A.log("| |" + response + "| |");
 		if (response == null) {
 			A.log("got null");
 			return null;
@@ -385,14 +460,19 @@ public class A extends Application {
 		Pairs pairs = new Pairs("op", "photo");
 		pairs.add("member", qid);
 		pairs.add("code", code);
-		String response = A.post(rCard.qidRegion(qid), pairs);
-		Json obj = new Json(response);
+		String response = A.post(rCard.qidRegion(qid), pairs, true);
+		A.log("response" + response);
+//		Json obj = new Json(response);
 		byte[] res = response == null ? null : response.getBytes();
 		A.log("photo len=" + (res == null ? 0 : res.length));
 		A.log(9);
 		return res;
 	}
-
+	public Bitmap makeBitmap(byte[] by) {
+		Bitmap bitmap;
+		bitmap = BitmapFactory.decodeByteArray(by, 0, by.length);
+		return bitmap;
+	}
 	/**
 	 * Read the system log file.
 	 */
@@ -405,7 +485,7 @@ public class A extends Application {
 		A.log(mark);
 
 		try {
-            /*
+	        /*
             Process process = Runtime.getRuntime().exec("logcat -d -" + limit); // better, if it works
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             while ((line = bufferedReader.readLine()) != null) res += line + "\n";
@@ -620,10 +700,11 @@ public class A extends Application {
 	 * @return: the shrunken image
 	 */
 	public static byte[] shrink(byte[] image) {
+		A.log(0);
 		Bitmap bm = A.bray2bm(image);
-		A.log("shrink image lnt|"+bm.getConfig());
 		bm = scale(bm, PIC_H_OFFLINE);
-//		A.log("shrink img len=" + image.length + " bm size=" + (bm.getRowBytes() * bm.getHeight()));
+		A.log("shrink img len=" + image.length + " bm size=" + (bm.getRowBytes() * bm.getHeight()));
+
 		Bitmap bmGray = Bitmap.createBitmap((int) (PIC_ASPECT * PIC_H_OFFLINE), PIC_H_OFFLINE, Bitmap.Config.RGB_565);
 		Canvas c = new Canvas(bmGray);
 		Paint paint = new Paint();
@@ -632,13 +713,23 @@ public class A extends Application {
 		ColorMatrixColorFilter f = new ColorMatrixColorFilter(cm);
 		paint.setColorFilter(f);
 		c.drawBitmap(bm, 0, 0, paint);
+
+		A.log(9);
 		return A.bm2bray(bmGray);
 	}
-
+	/*	public static String BitMapToString(Bitmap bitmap) {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+			byte[] b = baos.toByteArray();
+			String temp = Base64.encodeToString(b, Base64.DEFAULT);
+			return temp;
+		}*/
 	public static Bitmap scale(Bitmap bm, int height) {
+//		Bitmap image=Bitmap.createScaledBitmap(bm, (int) (A.PIC_ASPECT * height), height, true);
+//		String test=new String("BitMapToString"+BitMapToString(image));
+		A.log("shrink img len=" + bm);
 		return Bitmap.createScaledBitmap(bm, (int) (A.PIC_ASPECT * height), height, true);
 	}
-
 	public static ContentValues list(String keyString, String[] values) {
 		String[] keys = keyString.split(" ");
 		ContentValues map = new ContentValues(0);
@@ -729,9 +820,11 @@ public class A extends Application {
 	}
 
 	public static Bitmap bray2bm(byte[] bray) {
-		A.log("bray|"+bray.toString());
-		Bitmap bit=BitmapFactory.decodeByteArray(bray, 0, bray.length);
-		return bit;
+//		BitmapFactory.Options options = new BitmapFactory.Options();
+//		options.inPreferredConfig = Bitmap.Config.RGB_565;
+		A.log("bray2||" + bray.length + "|" + bray);
+//		Bitmap bit=BitmapFactory.decodeByteArray(bray, 0, bray.length);
+		return BitmapFactory.decodeByteArray(bray, 0, bray.length);
 	}
 
 	/**
