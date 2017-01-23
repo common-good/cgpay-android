@@ -23,9 +23,11 @@ import android.util.Log;
 
 import org.apache.http.client.utils.URLEncodedUtils;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.MalformedURLException;
@@ -353,10 +355,10 @@ public class A extends Application {
 		A.log(results);
 		return results;
 	}
-	public static String post(String region, Pairs pairs, Boolean isPhoto) {
+	public static byte[] post(String region, Pairs pairs, Boolean isPhoto) {
 		A.log(0);
 		final int timeout = TIMEOUT * 1000; // milliseconds
-		String res = "";
+		Bitmap res = null;
 		if (isPhoto) {
 			try {
 				String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
@@ -379,21 +381,21 @@ public class A extends Application {
 				String urlS = URLEncodedUtils.format(dataList, "UTF-8");
 				URL url = new URL("https://ws.rcredits.org/pos");//"https://otherrealm.org/cgf/test.php"
 				A.log("311" + urlS);
-				res = A.requestData(url, urlS.toString(), isPhoto);
+				res = A.makeBitmap(A.requestData(url, urlS.toString(), isPhoto));
 				A.log("post: " + api + " | " + urlS + " | " + res);
 			} catch (MalformedURLException e) {
-				A.log(e);
-				return "MalformedURL:" + e.getMessage();
+				A.log(e+"MalformedURL:" + e.getMessage());
 			} catch (IOException e) {
 				A.log(e);
 			}
-			return res;
+			return convertBitmapToByteArray(res);
 		} else {
-			return post(region, pairs);
+//			return post(region, pairs);
+			return null;
 		}
 	}
-	private static String requestData(URL url, String data, Boolean isPhoto) {
-		String results = "";
+	private static InputStream  requestData(URL url, String data, Boolean isPhoto) {
+		byte[] results;
 		if (isPhoto) {
 			try {
 				A.log("data: " + data);
@@ -401,6 +403,7 @@ public class A extends Application {
 				connection.setUseCaches(false);
 				connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 				connection.setRequestProperty("Accept", "application/json, text/plain, */*");
+				connection.setRequestProperty("Accept-Charset", "utf-8,*");
 				connection.setRequestMethod("POST");
 				connection.setDoInput(true);
 				OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream());
@@ -408,24 +411,46 @@ public class A extends Application {
 				out.close();
 				int status = connection.getResponseCode();
 				A.log("status: " + url + " - " + status);
-				BufferedReader in = new BufferedReader(
-						new InputStreamReader(
-								connection.getInputStream()));
-				String decodedString;
-				while ((decodedString = in.readLine()) != null) {
-					results += decodedString;
-				}
-				in.close();
+				InputStream in = new BufferedInputStream(connection.getInputStream());
+				return in;
+//				String decodedString;
+//				while ((decodedString = in.readLine()) != null) {
+//					results += decodedString;
+//				}
+//				in.reset();
+//				in.close();
 			} catch (MalformedURLException e) {
 				A.log("MalformedURL:" + e);
 			} catch (IOException e) {
 				// Writing exception to log
 				A.log(e);
 			}
-			A.log(results);
-			return results;
+//			A.log(results);
+			return null;
 		} else {
-			return requestData(url, data);
+			return null;//requestData(url, data);
+		}
+	}
+	/**
+	 * @param bitmap
+	 * Bitmap object from which you want to get bytes
+	 * @return byte[] array of bytes by compressing the bitmap to PNG format <br/>
+	 * null if bitmap passed is null (or) failed to get bytes from the
+	 * bitmap
+	 */
+	public static byte[] convertBitmapToByteArray(Bitmap bitmap) {
+		if (bitmap == null) {
+			return null;
+		} else {
+			byte[] b = null;
+			try {
+				ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+				bitmap.compress(Bitmap.CompressFormat.JPEG, 0, byteArrayOutputStream);
+				b = byteArrayOutputStream.toByteArray();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return b;
 		}
 	}
 	/**
@@ -460,17 +485,22 @@ public class A extends Application {
 		Pairs pairs = new Pairs("op", "photo");
 		pairs.add("member", qid);
 		pairs.add("code", code);
-		String response = A.post(rCard.qidRegion(qid), pairs, true);
+		byte[] response = A.post(rCard.qidRegion(qid), pairs, true);
 		A.log("response" + response);
 //		Json obj = new Json(response);
-		byte[] res = response == null ? null : response.getBytes();
+		byte[] res = response == null ? null : response;
 		A.log("photo len=" + (res == null ? 0 : res.length));
 		A.log(9);
 		return res;
 	}
-	public Bitmap makeBitmap(byte[] by) {
+	public static Bitmap makeBitmap(InputStream  by) {
 		Bitmap bitmap;
-		bitmap = BitmapFactory.decodeByteArray(by, 0, by.length);
+		bitmap = BitmapFactory.decodeStream(by);
+		return bitmap;
+	}
+	public static Bitmap makeBitmap(byte[] by) {
+		Bitmap bitmap;
+		bitmap= BitmapFactory.decodeByteArray(by, 0, by.length);
 		return bitmap;
 	}
 	/**

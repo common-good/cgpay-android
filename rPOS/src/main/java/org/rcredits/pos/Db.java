@@ -203,7 +203,7 @@ public class Db {
 		values.put("qid", qid);
 		values.put("photo", image);//A.shrink(
 		values.put("code", code);
-		Q q = null;//oldCustomer(qid);
+		Q q = oldCustomer(qid);
 		if (q == null) { // new customer!
 			A.log("if:"+String.valueOf(values.get("photo").equals(null)));
 			insert("members", values);
