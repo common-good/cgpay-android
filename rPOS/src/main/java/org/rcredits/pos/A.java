@@ -294,14 +294,9 @@ public class A extends Application {
 		String res = "";
 		try {
 			String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
-//			if(pairs.get("member").split("-")[1]!=null){
-//				A.log(pairs.get("member").split("-")[0]+","+pairs.get("member").split("-")[1]);
-//				pairs.add("member",pairs.get("member").split("-")[0]);
-//			}
 			pairs.add("agent", A.agent);
 			pairs.add("device", A.deviceId);
 			pairs.add("version", A.versionCode + "");
-			//pairs.add("location", A.location);
 			pairs.add("region", region);
 			if (!A.connected()) return A.log("not connected") ? null : null;
 			String data = pairs.get("data");
@@ -323,6 +318,12 @@ public class A extends Application {
 		}
 		return res;
 	}
+	/**
+	* Handles the actual connection and retreval of the server data
+	 * @param url:the base url
+	 * @param data:the data that gets sent to the server
+	 * @return a string containing the requested data
+	* */
 	private static String requestData(URL url, String data) {
 		String results = "";
 		try {
@@ -355,6 +356,14 @@ public class A extends Application {
 		A.log(results);
 		return results;
 	}
+	/**
+	 * Send a request to the server and return a JPEG.
+	 *
+	 * @param region: the agent's region
+	 * @param pairs:  name/value pairs to send with the request (returned with extra info)
+	 * @param isPhoto:  whether it's a photo that is getting requested or not
+	 * @return: the photo from server's response. null if failure (with message in A.log)
+	 */
 	public static byte[] post(String region, Pairs pairs, Boolean isPhoto) {
 		A.log(0);
 		final int timeout = TIMEOUT * 1000; // milliseconds
@@ -362,14 +371,9 @@ public class A extends Application {
 		if (isPhoto) {
 			try {
 				String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
-//			if(pairs.get("member").split("-")[1]!=null){
-//				A.log(pairs.get("member").split("-")[0]+","+pairs.get("member").split("-")[1]);
-//				pairs.add("member",pairs.get("member").split("-")[0]);
-//			}
 				pairs.add("agent", A.agent);
 				pairs.add("device", A.deviceId);
 				pairs.add("version", A.versionCode + "");
-				//pairs.add("location", A.location);
 				pairs.add("region", region);
 				if (!A.connected()) return A.log("not connected") ? null : null;
 				String data = pairs.get("data");
@@ -390,10 +394,15 @@ public class A extends Application {
 			}
 			return convertBitmapToByteArray(res);
 		} else {
-//			return post(region, pairs);
 			return null;
 		}
 	}
+	/**
+	 * Handles the actual connection and retreval of the photo
+	 * @param url:the base url
+	 * @param data:the data that gets sent to the server
+	 * @return an InputStream containing the requested photo
+	 * */
 	private static InputStream  requestData(URL url, String data, Boolean isPhoto) {
 		byte[] results;
 		if (isPhoto) {
@@ -413,22 +422,15 @@ public class A extends Application {
 				A.log("status: " + url + " - " + status);
 				InputStream in = new BufferedInputStream(connection.getInputStream());
 				return in;
-//				String decodedString;
-//				while ((decodedString = in.readLine()) != null) {
-//					results += decodedString;
-//				}
-//				in.reset();
-//				in.close();
 			} catch (MalformedURLException e) {
 				A.log("MalformedURL:" + e);
 			} catch (IOException e) {
 				// Writing exception to log
 				A.log(e);
 			}
-//			A.log(results);
 			return null;
 		} else {
-			return null;//requestData(url, data);
+			return null;
 		}
 	}
 	/**
@@ -747,16 +749,7 @@ public class A extends Application {
 		A.log(9);
 		return A.bm2bray(bmGray);
 	}
-	/*	public static String BitMapToString(Bitmap bitmap) {
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
-			byte[] b = baos.toByteArray();
-			String temp = Base64.encodeToString(b, Base64.DEFAULT);
-			return temp;
-		}*/
 	public static Bitmap scale(Bitmap bm, int height) {
-//		Bitmap image=Bitmap.createScaledBitmap(bm, (int) (A.PIC_ASPECT * height), height, true);
-//		String test=new String("BitMapToString"+BitMapToString(image));
 		A.log("shrink img len=" + bm);
 		return Bitmap.createScaledBitmap(bm, (int) (A.PIC_ASPECT * height), height, true);
 	}
