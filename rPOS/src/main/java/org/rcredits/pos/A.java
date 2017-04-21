@@ -198,7 +198,6 @@ public class A extends Application {
 			flip = (Camera.getNumberOfCameras() == 1 && info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
 			//flip = true; versionCode = "0" + versionCode; // uncomment for old devices with only an undetectable front-facing camera.
 		}
-
 		PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 		System.setProperty("http.keepAlive", "false"); // as of 8/16/2016 this prevent background http POSTs from being duplicated
 		// ... and possibly prevents timing bugs between background and foreground http POSTs?

@@ -3,84 +3,84 @@
 
     <item
         is-multidex="true"
-        jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
+        jar="C:\Users\Someone\.android\build-cache\b1cf850e9c4c0ae6345e01d2f7fb65e0e46ce5b5\output\jars\libs\internal_impl-23.0.0.jar"
         jumboMode="true"
         optimize="true"
-        revision="23.0.1"
-        sha1="94b4611a3b9491f03390e6f092034296ebad72a2">
-        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\instant-run_b993b08e07588ea52386ff03014850207e11efed\classes.dex" />
-    </item>
-    <item
-        is-multidex="true"
-        jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\exploded-aar\com.android.support\support-v4\23.0.0\jars\libs\internal_impl-23.0.0.jar"
-        jumboMode="true"
-        optimize="true"
-        revision="23.0.1"
+        revision="25.0.0"
         sha1="8bd336eeae661e8311330284897ee07f8ebaa297">
-        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\internal_impl-23.0.0_d638b050e5a870f6118be93664c9da75922edfc8\classes.dex" />
+        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\internal_impl-23.0.0_60b57934d1c93fc8549e566799d562b2fc413422\classes.dex" />
     </item>
     <item
         is-multidex="true"
-        jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
+        jar="C:\Users\Someone\.android\build-cache\62e56b43ea96234af09a57e3e7feeec2d57b9bcf\output\jars\classes.jar"
         jumboMode="true"
         optimize="true"
-        revision="23.0.1"
-        sha1="5182a0e52cdb330e859eba659f6b40d5a2e33d48">
-        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\instant-run-bootstrap_4bd416c08e9b2c85ad0dabecbab9a6f863e5bfb5\classes.dex" />
-    </item>
-    <item
-        is-multidex="true"
-        jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\libs\org.apache.http.legacy.jar"
-        jumboMode="true"
-        optimize="true"
-        revision="23.0.1"
-        sha1="017030d11901291abf8f83a812984276b643ea0f">
-        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\2\org.apache.http.legacy_e2a1ab1ab038b85cf8d399198eb70f7ea78cfcd4\classes.dex" />
+        revision="25.0.0"
+        sha1="4fcf0b1879f8caf497c073e1432d398e9e2988c1">
+        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\classes_10381b033e95e4c710dc98f440a40fa5e8f4d328\classes.dex" />
     </item>
     <item
         is-multidex="true"
         jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\libs\core-2.2.jar"
         jumboMode="true"
         optimize="true"
-        revision="23.0.1"
+        revision="25.0.0"
         sha1="cba0b93b0072105d808ef7a00a107a4eb97874e7">
         <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\2\core-2.2_4f97912ca13d64fc61f2dedbe7eda6fbc1bd4a57\classes.dex" />
     </item>
     <item
         is-multidex="true"
-        jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\libs\javase-2.2.jar"
+        jar="C:\Users\Someone\.android\build-cache\b1cf850e9c4c0ae6345e01d2f7fb65e0e46ce5b5\output\jars\classes.jar"
         jumboMode="true"
         optimize="true"
-        revision="23.0.1"
-        sha1="049c7efbaa67727bef5f2dd79efba1ca35f3e7f0">
-        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\2\javase-2.2_82e7e5cf80e829ccd06ae76da33127f8051f4066\classes.dex" />
+        revision="25.0.0"
+        sha1="8413c27b45b7fe61dca4a98159f65e2cee215f5a">
+        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\classes_7a4f3f40e51e1d4dd6899b3ac58aee371af93929\classes.dex" />
     </item>
     <item
         is-multidex="true"
-        jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\exploded-aar\com.android.support\appcompat-v7\23.0.0\jars\classes.jar"
+        jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
         jumboMode="true"
         optimize="true"
-        revision="23.0.1"
-        sha1="4fcf0b1879f8caf497c073e1432d398e9e2988c1">
-        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\com.android.support-appcompat-v7-23.0.0_b09ae5bfc15c55aa80f113a2bfdd17020e87eec9\classes.dex" />
+        revision="25.0.0"
+        sha1="7f76a8f3e1bb3ca5305fd79192656b1e8304986f">
+        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run-bootstrap_4bd416c08e9b2c85ad0dabecbab9a6f863e5bfb5\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\libs\org.apache.http.legacy.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.0"
+        sha1="017030d11901291abf8f83a812984276b643ea0f">
+        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\2\org.apache.http.legacy_e2a1ab1ab038b85cf8d399198eb70f7ea78cfcd4\classes.dex" />
     </item>
     <item
         is-multidex="true"
         jar="E:\Programs\androidSDK\extras\android\m2repository\com\android\support\support-annotations\23.0.0\support-annotations-23.0.0.jar"
         jumboMode="true"
         optimize="true"
-        revision="23.0.1"
+        revision="25.0.0"
         sha1="990e7f98a7bad86a40b1f0bcfeb039023afd0839">
         <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\support-annotations-23.0.0_b3a20b8f85f63577a2a80f6d2585a888412cdd29\classes.dex" />
     </item>
     <item
         is-multidex="true"
-        jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\exploded-aar\com.android.support\support-v4\23.0.0\jars\classes.jar"
+        jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\libs\javase-2.2.jar"
         jumboMode="true"
         optimize="true"
-        revision="23.0.1"
-        sha1="8413c27b45b7fe61dca4a98159f65e2cee215f5a">
-        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10\com.android.support-support-v4-23.0.0_cad32b0bb71b7f4cce3e4632833211f32aeb0e58\classes.dex" />
+        revision="25.0.0"
+        sha1="049c7efbaa67727bef5f2dd79efba1ca35f3e7f0">
+        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\2\javase-2.2_82e7e5cf80e829ccd06ae76da33127f8051f4066\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.0"
+        sha1="510aa6efc159983dfbffa676a0dae37568c0a46f">
+        <dex dex="E:\xampp\htdocs\cgf\rCredits-Android\rPOS\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run_b993b08e07588ea52386ff03014850207e11efed\classes.dex" />
     </item>
 
 </items>
