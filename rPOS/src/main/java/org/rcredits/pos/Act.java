@@ -33,7 +33,7 @@ public class Act extends Activity {
     private boolean onTop = false; // activity is visible
     public Menu menu = null;
     private final String YES_OR_NO = "Yes or No";
-    private final static int TIMEOUT = 10; // number of minutes before activity times out
+    private final static int TIMEOUT = 2; // number of minutes before activity times out
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,7 +74,7 @@ public class Act extends Activity {
                     if (isMain()) {
                         onResume();
                     } else {
-                        A.log("rCredits activity timed out.");
+                        A.log("Common Good activity timed out.");
                         goHome(t(R.string.timed_out));
                     }
                 }

@@ -7,7 +7,7 @@
               android:orderInCategory="1"
               app:showAsAction="always" />
         <item android:id="@+id/action_qr"
-              android:title="Show My rCard"
+              android:title="Show My Card"
               android:icon="@drawable/ic_face_black_24dp"
               android:orderInCategory="2"
               app:showAsAction="always" />
@@ -17,7 +17,7 @@
               android:icon="@drawable/ic_open_in_browser_black_24dp"
               app:showAsAction="always" />
         <item android:id="@+id/action_promo"
-              android:title="rCredits Website"
+              android:title="Common Good Website"
               android:orderInCategory="4"
               android:icon="@drawable/ic_language_black_24dp"
               app:showAsAction="always" />

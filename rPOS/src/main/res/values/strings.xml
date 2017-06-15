@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">rCredits POS</string>
+    <string name="app_name">Common Good Payments</string>
     <string name="action_settings">Settings</string>
     <string name="amount">$0.00</string>
     <string name="title_activity_change_description">Change Description</string>
     <string name="title_activity_for">Transaction Type</string>
     <string name="title_activity_tx">Transaction</string>
-    <string name="title_activity_main"></string>
+    <string name="title_activity_main">CG Pay</string>
     <string name="title_activity_capture">Capture</string>
     <string name="title_activity_prefs">Settings</string>
-    <string name="title_activity_showqr">Show My rCard</string>
+    <string name="title_activity_showqr">Show My Card</string>
     <string name="title_activity_customer">Customer Profile</string>
     <string name="title_activity_restart_app">Restart App</string>
     <string name="title_activity_usd">Exchange: Payment Type</string>
@@ -18,36 +18,36 @@
     <string name="title_activity_id_number">Get State ID Number</string>
 
     <string name="already_in">You are already signed in.</string>
-    <string name="no_company">Scan your rCard to get started\n(company rCard for a company).</string>
-    <string name="no_agent">You have to scan yourself in (by scanning your Company rCard) before charging a customer.</string>
+    <string name="no_company">Scan your Common Good Card to get started (company card for a company).</string>
+    <string name="no_agent">You have to scan yourself in (by scanning your Company Common Good Card) before charging a customer.</string>
     <string name="switch_to_test">Switching to TEST mode.</string>
     <string name="switch_to_real">Switching to REAL mode.</string>
     <string name="clock_off">Your clock is way off. Go to Settings, fix the date/time, then try again.</string>
     <string name="http_err">Your device cannot connect right now.</string>
     <string name="try_offline"> Continue and store the transaction for later?</string>
-    <string name="ask_for_id">Ask the customer for a driver\'s license or state ID.\n\nDoes the customer\'s face match the photo on the license/ID and on their rCard? (if the customer does not have an acceptable photo ID, answer No)</string>
+    <string name="ask_for_id">Ask the customer for a driver\'s license or state ID.\n\nDoes the customer\'s face match the photo on the license/ID and on their Common Good Card? (if the customer does not have an acceptable photo ID, answer No)</string>
     <string name="connect_soon">\n\nRemember: connect to the Internet SOON!</string>
     <string name="tx_canceled" formatted="false">The transaction has been canceled. You transferred $%s back %s %s.</string>
     <string name="too_big">That is too large an amount for an offline transaction (try again to connect maybe).</string>
-    <string name="wifi_for_setup">You must have an internet connection, to scan your Company rCard, before charging customers.</string>
-    <string name="need_photo_id">I\'m sorry, new rCredits customers must show a valid photo ID when internet is out and (once) before making their first purchase.</string>
+    <string name="wifi_for_setup">You must have an internet connection, to scan your Company Common Good Card, before charging customers.</string>
+    <string name="need_photo_id">I\'m sorry, new Common Good customers must show a valid photo ID when internet is out and (once) before making their first purchase.</string>
     <string name="self_help_photo">You must show a state ID or driver\'s license before your first purchase. Ask a manager here to sign in and scan your card.</string>
     <string name="self_help_signout">You will be signed out automatically when you leave this page, so customers can serve themselves.</string>
-    <string name="no_permission">You do not have permission to scan a customer rCard. Adjust permissions settings online on the Company and Relations pages.</string>
+    <string name="no_permission">You do not have permission to scan a customer Common Good Card. Adjust permissions settings online on the Company and Relations pages.</string>
     <string name="wifi_on">Wifi is now ON.</string>
     <string name="wifi_off">Wifi is now OFF. Remember to connect soon, to upload saved transactions.</string>
     <string name="wifi_unavailable">Wifi is ON but no connection is currently available.</string>
     <string name="no_room">You have run out of storage space. You cannot accept further transactions until you delete something or connect to the Internet, so pending transactions can be uploaded.</string>
-    <string name="syserr">SYSTEM ERROR: The rCredits POS app has crashed. Please tell the rCredits Team, so they can fix the problem!</string>
+    <string name="syserr">SYSTEM ERROR: The Common Good App has crashed. Please tell the Common Good Team, so they can fix the problem!</string>
     <string name="old_tx">That transaction is now too old to undo. Do a separate transaction instead (possibly online or with US Dollars).</string>
     <string name="offline">OFFLINE (no internet)</string>
-    <string name="no_descriptions">You have no product descriptions. Sign in at rCredits.org, select your company, and visit the Company Settings page to fix this.</string>
+    <string name="no_descriptions">You have no product descriptions. Sign in at CommonGood.earth, select your company, and visit the Company Settings page to fix this.</string>
     <string name="timed_out">Your activity timed out. Start again?</string>
-    <string name="invalid_rcard">That is not a valid rCard.</string>
+    <string name="invalid_rcard">That is not a valid Common Good Card.</string>
     <string name="fraudulent_rcard">That card is invalid or fraudulent.</string>
     <string name="maybe_fraudulent">That card may be invalid or fraudulent.</string>
     <string name="update_needed">Important: Your app needs updating. Okay to update now? (it takes a few seconds)</string>
-    <string name="get_update">Search for "rCredits POS" in the Google Play Store, to download the latest version of the app.</string>
+    <string name="get_update">Search for "Common Good App" in the Google Play Store, to download the latest version of the app.</string>
     <string name="mention_menu">Press "Scan" to scan a customer card or press the menu button.</string>
 
     <string name="not_signed_in"></string>

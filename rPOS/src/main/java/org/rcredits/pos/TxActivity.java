@@ -200,7 +200,8 @@ public class TxActivity extends Act {
         A.log(0);
         String created = String.valueOf(A.now());
         String amountPlain = A.fmtAmt(amount, false);
-        if (Arrays.asList(new String[]{A.DESC_REFUND, A.DESC_USD_IN, A.DESC_PAY}).contains(desc0)) amountPlain = "-" + amountPlain; // a negative tx
+        boolean negative = Arrays.asList(new String[]{A.DESC_REFUND, A.DESC_USD_IN, A.DESC_PAY}).contains(desc0);
+        if (negative) amountPlain = "-" + amountPlain; // a negative tx
         if (A.empty(goods)) goods = (desc0.equals(A.DESC_USD_IN) || desc0.equals(A.DESC_USD_OUT)) ? "0" : "1";
         String desc = description; // copy, because we might come here again if tx fails
         if (desc0.equals(A.DESC_USD_IN)) desc += usdType == id.cash ? " (cash)" : (usdType == id.check ? " (check)" : " (card)");
@@ -214,6 +215,7 @@ public class TxActivity extends Act {
         pairs.add("goods", A.selfhelping() ? "2" : goods);
         pairs.add("description", desc);
         pairs.add("counter", A.nn(counter));
+        if (A.neverAskForId) pairs.add("noask", "1");
         if (A.b.db.similarTx(pairs)) {act.sayFail("You already just completed a transaction for that amount with this member."); return;}
 // Can't add photoId to pairs until pairs stored in db and retrieved (see Tx)
         act.progress(true); // this progress meter gets turned off in Tx

@@ -61,8 +61,8 @@ public final class WifiResultHandler extends ResultHandler {
   public void handleButtonPress(int index) {
     if (index == 0) {
       WifiParsedResult wifiResult = (WifiParsedResult) getResult();
-      WifiManager wifiManager = (WifiManager) getActivity().getSystemService(Context.WIFI_SERVICE);
-      final Activity activity = getActivity();
+      WifiManager wifiManager = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+      final Activity activity = getActivity(); // cgf added .getApplicationContext() 6/6/2017
       activity.runOnUiThread(new Runnable() {
         @Override
         public void run() {

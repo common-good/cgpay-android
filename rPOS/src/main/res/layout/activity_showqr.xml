@@ -25,7 +25,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/imageView"
-            android:background="@drawable/rlogo"
+            android:background="@drawable/cglogo"
             android:layout_weight="0"
             android:layout_gravity="right|top"
             android:layout_marginTop="5dp"

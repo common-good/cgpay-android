@@ -155,7 +155,7 @@ public class CustomerActivity extends Act {
     private void askPhotoId(String extra, final Q q) {
         A.log(0);
         
-        if (A.selfhelping()) {
+        if (A.selfhelping() || A.neverAskForId) {
             if (q == null) unknownCustomer(); else oldCustomer(q);
         } else act.askYesNo(extra + " " + t(R.string.ask_for_id), new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {

@@ -18,7 +18,6 @@ package org.rcredits.zxing.client.android.share;
 
 import android.app.ListActivity;
 import android.content.Intent;
-import android.provider.Browser;
 import android.view.View;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -59,7 +58,7 @@ public final class AppPickerActivity extends ListActivity {
       String packageName = ((AppInfo) adapter.getItem(position)).getPackageName();
       Intent intent = new Intent();
       intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-      intent.putExtra(Browser.BookmarkColumns.URL, "market://details?id=" + packageName);
+      //intent.putExtra(Browser.BookmarkColumns.URL, "market://details?id=" + packageName);
       setResult(RESULT_OK, intent);
     } else {
       setResult(RESULT_CANCELED);      

@@ -52,6 +52,7 @@ public final class PrefsActivity extends Act {
         findViewById(R.id.btn_empty_test_db).setVisibility((A.b.test && A.fakeScan && A.agent != null) ? View.VISIBLE : View.INVISIBLE);
         ((CheckBox) findViewById(R.id.wifi)).setChecked(!A.wifiOff);
         ((CheckBox) findViewById(R.id.selfhelp)).setChecked(A.selfhelp);
+        ((CheckBox) findViewById(R.id.askid)).setChecked(A.neverAskForId);
         findViewById(R.id.selfhelp_row).setVisibility(A.proSe() ? View.GONE : View.VISIBLE);
 
         /*
@@ -83,6 +84,11 @@ public final class PrefsActivity extends Act {
     public void onSelfHelpToggle(View v) {
         A.selfhelp = ((CheckBox) findViewById(R.id.selfhelp)).isChecked();
 // no need        if (A.selfhelp) act.sayOk("Self-Help Mode", R.string.self_help_signout, null);
+    }
+
+    public void onAskIdToggle(View v) {
+        A.neverAskForId = ((CheckBox) findViewById(R.id.askid)).isChecked();
+        A.setStored("neverAskForId", A.neverAskForId ? "1" : "0");
     }
 
     public void onBtnPushed(View v) {

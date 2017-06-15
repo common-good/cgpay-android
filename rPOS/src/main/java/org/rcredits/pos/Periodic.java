@@ -56,6 +56,7 @@ public class Periodic implements Runnable {
      *         So be done with it sooner, to avoid "StaleDataException: Access closed cursor"
      */
     private void reconcile(Q q) {
+        Pairs pairs;
         long rowid = q.rowid();
         int status = q.getInt("status");
         A.log("reconcile txid=" + q.getString("txid") + " status=" + status + " amount=" + q.getString("amount"));
@@ -64,7 +65,8 @@ public class Periodic implements Runnable {
             b.report("discovered pending tx row " + rowid);
             b.db.cancelTx(rowid, null);
         } else if (status == A.TX_OFFLINE) { // tell server about a completed transaction
-            Json json = A.apiGetJson(b.region(), b.db.txPairs(rowid));
+            pairs = b.db.txPairs(rowid).add("offline", "1");
+            Json json = A.apiGetJson(b.region(), pairs);
             if (json != null) {
                 String code = q.getString(DbSetup.TXS_CARDCODE); // card code was stored temporarily
                 String qid = q.getString("member");
