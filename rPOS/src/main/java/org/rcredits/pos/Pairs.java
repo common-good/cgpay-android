@@ -1,12 +1,15 @@
 package org.rcredits.pos;
 
 import android.content.ContentValues;
+import android.net.Uri;
 // import org.apache.http.ContentValues;
 //import org.apache.http.message.BasicContentValues;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -59,11 +62,20 @@ public class Pairs {
 
     public String show() {return show("");}
 
-    public List<NameValuePair> toPost() {
-        List<NameValuePair> pairs = new ArrayList<NameValuePair>(2);
+    public String toPost() {
+        String value;
+        String key;
+        Uri.Builder builder = new Uri.Builder();
+
+//        List<NameValuePair> pairs = new ArrayList<NameValuePair>(2);
         for (Map.Entry<String, Object> e : list.valueSet()) {
-            pairs.add(new BasicNameValuePair(e.getKey(), list.getAsString(e.getKey())));
+            key = e.getKey();
+            try {
+                value = URLEncoder.encode(list.getAsString(key), "UTF-8");
+                builder.appendQueryParameter(key, value);
+            } catch(UnsupportedEncodingException ignored) {}
+//            pairs.add(new BasicNameValuePair(e.getKey(), list.getAsString(e.getKey())));
         }
-        return pairs;
+        return builder.build().getEncodedQuery();
     }
 }

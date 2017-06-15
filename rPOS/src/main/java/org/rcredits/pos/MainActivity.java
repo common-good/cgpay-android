@@ -348,7 +348,7 @@ public final class MainActivity extends Act {
      */
     public void doUndo(View v) {
         A.log(0);
-        act.askOk(A.undo, new DialogInterface.OnClickListener() {
+        act.askYesNo(A.undo, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 act.progress(true); // this progress meter gets turned off in Tx's onPostExecute()

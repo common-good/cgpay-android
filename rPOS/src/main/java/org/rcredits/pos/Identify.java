@@ -85,7 +85,7 @@ public class Identify implements Runnable {
 	    image = A.apiGetPhoto(rcard.qid, pairs.get("code"));
 	    if (image == null || image.length < 100) image = A.b.db.custPhoto(rcard.qid);
 	    A.b.db.saveCustomer(rcard.qid, image, pairs.get("code"), json); // might be saving non-photo, which needs updating next time
-	    int result = (json.get("first").equals("0") || A.selfhelping()) ? CUSTOMER : PHOTOID;
+	    int result = (json.get("first").equals("0") || A.selfhelping() || A.neverAskForId) ? CUSTOMER : PHOTOID;
 	    return handle.done(result, "", json, scaledPhoto(image));
     }
 
@@ -104,7 +104,7 @@ public class Identify implements Runnable {
 		    Q q = A.b.db.oldCustomer(rcard.qid);
 		    if (q == null) return handle.done(FAIL, A.t(R.string.wifi_for_setup), null, null);
 		    if (!q.isAgent()) A.b.report("non-agent");
-		    if (A.b.db.badAgent(rcard.qid, rcard.code)) {q.close(); return handle.done(FAIL, "That Company Agent rCard is not valid.", null, null);}
+		    if (A.b.db.badAgent(rcard.qid, rcard.code)) {q.close(); return handle.done(FAIL, "That Company Common Good Card is not valid.", null, null);}
 		    gotAgent(q.getString("name"), q.getInt(DbSetup.AGT_CAN));
 		    q.close();
 	    } else {

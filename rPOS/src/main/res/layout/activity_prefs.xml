@@ -23,7 +23,7 @@
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="Show My rCard"
+            android:text="Show My Card"
             android:id="@+id/btn_qr"
             android:layout_gravity="center_horizontal"
             android:onClick="onBtnPushed"
@@ -43,7 +43,7 @@
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="rCredits Website"
+            android:text="Common Good Website"
             android:id="@+id/btn_promo"
             android:layout_gravity="center_horizontal"
             android:onClick="onBtnPushed"
@@ -219,7 +219,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textAppearance="?android:attr/textAppearanceSmall"
-                    android:text="give rCredits for USD"
+                    android:text="give Common Good Credits for USD"
                     android:id="@+id/textView7"
                     android:layout_gravity="center_vertical"
                     android:visibility="gone"/>
@@ -259,7 +259,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textAppearance="?android:attr/textAppearanceSmall"
-                    android:text="give USD for rCredits"
+                    android:text="give USD for Common Good Credits"
                     android:id="@+id/textView8"
                     android:layout_gravity="center_vertical"
                     android:visibility="gone"/>
@@ -436,6 +436,33 @@
                     android:singleLine="false"
                     android:textSize="2dp"
                     android:onClick="onSelfHelpToggle"/>
+            </TableRow>
+
+            <TableRow
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:id="@+id/askid_row">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:text="\nNever ask for ID"
+                    android:id="@+id/askidText"
+                    android:textStyle="bold"
+                    android:textSize="18sp"
+                    android:layout_marginRight="10dp"/>
+
+                <CheckBox
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/askid"
+                    android:layout_gravity="center_horizontal"
+                    android:clickable="true"
+                    android:enabled="true"
+                    android:singleLine="false"
+                    android:textSize="2dp"
+                    android:onClick="onAskIdToggle"/>
             </TableRow>
 
         </TableLayout>

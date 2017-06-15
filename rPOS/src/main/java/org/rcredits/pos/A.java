@@ -17,6 +17,7 @@ import android.graphics.Paint;
 import android.hardware.Camera;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.Build;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -30,13 +31,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.text.NumberFormat;
 import java.util.List;
-
-import javax.net.ssl.HttpsURLConnection;
 
 import static java.lang.Integer.parseInt;
 
@@ -109,6 +111,7 @@ public class A extends Application {
 	public static B b = null; // stuff that goes with real or test Db
 	public static boolean stop = false; // <app is ending>
 	public static boolean wifiOff = false; // force wifi off
+	public static boolean neverAskForId = false; // ask customer for ID when first time or offline
 	public static boolean selfhelp = false; // whether to skip the photoID step and assume charging for default goods
 	public static String agent = null; // QID of device operator, set upon scan-in (eg NEW:AAB), otherwise null
 	public static String agentName = null; // set upon scan-in
@@ -153,7 +156,7 @@ public class A extends Application {
 
 	public final static int REAL_PERIOD = 20 * 60; // (20 mins.) how often to tickle when not testing
 	public final static int TEST_PERIOD = 20; // (20 secs.) how often to tickle
-	public final static int PIC_H = 600; // standard pixel height of photos
+	public final static int PIC_H = 1200; // standard pixel height of photos
 	public final static int PIC_H_OFFLINE = 60; // standard pixel height of photos stored for offline use
 	public final static double PIC_ASPECT = .75; // standard photo aspect ratio
 
@@ -162,9 +165,10 @@ public class A extends Application {
 	public final static int MAX_REWARDS_LEN = 20; // anything longer than this is a photoId in the rewards (db) field
 
 	private final static String PREFS_NAME = "rCreditsPOS";
-	public final static String PROMO_SITE = "http://rCredits.org";
-	public final static String REAL_PATH = "https://<region>.rcredits.org"; // the real server (rc2.me fails)
-	public final static String TEST_PATH = "https://stage-<region>.rcredits.org"; // the test server
+	public final static String PROMO_SITE = "http://CommonGood.earth";
+//	public final static String REAL_PATH = "https://<region>.commongood.earth"; // the real server (rc2.me fails)
+	public final static String REAL_PATH = "https://new.commongood.earth"; // the real server (rc2.me fails)
+	public final static String TEST_PATH = "https://ws.rcredits.org"; // the test server
 	//private final static String TEST_API_PATH = "http://192.168.2.101/rMembers/pos"; // testing locally
 	private final static String API_PATH = "/pos"; // where on server is the API
 	private final static int TIMEOUT = 10; // how many seconds before HTTP POST times out
@@ -178,6 +182,7 @@ public class A extends Application {
 		A.resources = getResources();
 		A.packageName = getApplicationContext().getPackageName();
 		A.deviceId = getStored("deviceId");
+		A.neverAskForId = getStored("neverAskForId").equals("1");
 		try {
 			PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
 			A.versionCode = pInfo.versionCode;
@@ -287,173 +292,109 @@ public class A extends Application {
 	 * @param pairs:  name/value pairs to send with the request (returned with extra info)
 	 * @return: the server's response. null if failure (with message in A.httpError)
 	 */
-	public static String post(String region, Pairs pairs) {
+	public static HttpURLConnection sendPostRequest(String region, Pairs pairs) {
 		A.log(0);
-		final int timeout = TIMEOUT * 1000; // milliseconds
-		String res = "";
+		pairs.add("agent", A.empty(A.agent) ? "" : A.agent); // test, otherwise pairs.toPost() produces "null"
+		pairs.add("device", A.deviceId);
+		pairs.add("version", A.versionCode + "");
+		pairs.add("region", region);
+		if (!A.connected()) return A.log("not connected") ? null : null;
+//			String data = pairs.get("data");
+//			if (data != null) A.log("datalen = " + data.length());
 		try {
-			String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
-			pairs.add("agent", A.agent);
-			pairs.add("device", A.deviceId);
-			pairs.add("version", A.versionCode + "");
-			pairs.add("region", region);
-			if (!A.connected()) return A.log("not connected") ? null : null;
-			String data = pairs.get("data");
-			List dataList = pairs.toPost();
-			A.log("code: " + dataList + " A.member: " + pairs.get("agent"));
-			if (data != null) {
-				A.log("datalen = " + data.length());
-			}
-			String urlS = URLEncodedUtils.format(dataList, "UTF-8");
-			URL url = new URL("https://ws.rcredits.org/pos");//"https://otherrealm.org/cgf/test.php"
-			A.log("311" + urlS);
-			res = A.requestData(url, urlS.toString());
-			A.log("post: " + api + " | " + urlS + " | " + res);
-		} catch (MalformedURLException e) {
-			A.log(e);
-			return "MalformedURL:" + e.getMessage();
-		} catch (IOException e) {
-			A.log(e);
-		}
-		return res;
+			URL url = new URL((A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH);
+			HttpURLConnection conx = sendPost(url, pairs.toPost());
+			if (conx == null) return null;
+			A.log("status: " + conx.getResponseCode());
+			return conx;
+		} catch (IOException e) {A.log(e);}
+
+		A.log("no connection");
+		return null;
 	}
+
 	/**
-	* Handles the actual connection and retreval of the server data
-	 * @param url:the base url
-	 * @param data:the data that gets sent to the server
-	 * @return a string containing the requested data
-	* */
-	private static String requestData(URL url, String data) {
+	 * Send a request to the server and return its response.
+	 *
+	 * @param region: the agent's region
+	 * @param pairs:  name/value pairs to send with the request (returned with extra info)
+	 * @return: the server's response. null if failure (with message in A.httpError)
+	 */
+	public static String post(String region, Pairs pairs) {
+		HttpURLConnection conx = sendPostRequest(region, pairs);
+		if (conx == null) return null;
 		String results = "";
 		try {
-			A.log("data: " + data);
-			HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-			connection.setUseCaches(false);
-			connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-			connection.setRequestProperty("Accept", "application/json, text/plain, */*");
-			connection.setRequestMethod("POST");
-			connection.setDoInput(true);
-			OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream());
-			out.write(data);
-			out.close();
-			int status = connection.getResponseCode();
-			A.log("status: " + url + " - " + status);
-			BufferedReader in = new BufferedReader(
-					new InputStreamReader(
-							connection.getInputStream()));
+			BufferedReader in = new BufferedReader(new InputStreamReader(conx.getInputStream()));
 			String decodedString;
-			while ((decodedString = in.readLine()) != null) {
-				results += decodedString;
-			}
+			while ((decodedString = in.readLine()) != null) results += decodedString;
 			in.close();
-		} catch (MalformedURLException e) {
-			A.log("MalformedURL:" + e);
 		} catch (IOException e) {
-			// Writing exception to log
 			A.log(e);
-		}
+		} finally {conx.disconnect();}
+
 		A.log(results);
 		return results;
 	}
+
 	/**
 	 * Send a request to the server and return a JPEG.
 	 *
 	 * @param region: the agent's region
 	 * @param pairs:  name/value pairs to send with the request (returned with extra info)
-	 * @param isPhoto:  whether it's a photo that is getting requested or not
 	 * @return: the photo from server's response. null if failure (with message in A.log)
 	 */
-	public static byte[] post(String region, Pairs pairs, Boolean isPhoto) {
+	public static byte[] postForPhoto(String region, Pairs pairs) {
 		A.log(0);
-		final int timeout = TIMEOUT * 1000; // milliseconds
 		Bitmap res = null;
-		if (isPhoto) {
-			try {
-				String api = (A.b.test ? TEST_PATH : REAL_PATH).replace("<region>", region) + API_PATH;
-				pairs.add("agent", A.agent);
-				pairs.add("device", A.deviceId);
-				pairs.add("version", A.versionCode + "");
-				pairs.add("region", region);
-				if (!A.connected()) return A.log("not connected") ? null : null;
-				String data = pairs.get("data");
-				List dataList = pairs.toPost();
-				A.log("code: " + dataList + " A.member: " + pairs.get("agent"));
-				if (data != null) {
-					A.log("datalen = " + data.length());
-				}
-				String urlS = URLEncodedUtils.format(dataList, "UTF-8");
-				URL url = new URL("https://ws.rcredits.org/pos");//"https://otherrealm.org/cgf/test.php"
-				A.log("311" + urlS);
-				res = A.makeBitmap(A.requestData(url, urlS.toString(), isPhoto));
-				A.log("post: " + api + " | " + urlS + " | " + res);
-			} catch (MalformedURLException e) {
-				A.log(e+"MalformedURL:" + e.getMessage());
-			} catch (IOException e) {
-				A.log(e);
-			}
-			return convertBitmapToByteArray(res);
-		} else {
-			return null;
-		}
+		HttpURLConnection conx = sendPostRequest(region, pairs);
+		if (conx == null) return null;
+
+		try {
+			InputStream in = new BufferedInputStream(conx.getInputStream());
+
+			res = A.makeBitmap(in);
+			A.log("post: " + res);
+		} catch (IOException e) {A.log(e);}
+
+		conx.disconnect();
+		return A.bm2bray(res);
 	}
+
 	/**
-	 * Handles the actual connection and retreval of the photo
-	 * @param url:the base url
-	 * @param data:the data that gets sent to the server
-	 * @return an InputStream containing the requested photo
-	 * */
-	private static InputStream  requestData(URL url, String data, Boolean isPhoto) {
-		byte[] results;
-		if (isPhoto) {
-			try {
-				A.log("data: " + data);
-				HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-				connection.setUseCaches(false);
-				connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-				connection.setRequestProperty("Accept", "application/json, text/plain, */*");
-				connection.setRequestProperty("Accept-Charset", "utf-8,*");
-				connection.setRequestMethod("POST");
-				connection.setDoInput(true);
-				OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream());
-				out.write(data);
-				out.close();
-				int status = connection.getResponseCode();
-				A.log("status: " + url + " - " + status);
-				InputStream in = new BufferedInputStream(connection.getInputStream());
-				return in;
-			} catch (MalformedURLException e) {
-				A.log("MalformedURL:" + e);
-			} catch (IOException e) {
-				// Writing exception to log
-				A.log(e);
-			}
-			return null;
-		} else {
-			return null;
-		}
-	}
-	/**
-	 * @param bitmap
-	 * Bitmap object from which you want to get bytes
-	 * @return byte[] array of bytes by compressing the bitmap to PNG format <br/>
-	 * null if bitmap passed is null (or) failed to get bytes from the
-	 * bitmap
+	 * POST data to the server and return an open connection.
+	 * @param url: where to send the request
+	 * @param data: parameter list
 	 */
-	public static byte[] convertBitmapToByteArray(Bitmap bitmap) {
-		if (bitmap == null) {
-			return null;
-		} else {
-			byte[] b = null;
-			try {
-				ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-				bitmap.compress(Bitmap.CompressFormat.JPEG, 0, byteArrayOutputStream);
-				b = byteArrayOutputStream.toByteArray();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			return b;
-		}
+	private static HttpURLConnection sendPost(URL url, String data) {
+		try {
+			HttpURLConnection conx = (HttpURLConnection) url.openConnection();
+			if (conx == null) return null;
+			conx.setUseCaches(false);
+			conx.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+			conx.setRequestProperty("Charset", "utf-8");
+			conx.setRequestProperty("Accept", "application/json, text/plain, */*");
+			conx.setRequestProperty("Accept-Charset", "utf-8,*");
+			conx.setRequestMethod("POST");
+			conx.setRequestProperty("Content-Length", Integer.toString(data.length()));
+//			conx.setFixedLengthStreamingMode(data.getBytes().length);
+//			conx.setChunkedStreamingMode(1000);
+			conx.setConnectTimeout(A.TIMEOUT * 1000);
+			conx.setReadTimeout(A.TIMEOUT * 1000);
+			conx.setDoOutput(true);
+			conx.setDoInput(true);
+
+			OutputStreamWriter out = new OutputStreamWriter(conx.getOutputStream());
+			out.write(data);
+			out.flush();
+			out.close();
+
+			return conx;
+		} catch (IOException e) {A.log(e);}
+
+		return null;
 	}
+
 	/**
 	 * Get a string response from the server
 	 *
@@ -486,7 +427,7 @@ public class A extends Application {
 		Pairs pairs = new Pairs("op", "photo");
 		pairs.add("member", qid);
 		pairs.add("code", code);
-		byte[] response = A.post(rCard.qidRegion(qid), pairs, true);
+		byte[] response = A.postForPhoto(rCard.qidRegion(qid), pairs);
 		A.log("response" + response);
 //		Json obj = new Json(response);
 		byte[] res = response == null ? null : response;

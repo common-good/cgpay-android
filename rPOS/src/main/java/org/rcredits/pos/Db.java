@@ -3,6 +3,7 @@ package org.rcredits.pos;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
 import android.os.StatFs;
 
 import org.json.JSONArray;
@@ -201,7 +202,7 @@ public class Db {
 		ContentValues values = new ContentValues();
 		for (String k : DbSetup.CUSTOMERS_FIELDS_TO_GET.split(" ")) values.put(k, idJson.get(k));
 		values.put("qid", qid);
-		values.put("photo", image);//A.shrink(
+		values.put("photo", A.bm2bray(A.scale(A.bray2bm(image), A.PIC_H_OFFLINE)));
 		values.put("code", code);
 		Q q = oldCustomer(qid);
 		if (q == null) { // new customer!
@@ -286,6 +287,7 @@ public class Db {
 	public Pairs txPairs(Long txRow) {
 		Q q = q("SELECT rowid, * FROM txs WHERE rowid=?", new String[]{"" + txRow});
 		Pairs pairs = new Pairs("op", "charge");
+		if (A.neverAskForId) pairs.add("noask", "1");
 		for (String k : DbSetup.TXS_FIELDS_TO_SEND.split(" ")) pairs = pairs.add(k, q.getString(k));
 //        String code;
 //        if (!Pattern.matches(A.NUMERIC, code = q.getString(DbSetup.TXS_CARDCODE))) pairs.add("code", code);
