@@ -1,0 +1,40 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven {
+            url 'https://maven.google.com/'
+            name 'Google'
+        }
+        google()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.5.2'
+    }
+}
+apply plugin: 'com.android.application'
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://maven.google.com/'
+        name 'Google'
+    }
+}
+
+android {
+    useLibrary 'org.apache.http.legacy'
+    compileSdkVersion 28
+    buildToolsVersion '28.0.3'
+
+    defaultConfig {
+        minSdkVersion 9
+        targetSdkVersion 25
+    }
+}
+dependencies {
+	implementation 'com.android.support:support-compat:25.0.0'
+    implementation 'com.android.support:support-core-utils:25.0.0'
+    implementation 'com.android.support:appcompat-v7:25.0.0'
+	implementation fileTree(include: '*.jar', dir: 'libs')
+}

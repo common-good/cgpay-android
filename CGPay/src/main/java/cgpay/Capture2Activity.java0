@@ -1,0 +1,39 @@
+package cg.pos;
+
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.view.SurfaceHolder;
+
+import com.google.zxing.Result;
+
+import org.apache.http.NameValuePair;
+import cg.zxing.client.android.BeepManager;
+import cg.zxing.client.android.CaptureActivity;
+
+import java.util.List;
+
+/**
+ * Replace the QR handling in ZXing's standard Capture activity.
+ */
+public final class Capture2Activity extends CaptureActivity implements SurfaceHolder.Callback {
+    @Override
+    private boolean showHelpOnFirstLaunch() {} // disable this feature, called in onCreate()
+
+    /**
+     * A valid barcode has been found, so give an indication of success and show the results.
+     *
+     * @param rawResult The contents of the barcode.
+     * @param scaleFactor amount by which thumbnail was scaled
+     * @param barcode   A greyscale bitmap of the camera data which was decoded.
+     */
+    @Override
+    public void handleDecode(Result rawResult, Bitmap barcode, float scaleFactor) {
+        (new BeepManager(this)).playBeepSoundAndVibrate();
+        drawResultPoints(barcode, scaleFactor, rawResult);
+
+        Intent intent = new Intent(this, CustomerActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+        A.putIntentString(intent, "qr", String.valueOf(rawResult));
+        startActivity(intent); // process QR
+    }
+}

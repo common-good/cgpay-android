@@ -1,3 +1,6 @@
+2019-11-27 feature/rebrand
+. rebranded code as CGPay
+
 To Do:
 . save instance state in Act?
 . put a menu on every page for report problem (ask for a description of problem, then simply call report(desc) and tell the user the problem has been reported.
@@ -34,7 +37,7 @@ To Do:
 . LATER customer activity: show just ID as name, while async activity fills in the rest
 . LATER change "change desc" button to fling left?
 . LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
-. LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
+. LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in cg.zxing)
 
 @Override
 public void onSaveInstanceState(Bundle savedInstanceState) {
