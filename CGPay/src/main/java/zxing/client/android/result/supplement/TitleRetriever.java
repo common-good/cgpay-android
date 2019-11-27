@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.result.supplement;
+package zxing.client.android.result.supplement;
 
 import android.widget.TextView;
-import org.cg.zxing.client.android.HttpHelper;
-import org.cg.zxing.client.android.history.HistoryManager;
+import zxing.client.android.HttpHelper;
+import zxing.client.android.history.HistoryManager;
 import com.google.zxing.client.result.URIParsedResult;
 
 import java.io.IOException;

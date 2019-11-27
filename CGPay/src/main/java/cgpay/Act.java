@@ -40,14 +40,6 @@ public class Act extends Activity {
     private final static int TIMEOUT = 2; // number of minutes before activity times out
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        act.name = act.getLocalClassName();
-        A.log(act.name + " onCreate");
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-    }
-
-    @Override
     protected void onPause() {
         super.onPause();
         A.log(act.name + " onPause");

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.share;
+package zxing.client.android.share;
 
 import android.app.Activity;
 import android.content.ContentResolver;
@@ -34,8 +34,8 @@ import android.widget.TextView;
 import com.google.zxing.BarcodeFormat;
 
 import earth.commongood.cgpay.R;
-import org.cg.zxing.client.android.Contents;
-import org.cg.zxing.client.android.Intents;
+import zxing.client.android.Contents;
+import zxing.client.android.Intents;
 
 /**
  * Barcode Scanner can share data like contacts and bookmarks by displaying a QR Code on screen,

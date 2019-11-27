@@ -52,7 +52,7 @@
             </intent-filter>
 		</activity>
         <activity
-            android:name="org.cg.zxing.client.android.CaptureActivity"
+            android:name="zxing.client.android.CaptureActivity"
             android:label="@string/title_activity_capture"
             android:clearTaskOnLaunch="true"
             android:stateNotNeeded="true"

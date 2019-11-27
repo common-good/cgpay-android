@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.common;
+package zxing.client.android.common;
 
 import android.os.Build;
 import android.util.Log;

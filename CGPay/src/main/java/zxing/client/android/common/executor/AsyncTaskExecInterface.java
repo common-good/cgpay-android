@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.common.executor;
+package zxing.client.android.common.executor;
 
 import android.os.AsyncTask;
 

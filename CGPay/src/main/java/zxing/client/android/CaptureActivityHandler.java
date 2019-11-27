@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android;
+package zxing.client.android;
 
 import earth.commongood.cgpay.R;
 
@@ -26,7 +26,7 @@ import android.provider.Browser;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.DecodeHintType;
 import com.google.zxing.Result;
-import org.cg.zxing.client.android.camera.CameraManager;
+import zxing.client.android.camera.CameraManager;
 
 import android.app.Activity;
 import android.content.Intent;

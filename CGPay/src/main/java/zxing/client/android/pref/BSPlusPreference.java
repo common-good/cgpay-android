@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.pref;
+package zxing.client.android.pref;
 
 import android.content.Context;
 import android.content.Intent;

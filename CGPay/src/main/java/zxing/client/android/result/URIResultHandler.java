@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.result;
+package zxing.client.android.result;
 
-import org.cg.zxing.client.android.LocaleManager;
+import zxing.client.android.LocaleManager;
 import earth.commongood.cgpay.R;
 import com.google.zxing.client.result.ParsedResult;
 import com.google.zxing.client.result.URIParsedResult;

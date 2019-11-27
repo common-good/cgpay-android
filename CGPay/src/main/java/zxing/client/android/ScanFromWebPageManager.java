@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android;
+package zxing.client.android;
 
 import android.net.Uri;
 import com.google.zxing.Result;
-import org.cg.zxing.client.android.result.ResultHandler;
+import zxing.client.android.result.ResultHandler;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

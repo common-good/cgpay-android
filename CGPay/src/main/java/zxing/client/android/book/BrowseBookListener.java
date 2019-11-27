@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.book;
+package zxing.client.android.book;
 
 import android.content.Intent;
 import android.net.Uri;
 import android.view.View;
 import android.widget.AdapterView;
-import org.cg.zxing.client.android.LocaleManager;
+import zxing.client.android.LocaleManager;
 
 import java.util.List;
 

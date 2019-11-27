@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.result;
+package zxing.client.android.result;
 
 import android.view.View;
 import android.widget.Button;

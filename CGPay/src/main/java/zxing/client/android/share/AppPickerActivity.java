@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.share;
+package zxing.client.android.share;
 
 import android.app.ListActivity;
 import android.content.Intent;
@@ -22,8 +22,8 @@ import android.view.View;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 
-import org.cg.zxing.client.android.common.executor.AsyncTaskExecInterface;
-import org.cg.zxing.client.android.common.executor.AsyncTaskExecManager;
+import zxing.client.android.common.executor.AsyncTaskExecInterface;
+import zxing.client.android.common.executor.AsyncTaskExecManager;
 
 public final class AppPickerActivity extends ListActivity {
 

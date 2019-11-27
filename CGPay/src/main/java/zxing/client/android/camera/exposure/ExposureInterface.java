@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.camera.exposure;
+package zxing.client.android.camera.exposure;
 
 import android.hardware.Camera;
 

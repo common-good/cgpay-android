@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.result;
+package zxing.client.android.result;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -32,11 +32,11 @@ import android.view.View;
 
 import earth.commongood.cgpay.R;
 import com.google.zxing.Result;
-import org.cg.zxing.client.android.Contents;
-import org.cg.zxing.client.android.Intents;
-import org.cg.zxing.client.android.LocaleManager;
-import org.cg.zxing.client.android.PreferencesActivity;
-import org.cg.zxing.client.android.book.SearchBookContentsActivity;
+import zxing.client.android.Contents;
+import zxing.client.android.Intents;
+import zxing.client.android.LocaleManager;
+import zxing.client.android.PreferencesActivity;
+import zxing.client.android.book.SearchBookContentsActivity;
 import com.google.zxing.client.result.ParsedResult;
 import com.google.zxing.client.result.ParsedResultType;
 import com.google.zxing.client.result.ResultParser;

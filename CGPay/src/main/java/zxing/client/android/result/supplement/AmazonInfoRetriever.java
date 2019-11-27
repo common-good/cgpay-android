@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.result.supplement;
+package zxing.client.android.result.supplement;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -24,9 +24,9 @@ import java.util.Locale;
 
 import android.content.Context;
 import android.widget.TextView;
-import org.cg.zxing.client.android.HttpHelper;
-import org.cg.zxing.client.android.LocaleManager;
-import org.cg.zxing.client.android.history.HistoryManager;
+import zxing.client.android.HttpHelper;
+import zxing.client.android.LocaleManager;
+import zxing.client.android.history.HistoryManager;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;

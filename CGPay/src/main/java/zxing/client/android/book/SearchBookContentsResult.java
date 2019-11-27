@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.book;
+package zxing.client.android.book;
 
 /**
  * The underlying data for a SBC result.

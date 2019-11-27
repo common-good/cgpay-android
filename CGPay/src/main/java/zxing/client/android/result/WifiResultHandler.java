@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.result;
+package zxing.client.android.result;
 
 import android.app.Activity;
 import android.content.Context;
@@ -22,10 +22,10 @@ import android.net.wifi.WifiManager;
 import android.widget.Toast;
 
 import earth.commongood.cgpay.R;
-import org.cg.zxing.client.android.CaptureActivity;
-import org.cg.zxing.client.android.common.executor.AsyncTaskExecInterface;
-import org.cg.zxing.client.android.common.executor.AsyncTaskExecManager;
-import org.cg.zxing.client.android.wifi.WifiConfigManager;
+import zxing.client.android.CaptureActivity;
+import zxing.client.android.common.executor.AsyncTaskExecInterface;
+import zxing.client.android.common.executor.AsyncTaskExecManager;
+import zxing.client.android.wifi.WifiConfigManager;
 import com.google.zxing.client.result.ParsedResult;
 import com.google.zxing.client.result.WifiParsedResult;
 

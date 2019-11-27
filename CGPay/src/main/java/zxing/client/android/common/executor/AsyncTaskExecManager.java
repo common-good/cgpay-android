@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.common.executor;
+package zxing.client.android.common.executor;
 
-import org.cg.zxing.client.android.common.PlatformSupportManager;
+import zxing.client.android.common.PlatformSupportManager;
 
 public final class AsyncTaskExecManager extends PlatformSupportManager<AsyncTaskExecInterface> {
 
   public AsyncTaskExecManager() {
     super(AsyncTaskExecInterface.class, new DefaultAsyncTaskExecInterface());
-    addImplementationClass(11, "org.cg.zxing.client.android.common.executor.HoneycombAsyncTaskExecInterface");
+    addImplementationClass(11, "zxing.client.android.common.executor.HoneycombAsyncTaskExecInterface");
   }
 
 }

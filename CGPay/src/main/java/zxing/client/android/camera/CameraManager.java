@@ -16,7 +16,7 @@
  * @modifications by William Spademan for cgf (commented with "cgf")
  */
 
-package org.cg.zxing.client.android.camera;
+package zxing.client.android.camera;
 
 import android.content.Context;
 import android.content.res.Configuration;
@@ -30,7 +30,7 @@ import android.view.SurfaceHolder;
 import com.google.zxing.PlanarYUVLuminanceSource;
 
 import earth.commongood.cgpay.A;
-import org.cg.zxing.client.android.camera.open.OpenCameraManager;
+import zxing.client.android.camera.open.OpenCameraManager;
 
 import java.io.IOException;
 
@@ -172,7 +172,7 @@ public final class CameraManager {
   }
 
   /**
-   * Convenience method for {@link org.cg.zxing.client.android.CaptureActivity}
+   * Convenience method for {@link zxing.client.android.CaptureActivity}
    */
   public synchronized void setTorch(boolean newSetting) {
     if (newSetting != configManager.getTorchState(camera)) {
