@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.camera;
+package zxing.client.android.camera;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -25,7 +25,7 @@ import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
 
-import org.cg.zxing.client.android.PreferencesActivity;
+import zxing.client.android.PreferencesActivity;
 
 import java.util.ArrayList;
 import java.util.Collection;

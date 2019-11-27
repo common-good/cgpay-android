@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.camera.exposure;
+package zxing.client.android.camera.exposure;
 
-import org.cg.zxing.client.android.common.PlatformSupportManager;
+import zxing.client.android.common.PlatformSupportManager;
 
 public final class ExposureManager extends PlatformSupportManager<ExposureInterface> {
 
   public ExposureManager() {
     super(ExposureInterface.class, new DefaultExposureInterface());
-    addImplementationClass(8, "org.cg.zxing.client.android.camera.exposure.FroyoExposureInterface");
+    addImplementationClass(8, "zxing.client.android.camera.exposure.FroyoExposureInterface");
   }
 
 }

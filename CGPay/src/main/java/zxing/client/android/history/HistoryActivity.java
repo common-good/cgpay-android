@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.history;
+package zxing.client.android.history;
 
-import org.cg.zxing.client.android.CaptureActivity;
+import zxing.client.android.CaptureActivity;
 
 import android.app.Activity;
 import android.app.ListActivity;
@@ -29,7 +29,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import org.cg.zxing.client.android.Intents;
+import zxing.client.android.Intents;
 import earth.commongood.cgpay.R;
 
 import java.util.List;

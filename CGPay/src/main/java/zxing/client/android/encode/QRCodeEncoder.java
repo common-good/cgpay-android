@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.encode;
+package zxing.client.android.encode;
 
 import android.provider.ContactsContract;
 import com.google.zxing.BarcodeFormat;
@@ -22,8 +22,8 @@ import com.google.zxing.EncodeHintType;
 import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.Result;
 import com.google.zxing.WriterException;
-import org.cg.zxing.client.android.Contents;
-import org.cg.zxing.client.android.Intents;
+import zxing.client.android.Contents;
+import zxing.client.android.Intents;
 import earth.commongood.cgpay.R;
 import com.google.zxing.client.result.AddressBookParsedResult;
 import com.google.zxing.client.result.ParsedResult;

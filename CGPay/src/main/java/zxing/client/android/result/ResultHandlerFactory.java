@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.result;
+package zxing.client.android.result;
 
-import org.cg.zxing.client.android.CaptureActivity;
+import zxing.client.android.CaptureActivity;
 
 import com.google.zxing.Result;
 import com.google.zxing.client.result.ParsedResult;

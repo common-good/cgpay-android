@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.share;
+package zxing.client.android.share;
 
 /**
  * This class is only needed because I can't successfully send an ACTION_PICK intent to

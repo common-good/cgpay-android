@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.camera.open;
+package zxing.client.android.camera.open;
 
-import org.cg.zxing.client.android.common.PlatformSupportManager;
+import zxing.client.android.common.PlatformSupportManager;
 
 /**
  * Selects an appropriate implementation of {@link OpenCameraInterface} based on the device's
@@ -26,7 +26,7 @@ public final class OpenCameraManager extends PlatformSupportManager<OpenCameraIn
 
   public OpenCameraManager() {
     super(OpenCameraInterface.class, new DefaultOpenCameraInterface());
-    addImplementationClass(9, "org.cg.zxing.client.android.camera.open.GingerbreadOpenCameraInterface");
+    addImplementationClass(9, "zxing.client.android.camera.open.GingerbreadOpenCameraInterface");
   }
 
 }

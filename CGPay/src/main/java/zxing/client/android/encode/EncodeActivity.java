@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.encode;
+package zxing.client.android.encode;
 
 import android.view.Display;
 import android.view.MenuInflater;
 import android.view.WindowManager;
 import com.google.zxing.WriterException;
-import org.cg.zxing.client.android.Contents;
-import org.cg.zxing.client.android.FinishListener;
-import org.cg.zxing.client.android.Intents;
+import zxing.client.android.Contents;
+import zxing.client.android.FinishListener;
+import zxing.client.android.Intents;
 import earth.commongood.cgpay.R;
 
 import android.app.Activity;

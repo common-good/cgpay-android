@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.camera;
+package zxing.client.android.camera;
 
 import android.content.SharedPreferences;
-import org.cg.zxing.client.android.PreferencesActivity;
+import zxing.client.android.PreferencesActivity;
 
 /**
  * Enumerates settings of the prefernce controlling the front light.

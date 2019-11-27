@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.wifi;
+package zxing.client.android.wifi;
 
 enum NetworkType {
 

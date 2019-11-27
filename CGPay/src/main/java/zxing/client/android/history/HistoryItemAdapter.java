@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.history;
+package zxing.client.android.history;
 
 import android.app.Activity;
 import android.view.View;

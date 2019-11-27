@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android;
+package zxing.client.android;
 
 import earth.commongood.cgpay.R;
 
 import com.google.zxing.ResultPoint;
-import org.cg.zxing.client.android.camera.CameraManager;
+import zxing.client.android.camera.CameraManager;
 
 import android.content.Context;
 import android.content.res.Resources;

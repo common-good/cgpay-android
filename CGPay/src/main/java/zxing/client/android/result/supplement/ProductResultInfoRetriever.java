@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.result.supplement;
+package zxing.client.android.result.supplement;
 
 import android.content.Context;
 import android.text.Html;
 import android.widget.TextView;
-import org.cg.zxing.client.android.HttpHelper;
+import zxing.client.android.HttpHelper;
 import earth.commongood.cgpay.R;
-import org.cg.zxing.client.android.history.HistoryManager;
-import org.cg.zxing.client.android.LocaleManager;
+import zxing.client.android.history.HistoryManager;
+import zxing.client.android.LocaleManager;
 
 import java.io.IOException;
 import java.net.URLEncoder;

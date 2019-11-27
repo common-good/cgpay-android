@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android;
+package zxing.client.android;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -23,8 +23,8 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.preference.PreferenceManager;
-import org.cg.zxing.client.android.camera.CameraManager;
-import org.cg.zxing.client.android.camera.FrontLightMode;
+import zxing.client.android.camera.CameraManager;
+import zxing.client.android.camera.FrontLightMode;
 
 /**
  * Detects ambient light and switches on the front light when very dark, and off again when sufficiently light.

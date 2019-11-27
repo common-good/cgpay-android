@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.share;
+package zxing.client.android.share;
 
 import earth.commongood.cgpay.R;
 

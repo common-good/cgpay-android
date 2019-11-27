@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android;
+package zxing.client.android;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.DecodeHintType;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android;
+package zxing.client.android;
 
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -52,15 +52,15 @@ import com.google.zxing.ResultPoint;
 import earth.commongood.cgpay.Act;
 import earth.commongood.cgpay.Pairs;
 import earth.commongood.cgpay.R;
-import org.cg.zxing.client.android.camera.CameraManager;
-import org.cg.zxing.client.android.history.HistoryActivity;
-import org.cg.zxing.client.android.history.HistoryItem;
-import org.cg.zxing.client.android.history.HistoryManager;
-// cgf import org.cg.zxing.client.android.result.ResultButtonListener;
-import org.cg.zxing.client.android.result.ResultHandler;
-import org.cg.zxing.client.android.result.ResultHandlerFactory;
-// cgf import org.cg.zxing.client.android.result.supplement.SupplementalInfoRetriever;
-import org.cg.zxing.client.android.share.ShareActivity;
+import zxing.client.android.camera.CameraManager;
+import zxing.client.android.history.HistoryActivity;
+import zxing.client.android.history.HistoryItem;
+import zxing.client.android.history.HistoryManager;
+// cgf import zxing.client.android.result.ResultButtonListener;
+import zxing.client.android.result.ResultHandler;
+import zxing.client.android.result.ResultHandlerFactory;
+// cgf import zxing.client.android.result.supplement.SupplementalInfoRetriever;
+import zxing.client.android.share.ShareActivity;
 
 import java.io.IOException;
 // cgf import java.text.DateFormat;

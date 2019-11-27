@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.history;
+package zxing.client.android.history;
 
 import android.database.sqlite.SQLiteException;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.Result;
-import org.cg.zxing.client.android.Intents;
-import org.cg.zxing.client.android.PreferencesActivity;
-import org.cg.zxing.client.android.result.ResultHandler;
+import zxing.client.android.Intents;
+import zxing.client.android.PreferencesActivity;
+import zxing.client.android.result.ResultHandler;
 
 import android.app.Activity;
 import android.content.ContentValues;

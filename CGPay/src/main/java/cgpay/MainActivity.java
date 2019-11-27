@@ -19,7 +19,7 @@ import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
-import org.cg.zxing.client.android.CaptureActivity;
+import zxing.client.android.CaptureActivity;
 
 import java.lang.reflect.Method;
 import java.util.Calendar;

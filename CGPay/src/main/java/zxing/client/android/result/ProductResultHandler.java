@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.result;
+package zxing.client.android.result;
 
 import com.google.zxing.Result;
 import earth.commongood.cgpay.R;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.book;
+package zxing.client.android.book;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -39,12 +39,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.cg.zxing.client.android.Intents;
-import org.cg.zxing.client.android.HttpHelper;
-import org.cg.zxing.client.android.LocaleManager;
+import zxing.client.android.Intents;
+import zxing.client.android.HttpHelper;
+import zxing.client.android.LocaleManager;
 import earth.commongood.cgpay.R;
-import org.cg.zxing.client.android.common.executor.AsyncTaskExecInterface;
-import org.cg.zxing.client.android.common.executor.AsyncTaskExecManager;
+import zxing.client.android.common.executor.AsyncTaskExecInterface;
+import zxing.client.android.common.executor.AsyncTaskExecManager;
 
 /**
  * Uses Google Book Search to find a word or phrase in the requested book.

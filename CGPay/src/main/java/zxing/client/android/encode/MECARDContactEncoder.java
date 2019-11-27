@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.encode;
+package zxing.client.android.encode;
 
 import android.telephony.PhoneNumberUtils;
 

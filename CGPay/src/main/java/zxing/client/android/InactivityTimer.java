@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android;
+package zxing.client.android;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -25,8 +25,8 @@ import android.os.AsyncTask;
 import android.os.BatteryManager;
 import android.util.Log;
 
-import org.cg.zxing.client.android.common.executor.AsyncTaskExecInterface;
-import org.cg.zxing.client.android.common.executor.AsyncTaskExecManager;
+import zxing.client.android.common.executor.AsyncTaskExecInterface;
+import zxing.client.android.common.executor.AsyncTaskExecManager;
 
 /**
  * Finishes an activity after a period of inactivity if the device is on battery power.

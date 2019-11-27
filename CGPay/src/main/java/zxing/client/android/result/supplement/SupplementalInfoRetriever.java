@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.cg.zxing.client.android.result.supplement;
+package zxing.client.android.result.supplement;
 
 import android.content.Context;
 import android.os.AsyncTask;
@@ -32,9 +32,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.cg.zxing.client.android.common.executor.AsyncTaskExecInterface;
-import org.cg.zxing.client.android.common.executor.AsyncTaskExecManager;
-import org.cg.zxing.client.android.history.HistoryManager;
+import zxing.client.android.common.executor.AsyncTaskExecInterface;
+import zxing.client.android.common.executor.AsyncTaskExecManager;
+import zxing.client.android.history.HistoryManager;
 import com.google.zxing.client.result.ISBNParsedResult;
 import com.google.zxing.client.result.ParsedResult;
 import com.google.zxing.client.result.ProductParsedResult;

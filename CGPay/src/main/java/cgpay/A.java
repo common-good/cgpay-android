@@ -47,7 +47,7 @@ import static java.lang.Integer.parseInt;
  * This class also holds global static variables and constants.
  * <p>
  * The application uses the open source Zxing project.
- * The package com.google.zxing.client.android has been changed to org.cg.zxing.client.android
+ * The package com.google.zxing.client.android has been changed to zxing.client.android
  * All other changes are commented with "cgf". Small modifications have been made to the following classes.
  * CaptureActivity
  * CameraManager
