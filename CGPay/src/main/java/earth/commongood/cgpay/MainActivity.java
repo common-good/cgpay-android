@@ -34,17 +34,14 @@ public final class MainActivity extends Act {
     private final int CAPTURE = 1; // the capture activity
     private final static int TX_OLD_INTERVAL = 15 * 60; // number of seconds Undo and Balance buttons last
     private final String QRS = "," +
-//            "OLD Curt/NEW/AAK./NyCBBlUF1qWNZ2k," +
             "Curt/6VM/G0A/NyCBBlUF1qWNZ2k," +
 //            "CurtFAKE/6VM/G0A/WrongCode," +
             "Bob short/?," +
             "Susan short/?," +
-//            "OLD Helga's/NEW/AAD-/utbYceW3KLLCcaw," +
             "Helga's/6VM/H0G0/utbYceW3KLLCcaw," +
-//            "OLD Cathy Cashier/NEW/ABJ-/ME04nW44DHzxVDg," +
             "Cathy Cashier/6VM/H011/ME04nW44DHzxVDg," +
-//            "OLD P Honey/NEW/ABB./WrongCode4Susan," +
             "P Honey/6VM/G0R/WrongCode4Susan," +
+            "Pub/6VM/G01/CvRM3AwXJppPmf," +
             "OLD Bob/NEW/AAB-/WeHlioM5JZv1O9G," +
             "Bob/6VM/H010/WeHlioM5JZv1O9G," +
             "OLD Susan/NEW/ABB./ZzhWMCq0zcBowqw," +
@@ -297,12 +294,13 @@ public final class MainActivity extends Act {
         final String HELGAS = old ? "HTTP://NEW.RC4.ME/AAQ-utbYceW3KLLCcaw" : "HTTP://6VM.RC4.ME/H0G0utbYceW3KLLCcaw";
         final String CATHY = old ? "HTTP://NEW.RC4.ME/ABJ-ME04nW44DHzxVDg" : "HTTP://6VM.RC4.ME/H011ME04nW44DHzxVDg";
         final String BAD = old ? "HTTP://NEW.RC4.ME/ABB.WrongCode4Susan" : "HTTP://6VM.RC4.ME/G0RWrongCode4Susan";
+        final String PUB = "HTTP://6VM.RC4.ME/G01CvRM3AwXJppPmf";
 
         if (A.fakeScan) { // debugging
-            act.askYesNo("Scan BOB? (else Susan)",
+            act.askYesNo("Scan Pub? (else Susan)",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        act.start(CustomerActivity.class, 0, "qr", BOB);
+                        act.start(CustomerActivity.class, 0, "qr", PUB);
                     }
                 },
                 new DialogInterface.OnClickListener() {

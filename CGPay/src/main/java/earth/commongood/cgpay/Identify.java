@@ -59,6 +59,7 @@ public class Identify implements Runnable {
 
 	    String co = A.b.defaults == null ? null : A.b.defaults.get("default");
         boolean isAgent = (co == null || (rcard.isAgent && rCard.co(co).equals(rcard.co)));
+//        boolean isAgent = (co == null || rCard.co(co).equals(rcard.co));
         pairs.add("signin", isAgent ? "1" : "0");
 
         return isAgent ? doAgent(pairs) : doCustomer(pairs);
