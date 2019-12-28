@@ -158,14 +158,13 @@ public class A extends Application {
 	public final static String NUMERIC = "^-?\\d+([,\\.]\\d+)?$"; // with exponents: ^-?\d+([,\.]\d+)?([eE]-?\d+)?$
 	public final static int MAX_REWARDS_LEN = 20; // anything longer than this is a photoId in the rewards (db) field
 
-	private final static String PREFS_NAME = "rCreditsPOS";
-	public final static String PROMO_SITE = "http://CommonGood.earth";
-//	public final static String REAL_PATH = "https://<region>.commongood.earth"; // the real server (rc2.me fails)
-	public final static String REAL_PATH = "https://new.commongood.earth"; // the real server (rc2.me fails)
-	public final static String TEST_PATH = "https://ws.rcredits.org"; // the test server
-	//private final static String TEST_API_PATH = "http://192.168.2.101/rMembers/pos"; // testing locally
+	private final static String PREFS_NAME = "CGPay";
+	public final static String PROMO_SITE = "https://CommonGood.earth";
+	public final static String REAL_PATH = "https://<region>.commongood.earth"; // the real server (rc2.me fails)
+	public final static String TEST_PATH = "https://<region>-staging.commongood.earth"; // the staging server (for demo/test cards)
+//	private final static String TEST_API_PATH = "http://192.168.2.101/cgmembers-frame/cgmembers/pos"; // testing locally
 	private final static String API_PATH = "/pos"; // where on server is the API
-	private final static int TIMEOUT = 10; // how many seconds before HTTP POST times out
+	private final static int TIMEOUT = 7; // how many seconds before HTTP POST times out
 
 	@Override
 	public void onCreate() {

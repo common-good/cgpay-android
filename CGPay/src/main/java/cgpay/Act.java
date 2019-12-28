@@ -39,11 +39,11 @@ public class Act extends Activity {
     private final String YES_OR_NO = "Yes or No";
     private final static int TIMEOUT = 2; // number of minutes before activity times out
     private final static int PERMISSIONS_OK = 1;
-    private String[] permissions = {
+/*    private String[] permissions = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.CAMERA
-    };
+    }; */
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,14 +52,14 @@ public class Act extends Activity {
         A.log(act.name + " onCreate");
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
-        if (!granted(Manifest.permission.READ_EXTERNAL_STORAGE)
+/*        if (!granted(Manifest.permission.READ_EXTERNAL_STORAGE)
         || !granted(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         || !granted(Manifest.permission.CAMERA)) {
             ActivityCompat.requestPermissions(act, permissions, PERMISSIONS_OK);
-        }
+        } */
     }
 
-    public boolean granted(String permission) {
+/*    public boolean granted(String permission) {
         return (ContextCompat.checkSelfPermission(act, permission) == PackageManager.PERMISSION_GRANTED);
     }
 
@@ -69,7 +69,7 @@ public class Act extends Activity {
             sayFail("CGPay cannot run without these permissions.");
             return;
         }
-    }
+    } */
 
     @Override
     protected void onPause() {

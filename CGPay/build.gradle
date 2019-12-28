@@ -9,12 +9,13 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.2'
+        classpath 'com.android.tools.build:gradle:3.5.3'
     }
 }
 apply plugin: 'com.android.application'
 
 repositories {
+    jcenter()
     mavenCentral()
     maven {
         url 'https://maven.google.com/'
@@ -30,6 +31,21 @@ android {
     defaultConfig {
         minSdkVersion 9
         targetSdkVersion 25
+    }
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        customDebuggableBuildType {
+            debuggable true
+        }
+        release {
+            debuggable false
+        }
+    }
+    lintOptions {
+//        checkReleaseBuilds false
+        abortOnError false // continue the build even when errors are found
     }
 }
 dependencies {

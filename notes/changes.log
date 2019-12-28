@@ -1,3 +1,11 @@
+2019-12-27 feature/permissions (version 2.30)
+. filled out .gitignore using gitignore.io/api/gradle,androidstudio
+. added buildTypes and lintOptions to build.gradle, to enable generation of APKs
+. added jcenter() to repositories in build.gradle, to supply some needed library(s)
+. require wifi and rear camera in Manifest
+. changed prefs name and staging server URL
+. removed dialogs from previous commit, asking for wifi and camera permissions on the fly
+
 2019-11-27 feature/rebrand
 . rebranded code as CGPay
 
