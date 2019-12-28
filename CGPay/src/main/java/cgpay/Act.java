@@ -38,8 +38,32 @@ public class Act extends Activity {
     public Menu menu = null;
     private final String YES_OR_NO = "Yes or No";
     private final static int TIMEOUT = 2; // number of minutes before activity times out
+    private final static int PERMISSIONS_OK = 1;
+/*    private String[] permissions = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.CAMERA
+    }; */
 
     @Override
+
+/*        if (!granted(Manifest.permission.READ_EXTERNAL_STORAGE)
+        || !granted(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        || !granted(Manifest.permission.CAMERA)) {
+            ActivityCompat.requestPermissions(act, permissions, PERMISSIONS_OK);
+        } */
+
+/*    public boolean granted(String permission) {
+        return (ContextCompat.checkSelfPermission(act, permission) == PackageManager.PERMISSION_GRANTED);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] permissions, int[] results) {
+        if (results.length > 0) for (int r: results) if (r != PackageManager.PERMISSION_GRANTED) {
+            sayFail("CGPay cannot run without these permissions.");
+            return;
+        }
+    } */
     protected void onPause() {
         super.onPause();
         A.log(act.name + " onPause");
