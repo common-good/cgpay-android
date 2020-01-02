@@ -19,10 +19,12 @@ public class B {
 		b.db = new Db(testing);
 		b.defaultsName = b.test ? "defaults_test" : "defaults";
 		b.defaults = Json.make(A.getStored(b.defaultsName)); // null if none
+		/* archaic (?) delete after 6/1/2020
 		if (b.defaults != null && b.get("default").indexOf(".") > -1) { // fix old-style default agent (company)
 			b.defaults.put("default", b.get("default").replace(".", "")); // remove this when we stop getting proof errors
 			A.setStored(b.defaultsName, b.defaults.toString());
 		}
+		 */
 	}
 
 	public String get(String k) {
@@ -48,7 +50,7 @@ public class B {
 	}
 
 	public String region() {
-		return rCard.qidRegion(b.get("default"));
+		return rCard.qidRegion(A.ownerQid());
 	} // device company's rCredits region
 
 	public void launchPeriodic() {
@@ -95,7 +97,7 @@ public class B {
 
 	public String signinPath() {
 		String path = (b.test ? A.TEST_PATH : A.REAL_PATH).replace("<region>", b.region());
-		return path + "/signin" + (A.proSe() ? "?name=" + A.agent : "");
+		return path + "/signin" + (A.co ? "" : "?name=" + A.agent);
 	}
 
 	/**

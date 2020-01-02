@@ -9,6 +9,8 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.common.primitives.Ints;
+
 /**
  * Show the name, location, and photo of the customer.
  * @intent qr: QR code scanned from an rCard (either a customer or cashier)
@@ -50,7 +52,7 @@ public class CustomerActivity extends Act {
         }
 
         A.log("rcard qid=" + rcard.qid);
-        if (rcard.qid.equals(A.agent)) {act.sayFail(R.string.already_in); return;}
+        if (rcard.qid.equals(A.agent)) {act.mention(R.string.already_in); goHome(); return;}
         image = null;
         photoId = null;
         if (rcard.isOdd) {
@@ -174,10 +176,10 @@ public class CustomerActivity extends Act {
     private void askPhotoId() {askPhotoId("", null);}
 
     private void oldCustomer(Q q) {
-        String name = q.getString("name");
+        String person = q.getString("person");
         String coName = A.nnc(q.getString("company")) + q.getString("place");
         q.close();
-        gotCustomer(name, coName, t(R.string.offline));
+        gotCustomer(person, coName, t(R.string.offline));
     }
 
     private void unknownCustomer() {gotCustomer("Member " + rcard.qid, UNKNOWN_CUST, t(R.string.offline));}
@@ -228,12 +230,12 @@ public class CustomerActivity extends Act {
 
     /**
      * Display customer's identifying info (on scan of rCard or offline retrieval of customer record)
-     * @param name
+     * @param person
      * @param company
      * @param place
      */
-    private void gotCustomer(String name, String company, String place) {
-        A.log("got customer: " + name + " company=" + company + " place=" + place);
+    private void gotCustomer(String person, String company, String place) {
+        A.log("got customer: " + person + " company=" + company + " place=" + place);
         if (A.agent == null) {act.sayFail(R.string.no_agent); return;}
         if (!A.can(A.CAN_CHARGE) && !A.can(A.CAN_REFUND) && !A.can(A.CAN_R4USD) && !A.can(A.CAN_USD4R)) {
             act.sayFail(R.string.no_permission); return;
@@ -241,27 +243,23 @@ public class CustomerActivity extends Act {
         if (!rcard.qid.equals(A.nn(A.lastQid))) A.noUndo(); // previous customer info is no longer valid
         A.lastQid = rcard.qid;
 
-        A.customerName = A.customerName(name, company);
+        A.customerName = A.nameAndCo(person, company);
         A.balance = json == null ? null : A.balanceMessage(A.customerName, json); // in case tx fails or is canceled
 
-        if (A.proSe()) {
+        if (!A.co) {
             View refund = findViewById(R.id.refund);
-            refund.setVisibility(View.VISIBLE);
             refund.setBackgroundResource(R.drawable.pay); // make refund a pay button instead
             refund.setContentDescription(A.DESC_PAY);
-            findViewById(R.id.charge).setVisibility(View.VISIBLE);
-        } else {
-            if (A.can(A.CAN_REFUND)) findViewById(R.id.refund).setVisibility(View.VISIBLE);
-            if (!company.equals(UNKNOWN_CUST)) { // no cash transactions without pre-identification (FinCEN requirement)
-                if (A.can(A.CAN_R4USD)) findViewById(R.id.usdin).setVisibility(View.VISIBLE);
-                if (A.can(A.CAN_USD4R)) findViewById(R.id.usdout).setVisibility(View.VISIBLE);
-            }
-            if (A.can(A.CAN_CHARGE)) findViewById(R.id.charge).setVisibility(View.VISIBLE);
+        } else if (!company.equals(UNKNOWN_CUST) && !A.empty(person)) { // no cash transactions without pre-identification (FinCEN requirement)
+            if (A.can(A.CAN_R4USD)) findViewById(R.id.usdin).setVisibility(View.VISIBLE);
+            if (A.can(A.CAN_USD4R)) findViewById(R.id.usdout).setVisibility(View.VISIBLE);
         }
+        if (A.can(A.CAN_CHARGE) && !A.empty(person)) findViewById(R.id.charge).setVisibility(View.VISIBLE);
+        if (A.can(A.CAN_REFUND)) findViewById(R.id.refund).setVisibility(View.VISIBLE);
 
         findViewById(R.id.back).setVisibility(View.VISIBLE);
 
-        act.setView(R.id.customer_name, name);
+        act.setView(R.id.customer_name, person);
         act.setView(R.id.customer_company, company).setVisibility(company == null ? View.GONE : View.VISIBLE);
         act.setView(R.id.customer_place, place);
 
@@ -273,6 +271,6 @@ public class CustomerActivity extends Act {
     }
 
     private void gotCustomer() {
-        gotCustomer(json.get("name"), json.get("company"), json.get("place"));
+        gotCustomer(json.get("person"), json.get("company"), json.get("place"));
     }
 }

@@ -42,12 +42,13 @@ public final class ShowQrActivity extends Act {
         setContentView(R.layout.activity_showqr);
 
         String company = A.b.get("company");
-        boolean hideCompany = (company == null || company.equals(A.agentName));
+        boolean hideCompany = (A.empty(company) || company.equals(A.agentName));
         act.setView(R.id.customer_company, company).setVisibility(hideCompany ? View.GONE : View.VISIBLE);
         act.setView(R.id.customer_name, A.agentName);
         act.setView(R.id.customer_qid, A.agent);
 
         ImageView photo = (ImageView) findViewById(R.id.photo);
+
         Q q = A.b.db.oldCustomer(A.agent);
         photo.setImageBitmap(Identify.scaledPhoto(q.getBlob("photo")));
         String s = q.getString(DbSetup.AGT_ABBREV); // get abbreviated QR string (region/acct. or fmtregionacct)
