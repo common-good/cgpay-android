@@ -185,10 +185,10 @@ public class TxActivity extends Act {
         //        String amount = A.nn(((TextView) findViewById(R.id.amount)).getText()).substring(1); // no "$"
         if (progressing()) return; // ignore if already processing a (foreground) transaction
         if (amount.equals("0.00")) {sayError("You must enter an amount.", null); return;}
-        if (A.proSe()) {
-            act.start(ForActivity.class, WHAT_FOR);
-        } else {
+        if (A.co) {
             if (description.equals(A.DESC_USD_IN)) act.start(UsdActivity.class, GET_USD_TYPE); else finishTx(null);
+        } else {
+            act.start(ForActivity.class, WHAT_FOR);
         }
     }
 

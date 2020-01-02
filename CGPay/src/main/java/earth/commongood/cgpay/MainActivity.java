@@ -19,6 +19,8 @@ import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.google.common.primitives.Ints;
+
 import zxing.client.android.CaptureActivity;
 
 import java.lang.reflect.Method;
@@ -36,14 +38,14 @@ public final class MainActivity extends Act {
     private final String QRS = "," +
             "Curt/6VM/G0A/NyCBBlUF1qWNZ2k," +
 //            "CurtFAKE/6VM/G0A/WrongCode," +
-            "Bob short/?," +
+            "Maria short/?," +
             "Susan short/?," +
             "Helga's/6VM/H0G0/utbYceW3KLLCcaw," +
             "Cathy Cashier/6VM/H011/ME04nW44DHzxVDg," +
             "P Honey/6VM/G0R/WrongCode4Susan," +
             "Pub/6VM/G01/CvRM3AwXJppPmf," +
-            "OLD Bob/NEW/AAB-/WeHlioM5JZv1O9G," +
-            "Bob/6VM/H010/WeHlioM5JZv1O9G," +
+            "OLD Maria/NEW/AAB-/WeHlioM5JZv1O9G," +
+            "Maria/6VM/H010/WeHlioM5JZv1O9G," +
             "OLD Susan/NEW/ABB./ZzhWMCq0zcBowqw," +
             "Susan/6VM/G0R/ZzhWMCq0zcBowqw";
 
@@ -117,6 +119,7 @@ public final class MainActivity extends Act {
             default:
                 String[] qrs = QRS.split(",");
                 String[] part = qrs[item.getItemId() - R.id.action_signout].split("/");
+                if (part.length < 4) {act.sayFail("That is not a valid card."); return false;}
                 String qr = part[0].equals("Bob short")
                 ? "H6VM010WeHlioM5JZv1O9G.B"
                 : (part[0].equals("Susan short")
@@ -133,8 +136,8 @@ public final class MainActivity extends Act {
 
         if (menu != null) {
             menu.setGroupVisible(R.id.group_all, A.signedIn);
-            menu.findItem(R.id.action_signout).setVisible(A.signedIn && !A.proSe());
-            menu.findItem(R.id.action_qr).setVisible(A.proSe() || A.can(A.CAN_BUY));
+            menu.findItem(R.id.action_signout).setVisible(A.co && A.signedIn);
+            menu.findItem(R.id.action_qr).setVisible(A.can(A.CAN_BUY));
         }
 
         setLayout();
@@ -161,7 +164,7 @@ public final class MainActivity extends Act {
 
         A.b.db.q("DELETE from log WHERE time<?", new String[]{"" + A.daysAgo(7)});
         A.b.db.q("DELETE from txs WHERE created<?", new String[]{"" + A.daysAgo(180)});
-        String where = String.format("%s<>%s AND lastTx<?", DbSetup.AGT_FLAG, A.TX_AGENT); // don't delete agents
+        String where = "lastTx<? AND NOT " + DbSetup.IS_AGENT; // never delete agents
         A.b.db.q("DELETE from members WHERE " + where, new String[]{"" + A.daysAgo(180)});
 
     }
@@ -190,10 +193,10 @@ public final class MainActivity extends Act {
         TextView version = (TextView) findViewById(R.id.version);
         if (version != null) version.setText("v. " + A.versionName);
 
-        boolean showUndo = (A.can(A.CAN_UNDO) && A.undo != null && !A.selfhelping());
+        boolean showUndo = (A.can(A.CAN_UNDO) && !A.empty(A.undo) && !A.selfhelping());
         boolean showBalance = (A.balance != null && !A.selfhelping());
         findViewById(R.id.undo_last).setVisibility(showUndo ? View.VISIBLE : View.INVISIBLE);
-        if (A.proSe()) findViewById(R.id.show_balance).setBackgroundResource(R.drawable.show_my_balance);
+        if (!A.co) findViewById(R.id.show_balance).setBackgroundResource(R.drawable.show_my_balance);
         findViewById(R.id.show_balance).setVisibility(showBalance ? View.VISIBLE : View.INVISIBLE);
         findViewById(R.id.settings).setVisibility(A.can(A.CAN_MANAGE) ? View.INVISIBLE : View.INVISIBLE); // not used yet
         setMode();
@@ -202,9 +205,9 @@ public final class MainActivity extends Act {
             welcome.setText(R.string.no_company);
             signedAs.setText(R.string.not_signed_in);
         } else {
-            welcome.setText((showUndo || showBalance) ? "" : "Ready for customers...");
+            welcome.setText((showUndo || showBalance) ? "" : !A.co ? "Scan a card to pay or charge..." : "Scan a customer card...");
 // annoying            if (A.empty(A.failMessage) && A.empty(A.balance) && A.empty(A.undo)) act.mention(R.string.mention_menu);
-            signedAs.setText(((A.signedIn && !A.proSe()) ? "Signed in as: " : "") + A.agentName);
+            signedAs.setText(A.agentName);
         }
         A.log(9);
     }
@@ -288,7 +291,7 @@ public final class MainActivity extends Act {
     public void doScan(View v) { // user pressed the SCAN button
         A.log(0);
         final boolean old = false;
-        final String BOB = old ? "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G" : "HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G";
+        final String MARIA = old ? "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G" : "HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G";
         final String SUSAN = old ? "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw" : "HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw";
         final String CURT = old ? "HTTP://NEW.RC4.ME/AAK.NyCBBlUF1qWNZ2k" : "HTTP://6VM.RC4.ME/G0ANyCBBlUF1qWNZ2k";
         final String HELGAS = old ? "HTTP://NEW.RC4.ME/AAQ-utbYceW3KLLCcaw" : "HTTP://6VM.RC4.ME/H0G0utbYceW3KLLCcaw";
@@ -297,10 +300,10 @@ public final class MainActivity extends Act {
         final String PUB = "HTTP://6VM.RC4.ME/G01CvRM3AwXJppPmf";
 
         if (A.fakeScan) { // debugging
-            act.askYesNo("Scan Pub? (else Susan)",
+            act.askYesNo("Scan Maria/Pub? (else Susan)",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        act.start(CustomerActivity.class, 0, "qr", PUB);
+                        act.start(CustomerActivity.class, 0, "qr", MARIA);
                     }
                 },
                 new DialogInterface.OnClickListener() {
@@ -335,7 +338,7 @@ public final class MainActivity extends Act {
      * @param v
      */
     public void doShowBalance(View v) {
-        act.sayOk(A.proSe() ? "My Balance" : "Customer Balance", A.balance, null);
+        act.sayOk(!A.co ? "My Balance" : "Customer Balance", A.balance, null);
     }
 
     /**

@@ -134,8 +134,7 @@ public class rCard {
         A.log(String.format("convert old agent %s to %s", oldQid, newQid));
         qid = newQid;
         co = A.substr(qid, 0, 6);
-        String where = String.format("%s=%s AND qid=?", DbSetup.AGT_FLAG, A.TX_AGENT);
-        Long rowid = db.rowid("members", where, new String[]{oldQid});
+        Long rowid = db.rowid("members", DbSetup.IS_AGENT + " AND qid=?", new String[]{oldQid});
         if (rowid != null) { // this agent needs updating
             ContentValues fix = new ContentValues();
             fix.put("qid", qid);

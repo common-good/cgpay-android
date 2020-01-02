@@ -50,7 +50,8 @@ public class Json {
     public ArrayList<String> getArray(String key) {
         ArrayList<String> list = new ArrayList<String>();
         try {
-            JSONArray jsonArray = this.j.getJSONArray(key);
+//            JSONArray jsonArray = this.j.getJSONArray(key); // sometimes fails because array is quoted
+            JSONArray jsonArray = new JSONArray(this.j.get(key).toString());
             for (int i = 0; i < jsonArray.length(); i++) list.add(i, jsonArray.get(i).toString());
         } catch (JSONException e) {
             A.log(String.format("json getArray failed, key=%s, json=%s", key, this.toString()));
@@ -65,6 +66,16 @@ public class Json {
             return this;
         } catch (JSONException e) {
             A.log(key + ":" + value);
+            return A.log(e) ? null : null;
+        }
+    }
+
+    public Json put(String key, JSONArray value) {
+        try {
+            this.j.put(key, value);
+            return this;
+        } catch (JSONException e) {
+            A.log(key + ":" + value.toString());
             return A.log(e) ? null : null;
         }
     }

@@ -92,6 +92,13 @@
     <orderEntry type="library" name="Gradle: __local_aars__:E.\Documents\CG\AndroidApp\CGPay\libs\core-2.2.jar:unspecified@jar" level="project" />
     <orderEntry type="library" name="Gradle: __local_aars__:E.\Documents\CG\AndroidApp\CGPay\libs\javase-2.2.jar:unspecified@jar" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:support-annotations:25.0.0@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.guava:guava:28.2-android@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.guava:failureaccess:1.0.1@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.code.findbugs:jsr305:3.0.2@jar" level="project" />
+    <orderEntry type="library" name="Gradle: org.checkerframework:checker-compat-qual:2.5.5@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.errorprone:error_prone_annotations:2.3.4@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.j2objc:j2objc-annotations:1.3@jar" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:appcompat-v7:25.0.0@aar" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:support-v4:25.0.0@aar" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:support-fragment:25.0.0@aar" level="project" />

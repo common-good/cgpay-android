@@ -3,6 +3,8 @@ package earth.commongood.cgpay;
 import android.graphics.Bitmap;
 import android.os.Looper;
 
+import static earth.commongood.cgpay.A.CAN_CHARGE;
+
 /**
  * Identify the member whose card was just scanned.
  * Created by William on 9/23/2016.
@@ -57,9 +59,9 @@ public class Identify implements Runnable {
         pairs.add("member", rcard.qid);
         pairs.add("code", A.hash(rcard.code));
 
-	    String co = A.b.defaults == null ? null : A.b.defaults.get("default");
-        boolean isAgent = (co == null || (rcard.isAgent && rCard.co(co).equals(rcard.co)));
-//        boolean isAgent = (co == null || rCard.co(co).equals(rcard.co));
+	    String co = A.ownerQid();
+//        boolean isAgent = (co == null || (rcard.isAgent && rCard.co(co).equals(rcard.co)));
+        boolean isAgent = (co == null || rCard.co(co).equals(rcard.co));
         pairs.add("signin", isAgent ? "1" : "0");
 
         return isAgent ? doAgent(pairs) : doCustomer(pairs);
@@ -86,13 +88,14 @@ public class Identify implements Runnable {
 	    image = A.apiGetPhoto(rcard.qid, pairs.get("code"));
 	    if (image == null || image.length < 100) image = A.b.db.custPhoto(rcard.qid);
 	    A.b.db.saveCustomer(rcard.qid, image, pairs.get("code"), json); // might be saving non-photo, which needs updating next time
-	    int result = (json.get("first").equals("0") || A.selfhelping() || A.neverAskForId) ? CUSTOMER : PHOTOID;
+	    int result = (json.get("first").equals("0") || A.selfhelping() || A.neverAskForId
+                || (!A.can(CAN_CHARGE) && !A.can(A.CAN_USD4R))) ? CUSTOMER : PHOTOID;
 	    return handle.done(result, "", json, scaledPhoto(image));
     }
 
     public static Bitmap scaledPhoto(byte[] image) {
         A.log("scaledPhoto|"+image);
-        return A.scale(A.bray2bm(image), A.PIC_H);
+        return A.scale(A.bray2bm(image), A.PIC_W);
     }
 
     /**
@@ -106,7 +109,7 @@ public class Identify implements Runnable {
 		    if (q == null) return handle.done(FAIL, A.t(R.string.wifi_for_setup), null, null);
 		    if (!q.isAgent()) A.b.report("non-agent");
 		    if (A.b.db.badAgent(rcard.qid, rcard.code)) {q.close(); return handle.done(FAIL, "That Company Common Good Card is not valid.", null, null);}
-		    gotAgent(q.getString("name"), q.getInt(DbSetup.AGT_CAN));
+		    gotAgent(q.getString("person"), json.get("company"), q.getInt(DbSetup.AGT_CAN));
 		    q.close();
 	    } else {
 		    A.log("id msg: " + json.get("message"));
@@ -117,7 +120,7 @@ public class Identify implements Runnable {
 		    if (doBads()) return handle.done(FAIL, A.t(R.string.invalid_rcard), null, null);
 
 		    A.b.setDefaults(json);
-		    gotAgent(json.get("name"), A.n(json.get("can")).intValue());
+		    gotAgent(json.get("person"), json.get("company"), A.n(json.get("can")).intValue());
 		    A.b.db.saveAgent(rcard.qid, rcard.abbrev, rcard.code, image, json); // save or update manager info
 	    }
 	    return handle.done(AGENT, "", null, null);
@@ -126,12 +129,13 @@ public class Identify implements Runnable {
     /**
      * Handle successful scan of company agent's rCard: remember who.
      */
-    private void gotAgent(String name, int can) {
-        A.log("got agent: " + name);
+    private void gotAgent(String person, String company, int can) {
+        A.log("got agent: " + person);
         A.agent = rcard.qid;
-        A.agentName = name;
+        A.agentName = A.nameAndCo(person, company);
         A.can = can;
-        A.signedIn = true;
+        A.co = !A.empty(company);
+        A.signedIn = (A.agent.contains("-") || !A.co);
     }
 
     /**
@@ -157,4 +161,3 @@ public class Identify implements Runnable {
         return bad;
     }
 }
-

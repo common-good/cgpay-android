@@ -7,7 +7,7 @@
     <string name="title_activity_change_description">Change Description</string>
     <string name="title_activity_for">Transaction Type</string>
     <string name="title_activity_tx">Transaction</string>
-    <string name="title_activity_main">CG Pay</string>
+    <string name="title_activity_main">CGPay</string>
     <string name="title_activity_capture">Capture</string>
     <string name="title_activity_prefs">Settings</string>
     <string name="title_activity_showqr">Show My Card</string>
@@ -42,7 +42,7 @@
     <string name="old_tx">That transaction is now too old to undo. Do a separate transaction instead (possibly online or with US Dollars).</string>
     <string name="offline">OFFLINE (no internet)</string>
     <string name="no_descriptions">You have no product descriptions. Sign in at CommonGood.earth, select your company, and visit the Company Settings page to fix this.</string>
-    <string name="timed_out">Your activity timed out. Start again?</string>
+    <string name="timed_out">Your activity timed out.</string>
     <string name="invalid_rcard">That is not a valid Common Good Card.</string>
     <string name="fraudulent_rcard">That card is invalid or fraudulent.</string>
     <string name="maybe_fraudulent">That card may be invalid or fraudulent.</string>

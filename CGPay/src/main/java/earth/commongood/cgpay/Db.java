@@ -84,6 +84,9 @@ public class Db {
 		Q q = getRow(table, where, params);
 		return (q != null);
 	}
+	public boolean exists(String table, String where) {
+		return exists(table, where, null);
+	}
 
 	public String getField(String field, String table, String where, String[] params) {
 		Q q = getRow(table, where, params);
@@ -91,6 +94,10 @@ public class Db {
 		String res = q.getString(field);
 		q.close();
 		return res;
+	}
+
+	public String getField(String field, String table, String where) {
+		return getField(field, table, where, null);
 	}
 
 	public String getField(String field, String table, Long rowid) {
@@ -153,16 +160,16 @@ public class Db {
 	 * @param txRowid: transaction rowid
 	 * @param txid:    transaction record ID on the server
 	 * @param balance: customer's current balance
-	 * @param rewards: customer's rewards ever
+	 * @param creditLine: customer's current credit line ("" if unused)
 	 */
-	public void completeTx(Long txRowid, String txid, String balance, String rewards, String lastTx) {
+	public void completeTx(Long txRowid, String txid, String balance, String creditLine, String lastTx) {
 		String qid = txQid(txRowid);
 		A.log("completing tx: " + txRowid + " qid=" + qid + " txid=" + txid + " lastTx=" + lastTx);
 		if (qid == null) return; // record is deleted, so no action needed
 
 		ContentValues values = new ContentValues();
 		values.put("balance", balance);
-		values.put("rewards", rewards);
+		values.put("creditLine", creditLine);
 		values.put("lastTx", lastTx);
 		Long custRowid = custRowid(qid); // find the corresponding customer record, if any
 
@@ -181,7 +188,7 @@ public class Db {
 	 */
 	public void completeTx(Long txRowid, Json txJson) {
 		completeTx(txRowid, txJson.get("txid"), A.nn(txJson.get("balance")).replace("*", ""),
-				txJson.get("rewards"), txJson.get("created")); // * in balance means secret
+				txJson.get("creditLine"), txJson.get("created")); // * in balance means secret
 	}
 
 	/**
@@ -197,17 +204,17 @@ public class Db {
 //        if (!rcard.region.equals(A.region)) return; // don't record customers outside the region?
 		A.log(" image|" + image.equals(null) + "| saving customer " + qid + " idJson=" + idJson.toString());
 //        A.log(image);
-		if (A.empty(idJson.get("name"))) A.b.report("customer with no name");
+		if (A.empty(idJson.get("person"))) A.b.report("customer with no name");
 		ContentValues values = new ContentValues();
 		for (String k : DbSetup.CUSTOMERS_FIELDS_TO_GET.split(" ")) values.put(k, idJson.get(k));
 		values.put("qid", qid);
-		values.put("photo", A.bm2bray(A.scale(A.bray2bm(image), A.PIC_H_OFFLINE)));
+		values.put("photo", A.bm2bray(A.scale(A.bray2bm(image), A.PIC_W_OFFLINE)));
 		values.put("code", code);
 		Q q = oldCustomer(qid);
 		if (q == null) { // new customer!
 			A.log("if:"+String.valueOf(values.get("photo").equals(null)));
 			insert("members", values);
-//            Q r = A.b.db.oldCustomer(qid); if (r != null) {A.log("saveCustomer r.qid=" + r.getString("qid") + " r.name=" + r.getString("name")); r.close();}
+//            Q r = A.b.db.oldCustomer(qid); if (r != null) {A.log("saveCustomer r.qid=" + r.getString("qid") + " r.name=" + r.getString("person")); r.close();}
 		} else {
 			A.log("else:"+String.valueOf(values.get("photo").equals(null)));
 			update("members", values, q.getLong("rowid"));
@@ -229,11 +236,11 @@ public class Db {
 	public String customerName(String qid) {
 		Q q = oldCustomer(qid);
 		if (q == null) return "Member " + qid;
-		String name = q.getString("name");
+		String person = q.getString("person");
 		String company = q.getString("company");
 		q.close();
 
-		return A.customerName(name, company);
+		return A.nameAndCo(person, company);
 	}
 
 	/**
@@ -377,9 +384,9 @@ public class Db {
 		String show = "";
 		do {
 			show += String.format("row#%s qid=%s nm=%s co=%s " +
-							(q.isAgent() ? "agt=%s code=%s can=%s flg=%s" : "place=%s bal=%s rew=%s last=%s "),
-					q.rowid(), q.getString("qid"), q.getString("name"), q.getString("company"), q.getString("place"),
-					q.getString("balance"), q.getString("rewards"), q.getInt("lastTx"));
+							(q.isAgent() ? "agt=%s code=%s can=%s flg=%s" : "place=%s bal=%s cred=%s last=%s "),
+					q.rowid(), q.getString("qid"), q.getString("person"), q.getString("company"), q.getString("place"),
+					q.getString("balance"), q.getString("creditLine"), q.getInt("lastTx"));
 		} while (q.moveToNext());
 		q.close();
 		return show;
@@ -409,9 +416,9 @@ public class Db {
 	public void saveAgent(String qid, String abbrev, String cardCode, byte[] image, Json json) throws NoRoom {
 		A.log(String.format("saving agent=%s cardCode=%s json=%s", qid, "?", json.toString()));
 		ContentValues values = new ContentValues();
-		values.put("name", json.get("name"));
+		values.put("person", json.get("person"));
 		values.put("company", json.get("company"));
-		values.put(DbSetup.AGT_COMPANY_QID, json.get("default"));
+//		values.put(DbSetup.AGT_COMPANY_QID, json.get("default"));
 		values.put("code", cardCode); // store UNHASHED for displaying QR
 		values.put(DbSetup.AGT_CAN, json.get("can"));
 		values.put("photo", image);
@@ -461,7 +468,7 @@ public class Db {
 				delete("txs", rowid);
 				continue;
 			}
-			rowid = rowid("members", DbSetup.AGT_FLAG + "<>" + A.TX_AGENT + " ORDER BY lastTx LIMIT 1", null);
+			rowid = rowid("members", "NOT " + DbSetup.IS_AGENT + " ORDER BY lastTx LIMIT 1", null);
 			if (rowid != null) {
 				delete("members", rowid);
 				continue;

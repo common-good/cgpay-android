@@ -108,9 +108,10 @@ public class A extends Application {
 	public static boolean neverAskForId = false; // ask customer for ID when first time or offline
 	public static boolean selfhelp = false; // whether to skip the photoID step and assume charging for default goods
 	public static String agent = null; // QID of device operator, set upon scan-in (eg NEW:AAB), otherwise null
+	public static boolean co = false; // the device owner is a company
+	public static boolean signedIn = false; // a manager is signed in (OR the device owner is a person)
 	public static String agentName = null; // set upon scan-in
 	public static boolean goingHome = false; // flag set to return to main activity
-	public static boolean signedIn = false; // an authorized agent for the device owner is signed in
 
 	// global variables that Periodic process must not screw up (refactor these to be local and passed)
 	public static String customerName = null; // set upon identifying a customer
@@ -150,13 +151,15 @@ public class A extends Application {
 
 	public final static int REAL_PERIOD = 20 * 60; // (20 mins.) how often to tickle when not testing
 	public final static int TEST_PERIOD = 20; // (20 secs.) how often to tickle
-	public final static int PIC_H = 1200; // standard pixel height of photos
-	public final static int PIC_H_OFFLINE = 60; // standard pixel height of photos stored for offline use
+	public final static int PIC_W = 900; // standard pixel width of photos
+	public final static int PIC_W_OFFLINE = 45; // standard pixel width of photos stored for offline use
+//	public final static int PIC_H = 1200; // standard pixel height of photos
+//	public final static int PIC_H_OFFLINE = 60; // standard pixel height of photos stored for offline use
 	public final static double PIC_ASPECT = .75; // standard photo aspect ratio
 
 	public final static int TX_AGENT = -1; // agent flag in customer AGT_FLAG field (negative to distinguish)
 	public final static String NUMERIC = "^-?\\d+([,\\.]\\d+)?$"; // with exponents: ^-?\d+([,\.]\d+)?([eE]-?\d+)?$
-	public final static int MAX_REWARDS_LEN = 20; // anything longer than this is a photoId in the rewards (db) field
+	public final static int MAX_CREDITLINE_LEN = 20; // anything longer than this is a photoId in the creditLine (db) field
 
 	private final static String PREFS_NAME = "CGPay";
 	public final static String PROMO_SITE = "https://CommonGood.earth";
@@ -220,11 +223,7 @@ public class A extends Application {
 		A.b = testing ? bTest : bReal;
 		if (A.empty(A.agent)) { // just starting up
 			A.useDefaults(); // get parameters
-			if (!A.empty(A.agent)) {
-				String where = String.format("qid=? AND %s=?", DbSetup.AGT_FLAG);
-				A.signedIn = A.b.db.exists("members", where, new String[]{A.agent, A.TX_AGENT + ""}); // keep individuals signed in
-			} else A.signedIn = false;
-		} else if (!A.proSe()) A.signOut(); // must postcede setting A.b
+		} else if (A.co && A.signedIn) A.signOut(); // must postcede setting A.b (personal accounts stay signed in)
 
 		A.balance = A.undo = null;
 		b.launchPeriodic();
@@ -239,14 +238,20 @@ public class A extends Application {
 			A.descriptions = null;
 			A.can = 0;
 		} else {
-			A.agent = dft.get("default");
-			A.agentName = dft.get("company");
+			A.agent = A.ownerQid();
 			A.descriptions = dft.getArray("descriptions");
 			A.can = Integer.valueOf(dft.get("can"));
+			A.co = !A.empty(dft.get("company"));
+			A.signedIn = !A.co;
+			A.agentName = A.co ? dft.get("company") : dft.get("person");
 		}
 		A.noUndo(); // but leave balance accessible, if any
 		A.customerName = A.httpError = null;
 		A.log(9);
+	}
+
+	public static String ownerQid() {
+		return rCard.co(A.b.db.getField("qid", "members", DbSetup.IS_AGENT));
 	}
 
 	/**
@@ -254,8 +259,7 @@ public class A extends Application {
 	 */
 	public static void signOut() {
 		A.log(0);
-		A.useDefaults();
-		A.signedIn = false;
+		if (A.co && A.signedIn) A.useDefaults();
 		A.log(9);
 	}
 
@@ -552,7 +556,6 @@ public class A extends Application {
 	 * @return true if the agent can do it
 	 */
 	public static boolean can(int permission) {
-		if (A.proSe()) return true; // all permissions for individual accounts
 		int can = A.can >> (A.signedIn ? CAN_AGENT : CAN_CASHIER);
 //        A.log("permission=" + permission + " can=" + can + " A.can=" + A.can + " signed in:" + A.signedIn + " 1<<perm=" + (1<<permission));
 		return ((can & (1 << permission)) != 0);
@@ -561,10 +564,6 @@ public class A extends Application {
 	public static void setCan(int bit, boolean how) {
 		A.can = how ? (A.can | (1 << bit)) : (A.can & ~(1 << bit));
 	}
-
-	public static boolean proSe() {
-		return (A.signedIn && !rCard.isAgent(A.agent));
-	} // (A.agent == A.defaults.get("default")) && A.signedIn);}
 
 	/**
 	 * Say whether the customer's balance is to be kept secret.
@@ -596,37 +595,41 @@ public class A extends Application {
 	/**
 	 * Return a suitable message for when the "Show Customer Balance" button is pressed.
 	 *
-	 * @param name
+	 * @param customerName
 	 * @param balance
-	 * @param rewards
+	 * @param creditLine
 	 * @param did
 	 * @return
 	 */
-	public static String balanceMessage(String name, String balance, String rewards, String did) {
+	public static String balanceMessage(String customerName, String balance, String creditLine, String did) {
 		if (A.isSecret(balance)) return null;
-		return (A.proSe() ? "" : ("Customer: " + name + "\n\n")) +
+		String disabledBy = !A.co ? "you" : "account-holder";
+		creditLine = A.empty(creditLine) ? " (disabled by " + disabledBy + ")" : A.fmtAmt(creditLine, true);
+		return (!A.co ? "" : ("Customer: " + customerName + "\n\n")) +
 				"Balance: $" + A.fmtAmt(balance, true) + "\n" +
-				"Credit Reserve: $" + A.fmtAmt(rewards, true) +
+				"Credit Line: $" + creditLine +
 				A.nn(did); // if not empty, did includes leading blank lines
 	}
 
 	/**
 	 * Return a suitable message for when the "Show Customer Balance" button is pressed.
 	 *
-	 * @param name: customer name (including agent and company name, for company agents)
+	 * @param customerName: customer name (including agent and company name, for company agents)
 	 * @return: a suitable message or null if the balance is secret (or no data)
 	 */
-	public static String balanceMessage(String name, Json json) {
+	public static String balanceMessage(String customerName, Json json) {
 		if (json == null) return null;
 		String balance = json.get("balance");
-		String rewards = json.get("rewards");
+		String creditLine = json.get("creditLine"); // actually this is the customer's credit line
 		String did = json.get("did");
 
-		return balanceMessage(A.proSe() ? A.agentName : name, balance, rewards, did);
+		return balanceMessage(!A.co ? A.agentName : customerName, balance, creditLine, did);
 	}
 
-	public static String customerName(String name, String company) {
-		return (company == null || company.equals("")) ? name : (name + ", for " + company);
+	public static String nameAndCo(String person, String company) {
+		return A.empty(company)
+				? person
+				: (A.empty(person) ? company : (person + "\nfor " + company));
 	}
 
 	public static String hash(String text) {
@@ -659,7 +662,7 @@ public class A extends Application {
 	}
 
 	/**
-	 * Shrink the image to 10% and convert to grayscale.
+	 * Shrink the image and reduce quality, before storing.
 	 *
 	 * @param image
 	 * @return: the shrunken image
@@ -667,10 +670,16 @@ public class A extends Application {
 	public static byte[] shrink(byte[] image) {
 		A.log(0);
 		Bitmap bm = A.bray2bm(image);
-		bm = scale(bm, PIC_H_OFFLINE);
-		A.log("shrink img len=" + image.length + " bm size=" + (bm.getRowBytes() * bm.getHeight()));
+		int width0 = bm.getWidth();
+		if (width0 == 0) return A.bm2bray(bm);
 
-		Bitmap bmGray = Bitmap.createBitmap((int) (PIC_ASPECT * PIC_H_OFFLINE), PIC_H_OFFLINE, Bitmap.Config.RGB_565);
+		int width = PIC_W_OFFLINE;
+		int height = (int) bm.getHeight() * width / width0;
+		bm = scale(bm, width);
+
+		A.log("shrink img len=" + image.length + " bm size=" + (bm.getRowBytes() * height));
+
+		Bitmap bmGray = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
 		Canvas c = new Canvas(bmGray);
 		Paint paint = new Paint();
 		ColorMatrix cm = new ColorMatrix();
@@ -682,9 +691,12 @@ public class A extends Application {
 		A.log(9);
 		return A.bm2bray(bmGray);
 	}
-	public static Bitmap scale(Bitmap bm, int height) {
-		A.log("shrink img len=" + bm);
-		return Bitmap.createScaledBitmap(bm, (int) (A.PIC_ASPECT * height), height, true);
+	public static Bitmap scale(Bitmap bm, int width) {
+		A.log("shrink img to w=" + width);
+		int width0 = bm.getWidth();
+		if (width0 == 0) return bm;
+		int height = (int) bm.getHeight() * width / width0;
+		return Bitmap.createScaledBitmap(bm, width, height, true);
 	}
 	public static ContentValues list(String keyString, String[] values) {
 		String[] keys = keyString.split(" ");
