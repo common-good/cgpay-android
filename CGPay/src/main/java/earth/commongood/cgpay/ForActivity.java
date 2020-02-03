@@ -24,6 +24,10 @@ public class ForActivity extends Act {
         setContentView(R.layout.activity_for);
         forWhat = (EditText) findViewById(R.id.for_what);
         forWhat.setVisibility(View.INVISIBLE);
+    }
+
+    public void onGoodsClick(View v) {
+        if (v.getId() == R.id.goods_usd) {onGoClick(v); return;} // no description needed for USD
 
         forWhat.setOnEditorActionListener(new EditText.OnEditorActionListener() {
             @Override
@@ -34,10 +38,7 @@ public class ForActivity extends Act {
                 } else return false;
             }
         });
-    }
 
-    public void onGoodsClick(View v) {
-        if (v.getId() == R.id.goods_usd) {onGoClick(v); return;} // no description needed for USD
         forWhat.setVisibility(View.VISIBLE);
         if(forWhat.requestFocus()) {
 //            getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);

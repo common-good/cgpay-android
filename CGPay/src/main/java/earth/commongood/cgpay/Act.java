@@ -37,16 +37,14 @@ public class Act extends Activity {
     private boolean onTop = false; // activity is visible
     public Menu menu = null;
     private final String YES_OR_NO = "Yes or No";
-    private final static int TIMEOUT = 2; // number of minutes before activity times out
+    private final static int TIMEOUT = 2 * 60; // number of seconds before activity times out
+    private final static int TIMEOUT_TEST = 20; // timeout seconds for testing (less than 20 causes problems)
     private final static int PERMISSIONS_OK = 1;
 /*    private String[] permissions = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.CAMERA
-    }; */
-
-    @Override
-
+    };*/
 /*        if (!granted(Manifest.permission.READ_EXTERNAL_STORAGE)
         || !granted(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         || !granted(Manifest.permission.CAMERA)) {
@@ -64,6 +62,16 @@ public class Act extends Activity {
             return;
         }
     } */
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        act.name = act.getLocalClassName();
+        A.log(act.name + " onCreate");
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
         A.log(act.name + " onPause");
@@ -82,7 +90,7 @@ public class Act extends Activity {
 
         onTop = true;
 
-        if (timer == null) timer = new CountDownTimer(TIMEOUT * 60 * 1000, 1000) {
+        if (timer == null) timer = new CountDownTimer((A.fakeScan ? TIMEOUT_TEST : TIMEOUT) * 1000, 1000) {
 
             public void onTick(long millisUntilFinished) {}
 
@@ -92,8 +100,13 @@ public class Act extends Activity {
                     A.balance = null; // don't show these too long
                     A.noUndo();
                     if (isMain()) {
-                        onResume();
-                    } else {
+                        if (A.co && A.signedIn) {
+                            A.signOut();
+                            goHome("For security, you have been automatically signed out.");
+                        } else {
+                            onResume();
+                        }
+                    } else { // abandon activity, but don't sign out (yet)
                         A.log("Common Good activity timed out.");
                         goHome(t(R.string.timed_out));
                     }
@@ -244,13 +257,15 @@ public class Act extends Activity {
     }
 
     public boolean askSignout() {
-        if (A.signedIn) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
+        A.signOut();
+        goHome();
+/*        if (A.signedIn) act.askOk("Sign out?", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
                 A.signOut();
                 goHome();
             }
-        });
+        }); */
         return true;
     }
 

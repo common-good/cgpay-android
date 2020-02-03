@@ -137,8 +137,8 @@
             android:ellipsize="middle"
             android:paddingTop="20dp"
             android:textSize="18sp"
-            android:lines="1"
-            android:singleLine="true"
+            android:lines="2"
+            android:singleLine="false"
             android:paddingBottom="20dp"/>
 
     </LinearLayout>

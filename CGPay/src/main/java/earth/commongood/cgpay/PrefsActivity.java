@@ -42,8 +42,8 @@ public final class PrefsActivity extends Act {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_prefs);
 
-        findViewById(R.id.btn_signout).setVisibility((!A.hasMenu && A.signedIn && !A.proSe()) ? View.VISIBLE : View.GONE);
-        findViewById(R.id.btn_qr).setVisibility((!A.hasMenu && (A.proSe() || A.can(A.CAN_BUY))) ? View.VISIBLE : View.GONE);
+        findViewById(R.id.btn_signout).setVisibility((!A.hasMenu && A.co) ? View.VISIBLE : View.GONE);
+        findViewById(R.id.btn_qr).setVisibility((!A.hasMenu && (!A.co || A.can(A.CAN_BUY))) ? View.VISIBLE : View.GONE);
         if (A.hasMenu) {
             findViewById(R.id.btn_account).setVisibility(View.GONE);
             findViewById(R.id.btn_promo).setVisibility(View.GONE);
@@ -52,7 +52,7 @@ public final class PrefsActivity extends Act {
         ((CheckBox) findViewById(R.id.wifi)).setChecked(!A.wifiOff);
         ((CheckBox) findViewById(R.id.selfhelp)).setChecked(A.selfhelp);
         ((CheckBox) findViewById(R.id.askid)).setChecked(A.neverAskForId);
-        findViewById(R.id.selfhelp_row).setVisibility(A.proSe() ? View.GONE : View.VISIBLE);
+        findViewById(R.id.selfhelp_row).setVisibility(A.co ? View.VISIBLE : View.GONE);
 
         /*
         for (int i = 0; i < A.CAN_AGENT - 2; i++) { // -2: ignore CAN_U6 and CAN_MANAGE permission
