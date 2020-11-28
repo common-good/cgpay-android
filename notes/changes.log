@@ -1,3 +1,33 @@
+2020-11-27 feature/crash (version 2.32)
+. fixed one storage leak that is probably the cause of occasional crashes
+. fixed a bug in display of company name
+. updated license
+
+2020-01-01 feature/permissions (version 2.30)
+. added guava to build.gradle for com.google.common.primitives things like Ints.contains(new int[]{1,2,3}, 3)
+. manager is automatically signed out after 2 minutes of inactivity
+. in API, renamed "rewards" to "creditLine" and "name" to "person" (see server release 3.51r)
+. "default" is no longer returned by API or stored in Preferences (we get it from rcard or db instead)
+. got the permissions and varying functionality straight for managers, cashiers, individuals, and trial companies
+. images of trial companies are the proper orientation and aspect now
+. restored the onCreate function in ActActivity accidentally deleted in previous commit
+. no longer ask for confirmation of signout request
+. bug fixed in Json class to make sure descriptions array is retrieved properly from Preferences
+. signed in text is now 2 lines (company on second line)
+. copyright: all rights reserved, for now
+
+2019-12-27 feature/permissions (version 2.30)
+. filled out .gitignore using gitignore.io/api/gradle,androidstudio
+. added buildTypes and lintOptions to build.gradle, to enable generation of APKs
+. added jcenter() to repositories in build.gradle, to supply some needed library(s)
+. require wifi and rear camera in Manifest
+. changed prefs name and staging server URL
+. removed dialogs from previous commit, asking for wifi and camera permissions on the fly
+. fixed listener bug in ForActivity that caused system crash sometimes (don't listen unless there's something to hear)
+
+2019-11-27 feature/rebrand
+. rebranded code as CGPay
+
 To Do:
 . save instance state in Act?
 . put a menu on every page for report problem (ask for a description of problem, then simply call report(desc) and tell the user the problem has been reported.
@@ -34,7 +64,7 @@ To Do:
 . LATER customer activity: show just ID as name, while async activity fills in the rest
 . LATER change "change desc" button to fling left?
 . LATER make "r"s fly from Customer screen toward Charge activity on the right and in from Refund activity on the left?
-. LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in org.rcredits.zxing)
+. LATER refactor to put entire zxing android module untouched (possibly in a jar), and just override as needed. This may not be possible, but come close (probably have to keep it in cg.zxing)
 
 @Override
 public void onSaveInstanceState(Bundle savedInstanceState) {

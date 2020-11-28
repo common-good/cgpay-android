@@ -1,0 +1,17 @@
+Common Good Software License (version 2.0)
+
+This software is Copyright © 2020 Society to Benefit Everyone, Inc. dba Common Good®. Common Good reserves all usage rights to all its copyrighted software (the Software), except:
+
+   1. Anyone may use Common Good’s websites, free of charge.
+   2. Anyone may use, unchanged, any of Common Good’s smartphone apps, free of charge.
+   3. Anyone may run a copy of the Software, unchanged or with arbitrary modifications (the Copy), free of charge, provided:
+
+      a. The Copy is used only to support solidarity, economic justice, human needs, and community empowerment;
+      b. No one is charged for using the Copy; and
+      c. Any modification of the Software made in the Copy:
+         i. Is viewable in a publicly-viewable repository, the location of that repository is registered at cg4.us/branches, and the modification is described clearly and understandably in the repository’s README.md file or in a location referenced there.
+         ii. Follows the same programming conventions as the Software.
+         iii. Includes automated regression tests for any features added or changed in the Copy.
+         iv. Maintains all interoperability between running copies of the Software.
+
+The Software is provided as is, without express or implied warranty of any kind under any circumstances.
