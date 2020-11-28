@@ -1,6 +1,7 @@
 package earth.commongood.cgpay;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -363,4 +364,24 @@ public class Act extends Activity {
         view.setText(v);
         return view;
     }
+
+    /**
+     * Ask for permission.
+     * @param perm (something like Manifest.permission.CAMERA)
+     * @return
+     *//*
+    @TargetApi(23)
+    public void plead(String perm, int code) {
+        if (ContextCompat.checkSelfPermission(A.context, perm)
+            != PackageManager.PERMISSION_GRANTED)
+            requestPermissions(new String[]{perm}, code);
+    }*/
+ /*   private ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    // Permission is granted. Continue the action or workflow in your
+                    // app.
+                }
+            });
+    */
 }

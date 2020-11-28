@@ -1,3 +1,8 @@
+2020-11-27 feature/crash (version 2.31)
+. fixed one storage leak that is probably the cause of occasional crashes
+. fixed a bug in display of company name
+. updated license
+
 2020-01-01 feature/permissions (version 2.30)
 . added guava to build.gradle for com.google.common.primitives things like Ints.contains(new int[]{1,2,3}, 3)
 . manager is automatically signed out after 2 minutes of inactivity

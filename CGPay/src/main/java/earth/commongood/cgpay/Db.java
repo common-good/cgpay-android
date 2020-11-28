@@ -486,7 +486,9 @@ public class Db {
 	private Long pragma(String query) {
 		Cursor q = db.rawQuery("PRAGMA " + query, new String[]{});
 		q.moveToFirst();
-		return q.getLong(0);
+		Long res = q.getLong(0);
+		q.close();
+		return res;
 	}
 
 	/**

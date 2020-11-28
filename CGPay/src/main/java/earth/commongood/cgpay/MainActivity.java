@@ -4,12 +4,20 @@
 
 package earth.commongood.cgpay;
 
+import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.KeyguardManager;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.nfc.NfcAdapter;
+import android.nfc.Tag;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.StrictMode;
+import android.support.v4.content.ContextCompat;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -37,27 +45,42 @@ public final class MainActivity extends Act {
     private final static int TX_OLD_INTERVAL = 15 * 60; // number of seconds Undo and Balance buttons last
     private final String QRS = "," +
             "Curt/6VM/G0A/NyCBBlUF1qWNZ2k," +
-//            "CurtFAKE/6VM/G0A/WrongCode," +
-            "Maria short/?," +
             "Susan short/?," +
             "Helga's/6VM/H0G0/utbYceW3KLLCcaw," +
             "Cathy Cashier/6VM/H011/ME04nW44DHzxVDg," +
             "P Honey/6VM/G0R/WrongCode4Susan," +
             "Pub/6VM/G01/CvRM3AwXJppPmf," +
-            "OLD Maria/NEW/AAB-/WeHlioM5JZv1O9G," +
             "Maria/6VM/H010/WeHlioM5JZv1O9G," +
-            "OLD Susan/NEW/ABB./ZzhWMCq0zcBowqw," +
             "Susan/6VM/G0R/ZzhWMCq0zcBowqw";
+//    private NfcAdapter nfcAdapter = null;
 
+    @TargetApi(19)
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+/*        if (Build.VERSION.SDK_INT > 10) StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder() // crash on leaked storage
+        .detectLeakedSqlLiteObjects()
+        .detectLeakedClosableObjects()
+        .penaltyLog()
+        .penaltyDeath()
+        .build());
+*/
         if (A.hasMenu) getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
         setContentView(R.layout.activity_main);
 
         KeyguardManager keyguardManager = (KeyguardManager)getSystemService(Activity.KEYGUARD_SERVICE);
         KeyguardManager.KeyguardLock lock = keyguardManager.newKeyguardLock(KEYGUARD_SERVICE);
         lock.disableKeyguard();
+/*        nfcAdapter = NfcAdapter.getDefaultAdapter(act);
+        if (nfcAdapter != null) {
+            nfcAdapter.enableReaderMode(act, new NfcAdapter.ReaderCallback() {
+                @Override
+                public void onTagDiscovered(Tag tag) {
+//                    A2.gotTag(tag);
+                }
+            }, NfcAdapter.FLAG_READER_NFC_A, null);
+        }*/
     }
 
     @Override

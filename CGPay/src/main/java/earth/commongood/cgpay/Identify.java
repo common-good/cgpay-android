@@ -109,7 +109,7 @@ public class Identify implements Runnable {
 		    if (q == null) return handle.done(FAIL, A.t(R.string.wifi_for_setup), null, null);
 		    if (!q.isAgent()) A.b.report("non-agent");
 		    if (A.b.db.badAgent(rcard.qid, rcard.code)) {q.close(); return handle.done(FAIL, "That Company Common Good Card is not valid.", null, null);}
-		    gotAgent(q.getString("person"), json.get("company"), q.getInt(DbSetup.AGT_CAN));
+		    gotAgent(q.getString("person"), q.getString("company"), q.getInt(DbSetup.AGT_CAN));
 		    q.close();
 	    } else {
 		    A.log("id msg: " + json.get("message"));
