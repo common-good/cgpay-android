@@ -1,3 +1,7 @@
+2020-12-05 feature/ask-perm (version 2.35)
+. before scan, ask for permission to use necessary features (camera and storage)
+. fixed bug that failed to show "Go" button for individual device owner transactions in ForWhat activity
+
 2020-11-27 feature/crash (version 2.32)
 . fixed one storage leak that is probably the cause of occasional crashes
 . fixed a bug in display of company name

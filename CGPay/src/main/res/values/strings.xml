@@ -29,7 +29,7 @@
     <string name="connect_soon">\n\nRemember: connect to the Internet SOON!</string>
     <string name="tx_canceled" formatted="false">The transaction has been canceled. You transferred $%s back %s %s.</string>
     <string name="too_big">That is too large an amount for an offline transaction (try again to connect maybe).</string>
-    <string name="wifi_for_setup">You must have an internet connection, to scan your Company Common Good Card, before charging customers.</string>
+    <string name="wifi_for_setup">You must be connected to the Internet to associate this device with your account by scanning your card.</string>
     <string name="need_photo_id">I\'m sorry, new Common Good customers must show a valid photo ID when internet is out and (once) before making their first purchase.</string>
     <string name="self_help_photo">You must show a state ID or driver\'s license before your first purchase. Ask a manager here to sign in and scan your card.</string>
     <string name="self_help_signout">You will be signed out automatically when you leave this page, so customers can serve themselves.</string>

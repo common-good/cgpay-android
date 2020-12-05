@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.view.Gravity;
@@ -41,28 +42,8 @@ public class Act extends Activity {
     private final static int TIMEOUT = 2 * 60; // number of seconds before activity times out
     private final static int TIMEOUT_TEST = 20; // timeout seconds for testing (less than 20 causes problems)
     private final static int PERMISSIONS_OK = 1;
-/*    private String[] permissions = {
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.CAMERA
-    };*/
-/*        if (!granted(Manifest.permission.READ_EXTERNAL_STORAGE)
-        || !granted(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        || !granted(Manifest.permission.CAMERA)) {
-            ActivityCompat.requestPermissions(act, permissions, PERMISSIONS_OK);
-        } */
-
-/*    public boolean granted(String permission) {
-        return (ContextCompat.checkSelfPermission(act, permission) == PackageManager.PERMISSION_GRANTED);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int code, String[] permissions, int[] results) {
-        if (results.length > 0) for (int r: results) if (r != PackageManager.PERMISSION_GRANTED) {
-            sayFail("CGPay cannot run without these permissions.");
-            return;
-        }
-    } */
+    public final int REQUEST_CAMERA = 1;
+    public final int REQUEST_STORAGE = 2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -369,19 +350,12 @@ public class Act extends Activity {
      * Ask for permission.
      * @param perm (something like Manifest.permission.CAMERA)
      * @return
-     *//*
+     */
     @TargetApi(23)
-    public void plead(String perm, int code) {
+    public boolean gotPerm(String perm, int code) {
         if (ContextCompat.checkSelfPermission(A.context, perm)
-            != PackageManager.PERMISSION_GRANTED)
-            requestPermissions(new String[]{perm}, code);
-    }*/
- /*   private ActivityResultLauncher<String> requestPermissionLauncher =
-            registerForActivityResult(new RequestPermission(), isGranted -> {
-                if (isGranted) {
-                    // Permission is granted. Continue the action or workflow in your
-                    // app.
-                }
-            });
-    */
+            == PackageManager.PERMISSION_GRANTED) return true;
+        requestPermissions(new String[]{perm}, code);
+        return false;
+    }
 }

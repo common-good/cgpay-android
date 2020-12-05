@@ -4,7 +4,6 @@
 
 package earth.commongood.cgpay;
 
-import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.KeyguardManager;
@@ -12,12 +11,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.nfc.NfcAdapter;
-import android.nfc.Tag;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.StrictMode;
-import android.support.v4.content.ContextCompat;
+import android.support.annotation.NonNull;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -26,13 +21,15 @@ import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
-
-import com.google.common.primitives.Ints;
+import android.widget.Toast;
 
 import zxing.client.android.CaptureActivity;
 
 import java.lang.reflect.Method;
 import java.util.Calendar;
+
+import static android.Manifest.permission.CAMERA;
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 /**
  * Give the user (usually a cashier) a button to press, to scan rCards at POS.
@@ -311,8 +308,32 @@ public final class MainActivity extends Act {
     }
 */
 
+    /**
+     * Handle user response to request for permission to use camera and storage.
+     * @param requestCode
+     * @param permissions
+     * @param result
+     */
+    @TargetApi(23)
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] result) {
+        super.onRequestPermissionsResult(requestCode, permissions, result);
+
+        if (requestCode == act.REQUEST_CAMERA || requestCode == act.REQUEST_STORAGE) {
+            if (result.length > 0 && result[0] == PackageManager.PERMISSION_GRANTED) {
+                doScan(null);
+            } else {
+                act.sayFail("You need to grant that permission, to scan a card.");
+                return;
+            }
+        }
+    }
+
     public void doScan(View v) { // user pressed the SCAN button
         A.log(0);
+
+        if (!act.gotPerm(CAMERA, 1) || !act.gotPerm(WRITE_EXTERNAL_STORAGE, 1)) return;
+
         final boolean old = false;
         final String MARIA = old ? "HTTP://NEW.RC4.ME/AAB-WeHlioM5JZv1O9G" : "HTTP://6VM.RC4.ME/H010WeHlioM5JZv1O9G";
         final String SUSAN = old ? "HTTP://NEW.RC4.ME/ABB.ZzhWMCq0zcBowqw" : "HTTP://6VM.RC4.ME/G0RZzhWMCq0zcBowqw";

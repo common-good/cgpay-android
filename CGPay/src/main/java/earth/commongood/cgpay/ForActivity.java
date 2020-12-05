@@ -28,6 +28,7 @@ public class ForActivity extends Act {
 
     public void onGoodsClick(View v) {
         if (v.getId() == R.id.goods_usd) {onGoClick(v); return;} // no description needed for USD
+        findViewById(R.id.for_go).setVisibility(View.VISIBLE);
 
         forWhat.setOnEditorActionListener(new EditText.OnEditorActionListener() {
             @Override
